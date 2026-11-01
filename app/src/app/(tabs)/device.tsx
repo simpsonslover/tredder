@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 
 import { useWallet } from '../../state/WalletContext';
-import { requestBlePermissions, scanForWallets, type FoundDevice } from '../../transport/ble';
+import { requestBlePermissions, scanForWallets, waitForBluetooth, type FoundDevice } from '../../transport/ble';
 import { Badge, Button, Card, Row, Screen, T, useTheme } from '../../ui/components';
 
 export default function DeviceScreen() {
@@ -22,6 +22,7 @@ export default function DeviceScreen() {
     try {
       if (!(await requestBlePermissions())) throw new Error('Bluetooth permission denied');
       setScanning(true);
+      await waitForBluetooth();
       stop.current = scanForWallets(
         (d) => setFound((cur) => (cur.some((c) => c.id === d.id) ? cur : [...cur, d])),
         (e) => {

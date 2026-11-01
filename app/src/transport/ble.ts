@@ -7,7 +7,7 @@
 // to send requests over an insecure BLE link.
 import { base64 } from '@scure/base';
 import { PermissionsAndroid, Platform } from 'react-native';
-import { BleManager, type Device, type Subscription } from 'react-native-ble-plx';
+import { BleManager, State, type Device, type Subscription } from 'react-native-ble-plx';
 
 import type { Transport } from './types';
 
@@ -18,6 +18,44 @@ const WANT_MTU = 247;
 
 let manager: BleManager | null = null;
 const ble = () => (manager ??= new BleManager());
+
+const STATE_HELP: Partial<Record<State, string>> = {
+  [State.PoweredOff]: 'Bluetooth is off. Turn it on in Control Center or Settings, then scan again.',
+  [State.Unauthorized]:
+    'Bluetooth permission is off for Tredder Wallet. Allow it in Settings → Privacy & Security → Bluetooth (Android: app permissions → Nearby devices), then scan again.',
+  [State.Unsupported]: 'This phone does not support Bluetooth Low Energy.',
+};
+
+/**
+ * Wait until the Bluetooth stack reports PoweredOn. Right after the BleManager
+ * is created (and while iOS shows its permission prompt) the state is
+ * "Unknown" or "Resetting"; scanning then fails with "BluetoothLE is in
+ * unknown state", so never scan before this resolves.
+ */
+export function waitForBluetooth(timeoutMs = 10_000): Promise<void> {
+  return new Promise((resolve, reject) => {
+    let sub: Subscription | null = null;
+    let done = false;
+    const finish = (err?: Error) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      sub?.remove();
+      if (err) reject(err);
+      else resolve();
+    };
+    const timer = setTimeout(
+      () => finish(new Error('Bluetooth did not become ready. Check that it is on and that Tredder Wallet may use it, then scan again.')),
+      timeoutMs,
+    );
+    sub = ble().onStateChange((state) => {
+      if (state === State.PoweredOn) finish();
+      else if (STATE_HELP[state]) finish(new Error(STATE_HELP[state]));
+      // Unknown / Resetting: keep waiting (iOS permission prompt, radio starting)
+    }, true);
+    if (done) sub.remove();
+  });
+}
 
 export async function requestBlePermissions(): Promise<boolean> {
   if (Platform.OS !== 'android') return true;
@@ -64,6 +102,7 @@ export class BleTransport implements Transport {
   }
 
   static async connect(id: string): Promise<BleTransport> {
+    await waitForBluetooth();
     const m = ble();
     await m.stopDeviceScan();
     let dev = await m.connectToDevice(id, { requestMTU: WANT_MTU, timeout: 15_000 });
