@@ -1,0 +1,29 @@
+{
+  "name": "tredder-device-simulator",
+  "private": true,
+  "type": "module",
+  "description": "Desktop simulator of the tredder hardware wallet (protocol v1 over WebSocket). DEVELOPMENT ONLY: keys are stored unencrypted.",
+  "scripts": {
+    "start": "tsx src/server.ts",
+    "test": "tsx --test test/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@noble/curves": "^2.4.0",
+    "@noble/hashes": "^2.4.0",
+    "@scure/base": "^2.4.0",
+    "@scure/bip32": "^2.4.0",
+    "@scure/bip39": "^2.4.0",
+    "@scure/btc-signer": "^2.4.1",
+    "@solana/web3.js": "^1.99.0",
+    "viem": "^2.57.13",
+    "ws": "^8.22.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/ws": "^8.18.2",
+    "bitcoinjs-lib": "^7.0.5",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}

@@ -1,0 +1,25 @@
+// Gradle init script (installed to ~/.gradle/init.d by devstack.ps1); only active for
+// the "Tredder Wallet" Android build. Windows MAX_PATH workaround for native modules:
+// CMake object paths repeat the full source path and exceed 260 characters from
+// C:\Users\...\Desktop\.... Windows long paths must be enabled (LongPathsEnabled=1),
+// and the build must use tools that support them:
+//   - Ninja >= 1.12 (the SDK's CMake bundles 1.10.2, which is not long-path aware)
+//   - CMake 3.31.5 from the SDK
+// The CMake staging directory is also moved to C:/tcx to keep paths short.
+def sdk = System.getenv('ANDROID_HOME') ?: "${System.getenv('LOCALAPPDATA')}/Android/Sdk"
+def ninja = new File("${sdk}/ninja-1.13.2/ninja.exe")
+
+gradle.beforeProject { p ->
+  if (p.rootProject.name != 'Tredder Wallet') return
+  ['com.android.library', 'com.android.application'].each { id ->
+    p.plugins.withId(id) {
+      def apply = {
+        def c = p.android.externalNativeBuild.cmake
+        c.buildStagingDirectory = new File("C:/tcx/${p.name}")
+        c.version = '3.31.5'
+        if (ninja.exists()) p.android.defaultConfig.externalNativeBuild.cmake.arguments("-DCMAKE_MAKE_PROGRAM=" + ninja.absolutePath.replace(File.separatorChar, (char) '/'))
+      }
+      apply() // must run at plugin-apply time: AGP reads these during evaluation
+    }
+  }
+}

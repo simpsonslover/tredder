@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>tredder simulator</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; font: 14px system-ui, sans-serif; background: #111318; color: #e8eaf0; display: flex; gap: 28px; padding: 28px; flex-wrap: wrap; }
+  .device { background: linear-gradient(160deg, #2b2f38, #1a1d23); border-radius: 26px; padding: 22px; width: 400px; box-shadow: 0 20px 50px #0008, inset 0 1px 0 #ffffff14; }
+  .brand { display: flex; justify-content: space-between; align-items: center; color: #9aa3b5; font-size: 12px; letter-spacing: .12em; margin-bottom: 10px; }
+  .screen { background: #000; border-radius: 6px; width: 360px; height: 270px; padding: 10px 12px; box-sizing: border-box; font-family: ui-monospace, Consolas, monospace; font-size: 15px; line-height: 1.32; overflow: hidden; border: 3px solid #0b0c0f; display: flex; flex-direction: column; }
+  .title { font-weight: 700; color: #fff; border-bottom: 1px solid #333; padding-bottom: 4px; margin-bottom: 6px; white-space: nowrap; overflow: hidden; }
+  .screen.warn .title { color: #fdb022; } .screen.danger .title { color: #ff6b5f; } .screen.danger { border-color: #7a1d17; }
+  .lines div { white-space: pre; color: #d9dde6; }
+  .items { margin-top: 6px; flex: 1; overflow: hidden; display: flex; flex-wrap: wrap; gap: 3px 8px; align-content: flex-start; }
+  .items span { padding: 1px 6px; border-radius: 4px; color: #b8bfcc; }
+  .items span.sel { background: #3b6cf6; color: #fff; }
+  .hint { color: #6f7789; font-size: 12px; margin-top: auto; padding-top: 4px; }
+  .buttons { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; margin-top: 18px; }
+  button { background: #3a3f4b; color: #e8eaf0; border: 0; border-radius: 12px; padding: 14px 0; font-size: 15px; cursor: pointer; box-shadow: 0 3px 0 #15171c; }
+  button:active { transform: translateY(2px); box-shadow: 0 1px 0 #15171c; }
+  button.ok { background: #1f7a4d; } button.no { background: #6b2b26; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 14px; }
+  .chip { font-size: 11px; padding: 3px 8px; border-radius: 99px; background: #2a2f3a; color: #9aa3b5; }
+  .chip.on { background: #12b76a33; color: #3ccb86; } .chip.bad { background: #d92d2033; color: #ff7a70; }
+  .side { flex: 1; min-width: 320px; max-width: 760px; }
+  .warnbox { background: #3b2a06; color: #fdb022; border-radius: 10px; padding: 10px 12px; margin-bottom: 12px; font-size: 13px; }
+  pre { background: #0b0c10; border-radius: 10px; padding: 12px; height: 430px; overflow: auto; font-size: 12px; color: #aab2c2; margin: 0; }
+  kbd { background: #2a2f3a; border-radius: 4px; padding: 1px 5px; font-size: 12px; }
+  #conn { color: #ff7a70; }
+</style>
+</head>
+<body>
+  <div class="device">
+    <div class="brand"><span>TREDDER · SIMULATOR</span><span id="conn">connecting…</span></div>
+    <div class="screen" id="screen"><div class="title" id="title"></div><div class="lines" id="lines"></div><div class="items" id="items"></div><div class="hint" id="hint"></div></div>
+    <div class="buttons">
+      <button data-b="up">▲ Up</button><button data-b="down">▼ Down</button><button class="no" data-b="back">✗ Back</button><button class="ok" data-b="confirm">✓ OK</button>
+    </div>
+    <div class="chips" id="chips"></div>
+  </div>
+  <div class="side">
+    <div class="warnbox">Development simulator: the seed and PIN are stored <b>unencrypted</b> on this PC. Use test phrases and testnets only.</div>
+    <div style="margin-bottom:8px;color:#9aa3b5">Keys: <kbd>↑</kbd> <kbd>↓</kbd> <kbd>Enter</kbd>=OK <kbd>Esc</kbd>=Back · type letters (word entry) or digits (PIN) · <kbd>Backspace</kbd></div>
+    <pre id="log"></pre>
+  </div>
+<script>
+  let ws;
+  const $ = (id) => document.getElementById(id);
+  function render(s) {
+    const v = s.view;
+    $('screen').className = 'screen ' + (v.tone || '');
+    $('title').textContent = v.title;
+    $('lines').innerHTML = '';
+    for (const l of v.lines) { const d = document.createElement('div'); d.textContent = l; $('lines').appendChild(d); }
+    $('items').innerHTML = '';
+    (v.items || []).forEach((it, i) => { const sp = document.createElement('span'); sp.textContent = it; if (i === v.cursor) sp.className = 'sel'; $('items').appendChild(sp); });
+    $('hint').textContent = v.hint || (v.items ? '▲▼ choose · ✓ select · ✗ back' : '');
+    const st = s.status;
+    $('chips').innerHTML = [
+      [st.initialized ? (st.locked ? 'LOCKED' : 'UNLOCKED') : 'NOT SET UP', st.initialized && !st.locked ? 'on' : ''],
+      [st.paired ? 'phone paired' : 'no phone paired', st.paired ? 'on' : ''],
+      ...(st.hasSweepSource ? [['imported seed: sweep pending', '']] : []),
+      ...(st.failedPins ? [[st.failedPins + ' wrong PIN(s)', 'bad']] : []),
+    ].map(([t, c]) => `<span class="chip ${c}">${t}</span>`).join('');
+    const log = $('log'); const atEnd = log.scrollTop + log.clientHeight >= log.scrollHeight - 5;
+    log.textContent = s.log.join('\n'); if (atEnd) log.scrollTop = log.scrollHeight;
+  }
+  function connect() {
+    ws = new WebSocket(`ws://${location.host}/ui`);
+    ws.onopen = () => { $('conn').textContent = '● live'; $('conn').style.color = '#3ccb86'; };
+    ws.onclose = () => { $('conn').textContent = 'simulator stopped'; $('conn').style.color = '#ff7a70'; setTimeout(connect, 1500); };
+    ws.onmessage = (e) => render(JSON.parse(e.data));
+  }
+  const send = (m) => ws && ws.readyState === 1 && ws.send(JSON.stringify(m));
+  document.querySelectorAll('button[data-b]').forEach((b) => b.onclick = () => send({ button: b.dataset.b }));
+  addEventListener('keydown', (e) => {
+    const map = { ArrowUp: 'up', ArrowDown: 'down', Escape: 'back', Enter: 'confirm' };
+    if (map[e.key]) { send({ button: map[e.key] }); e.preventDefault(); }
+    else if (/^[a-z0-9]$/.test(e.key) || e.key === 'Backspace') { send({ key: e.key }); e.preventDefault(); }
+  });
+  connect();
+</script>
+</body>
+</html>

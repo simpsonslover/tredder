@@ -1,0 +1,29 @@
+# dependencies
+node_modules/
+
+# firmware build output (python firmware/tools/build_emu.py, host_test.py)
+firmware/build*/
+
+# python
+__pycache__/
+*.pyc
+
+# KiCad local state
+*.kicad_prl
+*.lck
+fp-info-cache
+*-backups/
+
+# never commit signing material or secrets
+*.p8
+*.p12
+*.key
+*.pem
+*.mobileprovision
+*.jks
+.env*
+
+# iOS sideload builds downloaded from GitHub Actions
+*.ipa
+
+.DS_Store

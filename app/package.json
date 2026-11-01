@@ -1,0 +1,65 @@
+{
+  "name": "tredder-wallet-app",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "dependencies": {
+    "@bitcoinerlab/secp256k1": "^2.0.0",
+    "@expo/vector-icons": "^15.0.2",
+    "@noble/hashes": "^2.4.0",
+    "@scure/base": "^2.4.0",
+    "@scure/bip32": "^2.4.0",
+    "@solana/spl-token": "^0.4.15",
+    "@solana/web3.js": "^1.99.0",
+    "bitcoinjs-lib": "^7.0.5",
+    "buffer": "^6.0.3",
+    "cbor-x": "^1.6.8",
+    "expo": "~58.0.22",
+    "expo-clipboard": "~58.0.4",
+    "expo-constants": "~58.0.14",
+    "expo-crypto": "~58.0.7",
+    "expo-dev-client": "~58.0.18",
+    "expo-linking": "~58.0.15",
+    "expo-router": "~58.0.29",
+    "expo-secure-store": "~58.0.2",
+    "expo-status-bar": "~58.0.4",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-native": "0.88.1",
+    "react-native-ble-plx": "^3.5.1",
+    "react-native-get-random-values": "^2.1.0",
+    "react-native-qrcode-svg": "^6.3.49",
+    "react-native-safe-area-context": "~5.10.1",
+    "react-native-screens": "~4.30.1",
+    "react-native-svg": "15.16.0",
+    "viem": "^2.57.13"
+  },
+  "devDependencies": {
+    "@scure/bip39": "^2.4.0",
+    "@types/jest": "^30.0.0",
+    "@types/react": "~19.3.0",
+    "eslint": "^9.0.0",
+    "eslint-config-expo": "~58.0.4",
+    "jest": "^30.5.2",
+    "jest-expo": "^58.0.13",
+    "typescript": "~6.0.3"
+  },
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "test": "jest",
+    "typecheck": "tsc --noEmit",
+    "lint": "expo lint",
+    "gen:mock": "node tools/gen-mock-device.mjs"
+  },
+  "private": true,
+  "jest": {
+    "preset": "jest-expo",
+    "testMatch": [
+      "<rootDir>/src/**/__tests__/**/*.test.ts"
+    ],
+    "transformIgnorePatterns": [
+      "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|viem|ox|abitype|@noble/.*|@scure/.*|cbor-x|bitcoinjs-lib|@bitcoinerlab/.*|valibot|uint8array-tools|varuint-bitcoin|bip174|bs58check|bs58|base-x|@solana/.*|superstruct|rpc-websockets|uuid|jayson)"
+    ]
+  }
+}
