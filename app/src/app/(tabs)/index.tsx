@@ -6,13 +6,14 @@ import { View } from 'react-native';
 import { CHAINS } from '../../chains/config';
 import { assetKey, type Holding } from '../../chains/types';
 import { useWallet } from '../../state/WalletContext';
+import { assetLogo, chainLogo } from '../../ui/coinLogos';
 import { ActionButton, AllocationBar, Badge, Button, Card, CoinIcon, Row, Screen, Segmented, T, coinColor, useTheme } from '../../ui/components';
 import { formatAmount, formatUsd } from '../../util/amount';
 
 const KIND_LABEL: Partial<Record<Holding['kind'], string>> = { staked: 'staked', nft: 'NFT', lp: 'LP' };
 
 /** Same asset on the same chain, summed over every account that holds it. */
-type Asset = { key: string; chain: Holding['chain']; symbol: string; name: string; decimals: number; kind: Holding['kind']; amount: bigint; usd?: number; accounts: number };
+type Asset = { key: string; chain: Holding['chain']; asset: Holding['asset']; symbol: string; name: string; decimals: number; kind: Holding['kind']; amount: bigint; usd?: number; accounts: number };
 
 function groupAssets(hs: Holding[]): Asset[] {
   const m = new Map<string, Asset>();
@@ -24,7 +25,7 @@ function groupAssets(hs: Holding[]): Asset[] {
       a.usd = a.usd === undefined && h.usdValue === undefined ? undefined : (a.usd ?? 0) + (h.usdValue ?? 0);
       a.accounts++;
     } else {
-      m.set(k, { key: k, chain: h.chain, symbol: h.symbol, name: h.name, decimals: h.decimals, kind: h.kind, amount: h.amount, usd: h.usdValue, accounts: 1 });
+      m.set(k, { key: k, chain: h.chain, asset: h.asset, symbol: h.symbol, name: h.name, decimals: h.decimals, kind: h.kind, amount: h.amount, usd: h.usdValue, accounts: 1 });
     }
   }
   return [...m.values()].sort((a, b) => (b.usd ?? 0) - (a.usd ?? 0) || Number(b.amount > a.amount) - Number(b.amount < a.amount));
@@ -112,7 +113,14 @@ export default function Portfolio() {
           {assets.map((a) => (
             <Row
               key={a.key}
-              icon={<CoinIcon symbol={a.symbol} small={a.kind !== 'native' || (a.chain !== 'eth' && CHAINS[a.chain].symbol === 'ETH') ? CHAINS[a.chain].name : undefined} />}
+              icon={
+                <CoinIcon
+                  symbol={a.symbol}
+                  logo={assetLogo(a)}
+                  small={a.kind !== 'native' || (a.chain !== 'eth' && CHAINS[a.chain].symbol === 'ETH') ? CHAINS[a.chain].name : undefined}
+                  smallLogo={chainLogo(a.chain)}
+                />
+              }
               left={<T kind="h2">{a.name}{KIND_LABEL[a.kind] ? ` (${KIND_LABEL[a.kind]})` : ''}</T>}
               sub={`${chainLabel(a.chain)}${a.accounts > 1 ? ` · ${a.accounts} accounts` : ''}`}
               right={
@@ -129,7 +137,7 @@ export default function Portfolio() {
           {holdings.map((h, i) => (
             <Row
               key={`${h.owner}-${h.symbol}-${i}`}
-              icon={<CoinIcon symbol={h.symbol} size={36} />}
+              icon={<CoinIcon symbol={h.symbol} size={36} logo={assetLogo(h)} small={CHAINS[h.chain].name} smallLogo={chainLogo(h.chain)} />}
               left={<T kind="h2">{`${chainLabel(h.chain)} ${h.account ? `#${h.account + 1}` : ''}`.trim()}</T>}
               sub={h.chain === 'btc' ? `${h.owner} · ${h.scheme}` : `${h.owner.slice(0, 6)}…${h.owner.slice(-4)} · ${h.scheme}`}
               right={

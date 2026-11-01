@@ -2,6 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import type { ComponentProps, ReactNode } from 'react';
 import {
   ActivityIndicator,
+  Image,
   Modal,
   Pressable,
   RefreshControl,
@@ -9,6 +10,7 @@ import {
   Text,
   TextInput,
   View,
+  type ImageSourcePropType,
   type TextInputProps,
   type ViewStyle,
 } from 'react-native';
@@ -217,19 +219,28 @@ export function coinColor(symbol: string): string {
   return `#${f(0)}${f(8)}${f(4)}`;
 }
 
-export function CoinIcon({ symbol, size = 40, small }: { symbol: string; size?: number; small?: string }) {
+/** Coin logo (bundled, see coinLogos.ts) or a letter badge; optional chain marker in the corner. */
+export function CoinIcon({ symbol, size = 40, logo, small, smallLogo }: { symbol: string; size?: number; logo?: ImageSourcePropType; small?: string; smallLogo?: ImageSourcePropType }) {
   const t = useTheme();
   const c = coinColor(symbol);
   return (
     <View style={{ width: size, height: size }}>
-      <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: c + '33', alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ color: c, fontWeight: '800', fontSize: size * (symbol.length > 3 ? 0.26 : 0.32) }}>{symbol.slice(0, 4).toUpperCase()}</Text>
-      </View>
+      {logo ? (
+        <Image source={logo} style={{ width: size, height: size, borderRadius: size / 2 }} accessibilityLabel={symbol} />
+      ) : (
+        <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: c + '33', alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ color: c, fontWeight: '800', fontSize: size * (symbol.length > 3 ? 0.26 : 0.32) }}>{symbol.slice(0, 4).toUpperCase()}</Text>
+        </View>
+      )}
       {small ? (
-        <View style={{ position: 'absolute', right: -3, bottom: -3, backgroundColor: t.bg, borderRadius: 9, padding: 2 }}>
-          <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: coinColor(small), alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ color: '#fff', fontSize: 7, fontWeight: '800' }}>{small.slice(0, 1)}</Text>
-          </View>
+        <View style={{ position: 'absolute', right: -3, bottom: -3, backgroundColor: t.bg, borderRadius: 10, padding: 2 }}>
+          {smallLogo ? (
+            <Image source={smallLogo} style={{ width: 16, height: 16, borderRadius: 8 }} accessibilityLabel={small} />
+          ) : (
+            <View style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: coinColor(small), alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ color: '#fff', fontSize: 8, fontWeight: '800' }}>{small.slice(0, 1)}</Text>
+            </View>
+          )}
         </View>
       ) : null}
     </View>
