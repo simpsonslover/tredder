@@ -19,9 +19,9 @@ The app uses Bluetooth, which needs native code. That means a **development buil
 
 **iPhone (sideload, no Mac, no paid Apple account).**
 1. On GitHub, open **Actions**, choose **iOS unsigned build**, then **Run workflow**. This uses a GitHub macOS machine and takes about 20–30 min.
-   - **Debug** builds a development client that loads the JavaScript from Metro on your PC.
-   - **Release** builds a standalone app. In Release the simulator button is hidden, because `__DEV__` is false.
-2. Download the artifact `tredder-…-unsigned-ipa` from the finished run and unzip it.
+   - **Release** (the default) builds a standalone app that opens by itself; no PC is needed. The simulator button is hidden, because `__DEV__` is false.
+   - **Debug** builds a development client. It opens the Expo launcher and loads the JavaScript from Metro on your PC.
+2. Download the artifact `tredder-Release-unsigned-ipa` (check the name: the `Debug` one opens the Expo launcher) from the finished run and unzip it.
 3. Install [Sideloadly](https://sideloadly.io) on Windows, plug in the iPhone, drop in the `.ipa`, sign in with your Apple ID and press Start. Your Apple ID goes to Apple for signing; using a secondary Apple ID limits the risk.
 4. On the iPhone:
    - Turn on **Settings → Privacy & Security → Developer Mode**.

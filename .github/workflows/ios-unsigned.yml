@@ -11,10 +11,10 @@ on:
   workflow_dispatch:
     inputs:
       configuration:
-        description: "Debug = development client (loads JavaScript from Metro on your PC). Release = standalone app."
+        description: "Release = standalone app, opens by itself. Debug = development client (needs Metro on your PC)."
         type: choice
-        options: [Debug, Release]
-        default: Debug
+        options: [Release, Debug]
+        default: Release
 
 permissions:
   contents: read
@@ -68,6 +68,11 @@ jobs:
         run: |
           set -euo pipefail
           APP=$(ls -d build/Build/Products/"$CONF"-iphoneos/*.app | head -1)
+          if [ "$CONF" = Release ]; then
+            # standalone: the JavaScript bundle must be inside the app, or it would need a dev server
+            test -s "$APP/main.jsbundle" || { echo "::error::main.jsbundle missing from the Release app"; exit 1; }
+            echo "embedded JS bundle: $(du -h "$APP/main.jsbundle" | cut -f1)"
+          fi
           rm -rf Payload && mkdir Payload && cp -R "$APP" Payload/
           zip -qry "tredder-$CONF-unsigned.ipa" Payload
           ls -lh "tredder-$CONF-unsigned.ipa"
