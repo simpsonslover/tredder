@@ -1,8 +1,8 @@
-import { Stack } from 'expo-router';
+import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
 import { WalletProvider, useWallet } from '../state/WalletContext';
-import { ConfirmOnDevice } from '../ui/components';
+import { ConfirmOnDevice, useTheme } from '../ui/components';
 
 function Overlay() {
   const { awaitingUser } = useWallet();
@@ -10,16 +10,28 @@ function Overlay() {
 }
 
 export default function RootLayout() {
+  const t = useTheme();
+  const nav = { ...DarkTheme, colors: { ...DarkTheme.colors, background: t.bg, card: t.bg, text: t.text, border: t.border, primary: t.accent } };
   return (
-    <WalletProvider>
-      <StatusBar style="auto" />
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="import" options={{ title: 'Find accounts' }} />
-        <Stack.Screen name="sweep" options={{ title: 'Sweep to new wallet' }} />
-        <Stack.Screen name="settings" options={{ title: 'Settings' }} />
-      </Stack>
-      <Overlay />
-    </WalletProvider>
+    <ThemeProvider value={nav}>
+      <WalletProvider>
+        <StatusBar style="light" />
+        <Stack
+          screenOptions={{
+            headerStyle: { backgroundColor: t.bg },
+            headerTintColor: t.text,
+            headerShadowVisible: false,
+            headerTitleStyle: { fontWeight: '600' },
+            contentStyle: { backgroundColor: t.bg },
+          }}
+        >
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="import" options={{ title: 'Find accounts' }} />
+          <Stack.Screen name="sweep" options={{ title: 'Sweep to new wallet' }} />
+          <Stack.Screen name="settings" options={{ title: 'Settings' }} />
+        </Stack>
+        <Overlay />
+      </WalletProvider>
+    </ThemeProvider>
   );
 }
