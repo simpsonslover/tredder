@@ -113,6 +113,7 @@ export default function Portfolio() {
           {assets.map((a) => (
             <Row
               key={a.key}
+              onPress={a.kind === 'native' || a.kind === 'token' ? () => router.push({ pathname: '/send', params: { asset: assetKey(a), at: String(Date.now()) } }) : undefined}
               icon={
                 <CoinIcon
                   symbol={a.symbol}

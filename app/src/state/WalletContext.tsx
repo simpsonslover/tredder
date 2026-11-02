@@ -29,6 +29,8 @@ interface Ctx {
   updateSettings(p: Partial<Settings>): Promise<void>;
   device: Device | null;
   awaitingUser: boolean;
+  /** What the device is waiting for: 'pair' (pairing code) or the request type, e.g. 'show-address'. */
+  awaitingKind: string | null;
   connectMock(): Promise<void>;
   connectBle(id: string): Promise<void>;
   connectSim(url?: string): Promise<void>;
@@ -51,6 +53,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [device, setDevice] = useState<Device | null>(null);
   const [awaitingUser, setAwaiting] = useState(false);
+  const [awaitingKind, setAwaitingKind] = useState<string | null>(null);
+  const currentReq = useRef<string | null>(null);
   const [byNet, setByNet] = useState<Record<Net, WalletAccount[]>>({ main: [], test: [] });
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
   const [history, setHistory] = useState<TxRecord[]>([]);
@@ -104,8 +108,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     [accounts.length, settings.net, setAccounts],
   );
 
-  const onEvent = useCallback((e: { event: string }) => {
-    if (e.event === 'awaiting-user') setAwaiting(true);
+  const onEvent = useCallback((e: { event: string; detail?: string }) => {
+    if (e.event === 'awaiting-user') {
+      setAwaiting(true);
+      setAwaitingKind(e.detail === 'pair' ? 'pair' : currentReq.current);
+    }
     if (e.event === 'locked') setError('Device locked');
   }, []);
 
@@ -114,10 +121,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       // Clear the "confirm on device" overlay whenever a request settles.
       const orig = c.request.bind(c);
       c.request = (async (req: Parameters<typeof orig>[0]) => {
+        currentReq.current = req.type;
         try {
           return await orig(req);
         } finally {
+          currentReq.current = null;
           setAwaiting(false);
+          setAwaitingKind(null);
         }
       }) as typeof c.request;
       return c;
@@ -204,8 +214,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }, [ready, accounts, settings.net]);
 
   const value = useMemo<Ctx>(
-    () => ({ ready, settings, updateSettings, device, awaitingUser, connectMock, connectBle, connectSim, reloadDevice, disconnect, accounts, setAccounts, portfolio, history, loading, error, refresh }),
-    [ready, settings, updateSettings, device, awaitingUser, connectMock, connectBle, connectSim, reloadDevice, disconnect, accounts, setAccounts, portfolio, history, loading, error, refresh],
+    () => ({ ready, settings, updateSettings, device, awaitingUser, awaitingKind, connectMock, connectBle, connectSim, reloadDevice, disconnect, accounts, setAccounts, portfolio, history, loading, error, refresh }),
+    [ready, settings, updateSettings, device, awaitingUser, awaitingKind, connectMock, connectBle, connectSim, reloadDevice, disconnect, accounts, setAccounts, portfolio, history, loading, error, refresh],
   );
   return <WalletCtx.Provider value={value}>{children}</WalletCtx.Provider>;
 }

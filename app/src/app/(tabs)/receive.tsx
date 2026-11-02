@@ -1,73 +1,198 @@
+/*
+ * Receive: pick a network, the tredder shows the address, then the app shows the QR.
+ * An address is only displayed after the device has shown it and you confirmed it
+ * matches: a compromised phone cannot swap in its own address (security over speed).
+ */
+import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Clipboard from 'expo-clipboard';
-import { useState } from 'react';
-import { View } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { BackHandler, Share, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 
 import { CHAINS, SCHEME_LABEL } from '../../chains/config';
-import { accountId, verifyReceiveAddress } from '../../state/wallet';
+import { DeviceError } from '../../protocol/types';
+import { accountId, expectedReceiveAddress, verifyReceiveAddress, type WalletAccount } from '../../state/wallet';
 import { useWallet } from '../../state/WalletContext';
-import { Button, Card, Choice, Screen, T } from '../../ui/components';
+import { chainLogo } from '../../ui/coinLogos';
+import { Button, Card, CoinIcon, Row, T, useTheme } from '../../ui/components';
+import { AddressText, IconPill, StepScreen } from '../../ui/flow';
+
+/** What a person calls each account, and which networks it receives on. */
+function describe(a: WalletAccount, net: 'main' | 'test') {
+  if (a.family === 'btc')
+    return { name: a.scheme === 'btc-p2tr' ? 'Bitcoin (Taproot)' : 'Bitcoin', logo: chainLogo('btc'), symbol: 'BTC', networks: CHAINS.btc.net[net].label, only: 'Bitcoin' };
+  if (a.family === 'evm') {
+    const list = (['eth', 'base', 'arbitrum', 'polygon', 'bnb'] as const).map((c) => CHAINS[c].net[net].label);
+    return { name: 'Ethereum & EVM', logo: chainLogo('eth'), symbol: 'ETH', networks: list.join(', '), only: 'Ethereum and EVM-network (' + list.join(', ') + ')' };
+  }
+  return { name: 'Solana', logo: chainLogo('sol'), symbol: 'SOL', networks: CHAINS.sol.net[net].label, only: 'Solana' };
+}
 
 export default function Receive() {
   const w = useWallet();
-  const [sel, setSel] = useState<string | undefined>(w.accounts[0] && accountId(w.accounts[0]));
-  const [verified, setVerified] = useState<{ id: string; address: string; index: number } | null>(null);
+  const t = useTheme();
+  const net = w.settings.net;
+  const [sel, setSel] = useState<WalletAccount | null>(null);
+  const [shown, setShown] = useState<{ id: string; address: string; index: number } | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const acct = w.accounts.find((a) => accountId(a) === sel);
+  const [copied, setCopied] = useState(false);
 
-  const verify = async () => {
-    if (!acct || !w.device) return;
-    setBusy(true);
+  const back = useCallback(() => {
+    if (sel) {
+      setSel(null);
+      setShown(null);
+      setErr(null);
+    } else router.navigate('/');
+    return true;
+  }, [sel]);
+  useFocusEffect(
+    useCallback(() => {
+      const sub = BackHandler.addEventListener('hardwareBackPress', back);
+      return () => sub.remove();
+    }, [back]),
+  );
+
+  const show = async (a: WalletAccount) => {
+    setSel(a);
     setErr(null);
-    setVerified(null);
+    setCopied(false);
+    if (shown?.id === accountId(a)) return;
+    setShown(null);
+    if (!w.device) return;
+    setBusy(true);
     try {
-      const r = await verifyReceiveAddress(w.device.client, acct, w.settings.net, w.portfolio);
-      setVerified({ id: accountId(acct), ...r });
+      const r = await verifyReceiveAddress(w.device.client, a, net, w.portfolio);
+      setShown({ id: accountId(a), ...r });
     } catch (e) {
-      setErr((e as Error).message);
+      setErr(e instanceof DeviceError && e.code === 'USER_REJECTED' ? 'You pressed Back on the device. The address was not confirmed, so it is not shown.' : (e as Error).message);
     } finally {
       setBusy(false);
     }
   };
 
-  const chainsFor = (scheme: string) =>
-    scheme.startsWith('btc') ? CHAINS.btc.net[w.settings.net].label : scheme.startsWith('evm') ? 'Ethereum, Base, BNB, Polygon, Arbitrum' : CHAINS.sol.net[w.settings.net].label;
+  if (!sel)
+    return (
+      <StepScreen title="Receive" onBack={back}>
+        {!w.accounts.length ? (
+          <Card style={{ alignItems: 'center', gap: 12, paddingVertical: 28 }}>
+            <Ionicons name="hardware-chip-outline" size={34} color={t.muted} />
+            <T kind="h2" center>Connect your tredder</T>
+            <T kind="muted" center>Your addresses come from the device.</T>
+            <Button kind="secondary" title="Go to Device" onPress={() => router.navigate('/device')} />
+          </Card>
+        ) : (
+          <>
+            <T kind="muted">Choose the network the sender is using.</T>
+            {w.accounts.map((a) => {
+              const d = describe(a, net);
+              return (
+                <Row
+                  key={accountId(a)}
+                  onPress={() => void show(a)}
+                  icon={<CoinIcon symbol={d.symbol} logo={d.logo} />}
+                  left={<T kind="h2">{d.name + (a.account ? ` #${a.account + 1}` : '')}</T>}
+                  sub={a.family === 'evm' ? d.networks : `${d.networks} · ${SCHEME_LABEL[a.scheme]}`}
+                  right={<Ionicons name="qr-code-outline" size={20} color={t.muted} />}
+                />
+              );
+            })}
+            {net === 'test' ? <T kind="muted">Testnet addresses. Only send test coins here.</T> : null}
+          </>
+        )}
+      </StepScreen>
+    );
 
+  const d = describe(sel, net);
+  const ok = shown?.id === accountId(sel);
   return (
-    <Screen>
-      <T kind="title">Receive</T>
-      {!w.accounts.length ? <T kind="muted">Connect a device first.</T> : null}
-      <Choice
-        options={w.accounts.map((a) => ({ value: accountId(a), label: `${SCHEME_LABEL[a.scheme]}${a.account ? ` #${a.account}` : ''}` }))}
-        value={sel ?? ''}
-        onChange={(v) => {
-          setSel(v);
-          setVerified(null);
-        }}
-      />
-      {acct ? (
-        <Card>
-          <T kind="muted">Works on: {chainsFor(acct.scheme)}</T>
-          {verified?.id === accountId(acct) ? (
-            <View style={{ alignItems: 'center', gap: 12 }}>
-              <T kind="ok">✓ Verified on device</T>
-              <View style={{ backgroundColor: '#fff', padding: 12, borderRadius: 8 }}>
-                <QRCode value={verified.address} size={200} />
-              </View>
-              <T kind="mono" selectable center>{verified.address}</T>
-              {acct.family === 'btc' ? <T kind="muted">Address #{verified.index}. A fresh address is used each time for privacy.</T> : null}
-              <Button kind="secondary" title="Copy address" onPress={() => void Clipboard.setStringAsync(verified.address)} />
+    <StepScreen
+      title={`Receive ${d.symbol}`}
+      onBack={back}
+      footer={
+        ok ? (
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <View style={{ flex: 1 }}>
+              <Button
+                kind="secondary"
+                icon={copied ? 'checkmark' : 'copy-outline'}
+                title={copied ? 'Copied' : 'Copy'}
+                onPress={() => void Clipboard.setStringAsync(shown!.address).then(() => setCopied(true))}
+              />
             </View>
-          ) : (
-            <>
-              <T>The address is shown here only after your device displays it and you confirm it matches.</T>
-              <Button title={w.device ? 'Show address on device' : 'Connect device first'} onPress={verify} loading={busy} disabled={!w.device} />
-            </>
-          )}
-          {err ? <T kind="error">{err}</T> : null}
-        </Card>
-      ) : null}
-    </Screen>
+            <View style={{ flex: 1 }}>
+              <Button icon="share-outline" title="Share" onPress={() => void Share.share({ message: shown!.address })} />
+            </View>
+          </View>
+        ) : !w.device ? (
+          <Button title="Connect your tredder" icon="bluetooth" onPress={() => router.navigate('/device')} />
+        ) : err ? (
+          <Button title="Show on device again" onPress={() => void show(sel)} />
+        ) : null
+      }
+    >
+      {ok ? (
+        <View style={{ alignItems: 'center', gap: 16 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Ionicons name="shield-checkmark" size={16} color={t.ok} />
+            <T kind="ok">Confirmed on your tredder</T>
+          </View>
+          <View style={{ backgroundColor: '#fff', padding: 16, borderRadius: 20 }}>
+            <QRCode value={shown!.address} size={220} ecl="H" logo={d.logo} logoSize={44} logoBackgroundColor="#fff" logoMargin={4} logoBorderRadius={22} />
+          </View>
+          <Card style={{ alignSelf: 'stretch' }}>
+            <AddressText address={shown!.address} center size={16} />
+          </Card>
+          <View style={{ flexDirection: 'row', gap: 10, backgroundColor: t.warn + '1A', borderRadius: 14, padding: 14, alignSelf: 'stretch' }}>
+            <Ionicons name="warning-outline" size={20} color={t.warn} />
+            <View style={{ flex: 1 }}>
+              <T>Only send {d.only} assets to this address.</T>
+              <T kind="muted">Coins sent from another network can be lost.</T>
+            </View>
+          </View>
+          {sel.family === 'btc' ? <T kind="muted" center>A new address is used each time for privacy. Older ones still work.</T> : null}
+        </View>
+      ) : w.device && busy && w.awaitingKind === 'show-address' ? (
+        <View style={{ gap: 16, paddingTop: 10 }}>
+          <View style={{ alignItems: 'center', gap: 12 }}>
+            <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: t.accent + '26', alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name="hardware-chip-outline" size={34} color={t.accent} />
+            </View>
+            <T kind="h2" center>Compare with your tredder</T>
+            <T kind="muted" center>Your tredder is showing your address. It must match this one exactly.</T>
+          </View>
+          <Card>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Ionicons name="time-outline" size={14} color={t.warn} />
+              <T kind="warn">Not verified yet</T>
+            </View>
+            <AddressText address={expectedReceiveAddress(sel, net, w.portfolio).address} center size={16} selectable={false} />
+          </Card>
+          <View style={{ flexDirection: 'row', gap: 10, backgroundColor: t.accent + '1A', borderRadius: 14, padding: 14 }}>
+            <Ionicons name="shield-checkmark-outline" size={20} color={t.accent} />
+            <View style={{ flex: 1 }}>
+              <T>Press Confirm on the tredder only if they match.</T>
+              <T kind="muted">If anything differs, press Back on the tredder. The QR code, Copy and Share appear only after you confirm.</T>
+            </View>
+          </View>
+        </View>
+      ) : (
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, paddingTop: 30 }}>
+          <View style={{ width: 84, height: 84, borderRadius: 42, backgroundColor: t.accent + '26', alignItems: 'center', justifyContent: 'center' }}>
+            <Ionicons name="hardware-chip-outline" size={40} color={t.accent} />
+          </View>
+          <T kind="h2" center>{!w.device ? 'Connect your tredder' : busy ? 'Check your tredder' : err ? 'Not confirmed' : 'Preparing…'}</T>
+          <T kind="muted" center>
+            {!w.device
+              ? 'The address is shown here only after the device has shown it to you.'
+              : busy
+                ? 'It is showing your address. Press Confirm on the device to show it here too.'
+                : err ?? ''}
+          </T>
+          {err ? <IconPill icon="arrow-back" label="Choose another network" onPress={back} /> : null}
+        </View>
+      )}
+    </StepScreen>
   );
 }

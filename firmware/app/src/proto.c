@@ -117,15 +117,18 @@ static void send_error(uint64_t id, const char *code, const char *message) {
   finish(&w);
 }
 
-static void send_event(const char *event, bool with_id, uint64_t id) {
+static void send_event_detail(const char *event, bool with_id, uint64_t id, const char *detail) {
   wl_cbor_w_t w;
   wl_cbor_w_init(&w, out, sizeof(out));
-  wl_cbor_w_map(&w, with_id ? 3 : 2);
+  wl_cbor_w_map(&w, 2 + (with_id ? 1 : 0) + (detail ? 1 : 0));
   wl_cbor_w_kv_text(&w, "type", "event");
   wl_cbor_w_kv_text(&w, "event", event);
   if (with_id) wl_cbor_w_kv_uint(&w, "id", id);
+  if (detail) wl_cbor_w_kv_text(&w, "detail", detail);
   finish(&w);
 }
+
+static void send_event(const char *event, bool with_id, uint64_t id) { send_event_detail(event, with_id, id, NULL); }
 
 static void end_request(void) {
   wl_wipe(&P, sizeof(P));
@@ -346,7 +349,10 @@ static void approved_forget(bool ok) {
 }
 
 static void ask(bool need_pin, ui_done_fn done) {
-  send_event("awaiting-user", true, P.id);
+  /* detail "pair": the prompt is the pairing code, not the request itself (the app keeps
+     its full-screen overlay for pairing, but shows the address next to the device for
+     show-address so the user can compare the two) */
+  send_event_detail("awaiting-user", true, P.id, P.pairing ? "pair" : NULL);
   ui_prompt(&P.rv, need_pin, done);
 }
 

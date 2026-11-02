@@ -96,12 +96,19 @@ export async function loadHistory(accounts: WalletAccount[], net: Net, portfolio
 
 // ---------------------------------------------------------------- receive
 
+/** The receive address this app expects for the account (BTC: next unused). NOT verified:
+ *  shown only for comparing with the device screen, never copied or encoded as a QR. */
+export function expectedReceiveAddress(a: WalletAccount, net: Net, portfolio: Portfolio | null) {
+  const index = a.family === 'btc' ? portfolio?.btc[accountId(a)]?.nextReceive ?? 0 : 0;
+  const address = a.key.kind === 'xpub' ? btcAddress(a.key, a.scheme, net, 0, index) : a.key.address;
+  return { address, index };
+}
+
 /** Ask the device to display the address; only a device-confirmed address is returned. */
 export async function verifyReceiveAddress(client: DeviceClient, a: WalletAccount, net: Net, portfolio: Portfolio | null) {
-  const index = a.family === 'btc' ? portfolio?.btc[accountId(a)]?.nextReceive ?? 0 : 0;
+  const { address: expected, index } = expectedReceiveAddress(a, net, portfolio);
   const r = await client.request({ type: 'show-address', wallet: 'active', net, scheme: a.scheme, account: a.account, change: 0, index });
   // The app also derives what it expects and refuses if the device disagrees.
-  const expected = a.key.kind === 'xpub' ? btcAddress(a.key, a.scheme, net, 0, index) : a.key.address;
   if (r.address !== expected) throw new Error('Device returned a different address than this account: do not use it.');
   if (!r.confirmed) throw new Error('Not confirmed on the device');
   return { address: r.address, index };

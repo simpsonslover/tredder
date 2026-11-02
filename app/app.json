@@ -34,7 +34,15 @@
           "bluetoothAlwaysPermission": "Tredder uses Bluetooth to talk to your hardware wallet."
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Tredder uses the camera only to scan a recipient's address QR code.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ]
     ],
     "scheme": "tredder",
     "experiments": {

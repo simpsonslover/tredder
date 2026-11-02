@@ -62,6 +62,8 @@ Request: `{ id: uint, type: string, ...params }`
 Response: `{ id, ok: true, result }` or `{ id, ok: false, error: { code, message } }`
 Event (device → app, no reply): `{ type: "event", event: "awaiting-user" | "locked" | "progress", id?, detail? }`
 
+`awaiting-user` carries `detail: "pair"` while the device shows the pairing code (before the request itself); otherwise no detail.
+
 | type | params | result | Device shows / needs |
 |---|---|---|---|
 | `get-info` | — | `{ model, firmware, protocol, initialized, locked, hasSweepSource }` | nothing |
