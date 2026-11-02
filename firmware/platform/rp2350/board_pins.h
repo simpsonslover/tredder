@@ -20,7 +20,7 @@
 #define PIN_BTN_DOWN    15u  /* active low, external pull-up + RC debounce [BTN_DOWN] */
 #define PIN_UART_TX     16u  /* UART0 TX debug console (disable in production) [UART_TX] */
 #define PIN_UART_RX     17u  /* UART0 RX debug console (disable in production) [UART_RX] */
-#define PIN_SPARE_GP18  18u  /* test pad TP8 [GP18] */
+#define PIN_LCD_PWR_N   18u  /* low = display module powered (Q5); drive LCD pins LOW before power-off [LCD_PWR_N] */
 #define PIN_LCD_BL_N    19u  /* low = backlight on (Q4), PWM capable [LCD_BL_N] */
 #define PIN_LCD_RST     20u  /* ST7789 reset, active low [LCD_RST] */
 #define PIN_LCD_CS      21u  /* ST7789 CS (GPIO) [LCD_CS] */

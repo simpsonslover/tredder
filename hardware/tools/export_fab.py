@@ -179,7 +179,7 @@ For assembly, also upload a BOM (`-bom-pcbway.csv` or `-bom-jlc.csv`) and the pi
 | Stack-up | L1 F.Cu signal / L2 In1.Cu GND plane / L3 In2.Cu +3V3 plane / L4 B.Cu signal + GND. Fab's standard 4-layer stack-up is fine (no impedance control needed) |
 | Min track / spacing | 0.15 mm / 0.15 mm (6/6 mil); design rule floor 0.127 mm |
 | Min hole | 0.3 mm (vias 0.6/0.3 mm, power vias 0.8/0.4 mm) |
-| Via process | tented vias |
+| Via process | **Plugged** (JLCPCB's name for ink-plugged, mask-covered vias; was "tented"). Not "Untented"; filled & capped is not needed (no via-in-pad) |
 | Surface finish | **ENIG** (flat pads for the castellated Pico 2 W and the 0.5 mm-pitch OPTIGA) |
 | Copper | 1 oz outer, 0.5 oz inner |
 | Solder mask / silk | any colour (green / white is cheapest) |
@@ -245,7 +245,7 @@ def bundle():
         "==================================",
         "",
         f"1. Quote page: upload {NAME}-gerbers.zip  (do NOT unzip it)",
-        "   Layers 4 | 1.6 mm | ENIG | Via covering: Tented",
+        "   Layers 4 | 1.6 mm | ENIG | Via covering: Plugged",
         "2. Same page, bottom: PCB Assembly ON -> Standard, Top side, Qty 2-5,",
         "   Tooling holes by JLCPCB, Confirm parts placement: Yes -> NEXT -> NEXT",
         f"3. Upload page:  BOM = {NAME}-bom-jlc.csv   CPL = {NAME}-cpl-jlc.csv",
