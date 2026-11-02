@@ -72,6 +72,8 @@ def import_ses(ses):
         add_battery.add(board, (100.0, 100.0))
     pcbnew.ZONE_FILLER(board).Fill(board.Zones())
     board.Save(PCB)
+    import clean_tracks  # Freerouting leaves duplicate segments and dead-end spurs
+    clean_tracks.main(PCB)
     print("routed ->", PCB)
 
 

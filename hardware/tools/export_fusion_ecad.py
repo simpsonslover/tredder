@@ -29,7 +29,7 @@ HW = os.path.abspath(os.path.join(HERE, ".."))
 OUT = os.path.join(HW, "fusion_ecad")
 CLI = r"C:\Program Files\KiCad\10.0\bin\kicad-cli.exe"
 KICAD9 = "20241229"     # board file version of KiCad 9, the last one with numbered nets
-COPY = ["wallet.kicad_sch", "wallet.kicad_pro", "wallet.kicad_sym", "fp-lib-table", "sym-lib-table"]
+COPY = ["wallet.kicad_sch", "wallet.kicad_pro", "wallet.kicad_dru", "wallet.kicad_sym", "fp-lib-table", "sym-lib-table"]
 
 
 def node_start(t, pos):
@@ -228,23 +228,24 @@ def main():
         sys.exit("export_fusion_ecad: renaming pins changed the schematic's connections")
     rename = {k: by_nodes[v] for k, v in old.items() if by_nodes[v] != k}
 
-    fixed = os.path.join(OUT, "_fixed.kicad_pcb")     # geometry fixes, still KiCad 10 format
-    text, geo = fusion_geometry(src)
-    with open(fixed, "w", encoding="utf8", newline="\n") as fh:
-        fh.write(text)
-    board = pcbnew.LoadBoard(fixed)                     # re-pour: holes became edge cut-outs (0.3 mm rule)
-    pcbnew.ZONE_FILLER(board).Fill(board.Zones())
-    board.Save(fixed)
-    text = open(fixed, encoding="utf8").read()
-    for a, b in rename.items():
-        text = text.replace(f'(net "{a}")', f'(net "{b}")')
-    out, code = downgrade(text)
+    # geometry fixes, still in KiCad 10 format. Written as wallet.kicad_pcb next to the copied
+    # wallet.kicad_pro, so the re-pour (holes became edge cut-outs) uses this project's rules
     dst = os.path.join(OUT, "wallet.kicad_pcb")
+    text, geo = fusion_geometry(src)
+    with open(dst, "w", encoding="utf8", newline="\n") as fh:
+        fh.write(text)
+    board = pcbnew.LoadBoard(dst)
+    pcbnew.ZONE_FILLER(board).Fill(board.Zones())
+    board.Save(dst)
+    a = nets_of(board)
+    text = open(dst, encoding="utf8").read()
+    for x, y in rename.items():
+        text = text.replace(f'(net "{x}")', f'(net "{y}")')
+    out, code = downgrade(text)
     with open(dst, "w", encoding="utf8", newline="\n") as fh:
         fh.write(out)
 
-    a, b = nets_of(pcbnew.LoadBoard(fixed)), nets_of(pcbnew.LoadBoard(dst))
-    os.remove(fixed)
+    b = nets_of(pcbnew.LoadBoard(dst))
     a = ({k: rename.get(v, v) for k, v in a[0].items()},
          sorted(x[:-1] + (rename.get(x[-1], x[-1]),) for x in a[1]),
          sorted((rename.get(n, n), l) for n, l in a[2]))
