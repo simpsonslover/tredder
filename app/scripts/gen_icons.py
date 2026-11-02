@@ -1,54 +1,52 @@
 """
-Draw the Tredder logo (a T between two corner brackets) and write every app icon from it,
-so the iOS icon, Android adaptive icon, favicon and splash all match.
+Make every app icon from the hand-drawn logo in assets/logo-drawing.png, so the iOS icon,
+Android adaptive icon, favicon and splash all show the same drawing.
 
   python scripts/gen_icons.py      (needs Pillow)
 
-The logo is defined on a 100 x 100 grid; each image is drawn 4x larger and scaled down
-for smooth edges.
+The drawing is used as it is (not redrawn): its white strokes are cut out of the grey
+background and placed, centred, on square canvases of the size each platform needs.
 """
 import os
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageChops
 
 ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets")
-BG = (55, 55, 55)          # #373737, the grey of the original drawing
-FG = (255, 255, 255)
-SS = 4                     # supersampling
-
-W = 7.5                    # stroke width
-# (x0, y0, x1, y1) rectangles on the 100-unit grid; the logo spans 16..84
-SHAPES = [
-    (16, 16, 49, 16 + W), (16, 16, 16 + W, 49),          # top-left bracket
-    (51, 84 - W, 84, 84), (84 - W, 51, 84, 84),          # bottom-right bracket
-    (33, 31, 67, 31 + W),                                # T bar
-    (50 - W * 0.6, 31, 50 + W * 0.6, 69),                # T stem
-]
+SOURCE = os.path.join(ASSETS, "logo-drawing.png")
+BG = (55, 55, 55)          # #373737, the drawing's background grey
 
 
-def logo(size, scale=1.0, bg=BG, fg=FG):
-    """size px square. scale shrinks the logo around the centre (1.0 = logo spans 16..84 %)."""
-    n = size * SS
-    im = Image.new("RGBA", (n, n), bg + (255,) if bg else (0, 0, 0, 0))
-    d = ImageDraw.Draw(im)
-    u = n / 100.0
-    r = W * u * 0.18       # slightly rounded stroke corners
-    for x0, y0, x1, y1 in SHAPES:
-        box = [((c - 50) * scale + 50) * u for c in (x0, y0, x1, y1)]
-        d.rounded_rectangle(box, radius=r * scale, fill=fg + (255,))
-    return im.resize((size, size), Image.LANCZOS)
+def strokes():
+    """The drawing's strokes as white with an alpha mask, cropped to the strokes."""
+    gray = Image.open(SOURCE).convert("L")
+    # background 55 -> alpha 0, white 255 -> alpha 255, keeping the soft edges
+    alpha = gray.point(lambda v: max(0, min(255, (v - BG[0]) * 255 // (255 - BG[0]))))
+    alpha = alpha.point(lambda a: 0 if a < 8 else a)        # drop faint noise
+    box = alpha.getbbox()
+    white = Image.new("RGBA", gray.size, (255, 255, 255, 0))
+    white.putalpha(alpha)
+    return white.crop(box)
+
+
+def icon(size, fill, bg):
+    """size px square; the drawing's longer side takes `fill` of the width."""
+    art = strokes()
+    s = fill * size / max(art.size)
+    art = art.resize((round(art.width * s), round(art.height * s)), Image.LANCZOS)
+    im = Image.new("RGBA", (size, size), bg + (255,) if bg else (0, 0, 0, 0))
+    im.alpha_composite(art, ((size - art.width) // 2, (size - art.height) // 2))
+    return im
 
 
 def main():
     out = lambda name: os.path.join(ASSETS, name)
-    logo(1024).convert("RGB").save(out("icon.png"))                      # iOS: square, no transparency
-    # Android adaptive: the launcher masks to a circle/squircle and only the centre 66/108
-    # is always visible, so the logo is shrunk to fit inside that circle
-    logo(512, scale=0.62, bg=None).save(out("android-icon-foreground.png"))
+    icon(1024, 0.83, BG).convert("RGB").save(out("icon.png"))          # iOS: square, no transparency
+    # Android adaptive: only the centre 66/108 is always visible after the launcher's mask
+    icon(512, 0.44, None).save(out("android-icon-foreground.png"))
     Image.new("RGBA", (512, 512), BG + (255,)).save(out("android-icon-background.png"))
-    logo(432, scale=0.62, bg=None, fg=(255, 255, 255)).save(out("android-icon-monochrome.png"))
-    logo(48).save(out("favicon.png"))
-    logo(1024, scale=0.6, bg=None).save(out("splash-icon.png"))
+    icon(432, 0.44, None).save(out("android-icon-monochrome.png"))
+    icon(48, 0.9, BG).save(out("favicon.png"))
+    icon(1024, 0.5, None).save(out("splash-icon.png"))
     print("icons written to", os.path.abspath(ASSETS))
 
 
