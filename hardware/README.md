@@ -16,6 +16,7 @@ Everything is generated from **[tools/design.py](tools/design.py)**, which defin
 | `sim/` | Circuit simulation of the whole board (ngspice), 18 tests: see §9 and [sim/README.md](sim/README.md) |
 | `tools/sync_values.py` | Pushes value-only changes from `design.py` into the routed PCB without touching copper |
 | `mech/` | STEP for Fusion / MCAD: `tredder-revA.step` (detailed, for the enclosure) and `tredder-revA-sim.step` (clean solids for simulation). Setup: [mech/FUSION_SIM.md](mech/FUSION_SIM.md). Rebuild: `tools/export_mech.py` (KiCad python) |
+| `mech/tredder-revA-fusion-ecad.zip` | The KiCad project for **Fusion's electronics import** (schematic + board). KiCad 10 writes nets in a form Fusion can't read (every pad comes in with no net), so `tools/export_fusion_ecad.py` writes the board with KiCad 9 net syntax and checks every net survives. Import `wallet.kicad_pro` from this zip, not from this folder |
 | `3d/` | The project's own STEP models (display module, LiPo, and parts missing from KiCad's library), from `tools/gen_step_models.py` |
 
 ---
