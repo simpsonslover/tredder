@@ -57,6 +57,9 @@ def drc_gate():
                          f"(see {rpt}). Route the board and fix DRC first.")
     os.remove(rpt)
     print(f"DRC ok ({len(kinds)} known/benign items)")
+    # JLCPCB hole spacing, which KiCad 10's DRC does not check here (tools/check_jlc.py)
+    import check_jlc
+    check_jlc.main(PCB)
 
 
 def gerbers():

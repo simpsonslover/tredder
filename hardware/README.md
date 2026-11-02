@@ -14,7 +14,8 @@ Everything is generated from **[tools/design.py](tools/design.py)**, which defin
 | `erc.rpt`, `drc.rpt` | Last ERC/DRC results |
 | `tools/build.ps1` | Regenerates everything and reruns ERC/DRC |
 | `sim/` | Circuit simulation of the whole board (ngspice), 18 tests: see §9 and [sim/README.md](sim/README.md) |
-| `wallet.kicad_dru` | JLCPCB 4-layer rules (same as `jlcpcb-4L.edru` in Fusion) that KiCad has no board-wide setting for: PTH pad ring ≥ 0.18 mm, via ring ≥ 0.15 mm, PTH pad spacing ≥ 0.15 mm, inner-layer hole clearances. KiCad's DRC uses it automatically |
+| `wallet.kicad_dru` + `wallet.kicad_pro` constraints | **JLCPCB's published multilayer limits** (jlcpcb.com/capabilities/pcb-capabilities, read 2026-11-01; re-check before ordering): track/space 0.09, via 0.15/0.25, PTH ring ≥ 0.15, PTH hole to track ≥ 0.28, SMD pad spacing ≥ 0.15, pad to track ≥ 0.1, copper to edge ≥ 0.2, NPTH ≥ 0.5, inner hole clearances 0.2/0.3, silkscreen text ≥ 1.0 mm / line ≥ 0.15 mm. KiCad's DRC uses them automatically |
+| `tools/check_jlc.py` | JLCPCB hole-to-hole spacing (PTH ≥ 0.45 mm, other ≥ 0.2 mm), which KiCad 10's DRC does not check in this project; `export_fab.py` refuses to build the order without it |
 | `tools/clean_tracks.py` | Removes Freerouting's duplicate segments and dead-end spurs (Fusion's "Wire Stub" check) without changing a connection; `route.py` runs it after every import |
 | `tools/sync_values.py` | Pushes value-only changes from `design.py` into the routed PCB without touching copper |
 | `mech/` | STEP for Fusion / MCAD: `tredder-revA.step` (detailed, for the enclosure) and `tredder-revA-sim.step` (clean solids for simulation). Setup: [mech/FUSION_SIM.md](mech/FUSION_SIM.md). Rebuild: `tools/export_mech.py` (KiCad python) |

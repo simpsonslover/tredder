@@ -114,10 +114,16 @@ def zone(board, net, layer, prio=0, inset=0.3):
     board.Add(z)
 
 
+SILK_MIN_H, SILK_MIN_W = 1.0, 0.15   # JLCPCB: silkscreen text >= 1.0 mm high, line >= 0.15 mm
+
+
 def text(board, s, x, y, layer=pcbnew.F_SilkS, size=1.0, rot=0):
     t = pcbnew.PCB_TEXT(board)
     t.SetText(s); t.SetPosition(P(x, y)); t.SetLayer(layer)
-    t.SetTextSize(pcbnew.VECTOR2I(mm(size), mm(size))); t.SetTextThickness(mm(size * 0.15))
+    w = size * 0.15
+    if layer in (pcbnew.F_SilkS, pcbnew.B_SilkS):
+        size, w = max(size, SILK_MIN_H), max(w, SILK_MIN_W)
+    t.SetTextSize(pcbnew.VECTOR2I(mm(size), mm(size))); t.SetTextThickness(mm(w))
     t.SetTextAngleDegrees(rot)
     t.SetMirrored(layer == pcbnew.B_SilkS)
     board.Add(t)

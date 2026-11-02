@@ -1,6 +1,6 @@
 # Hardware simulation report
 
-Generated 2026-11-01 21:02 by `sim/run_all.py` from `tools/design.py` (ngspice from KiCad + behavioural models; see `sim/README.md` for what is and isn't modelled).
+Generated 2026-11-01 21:10 by `sim/run_all.py` from `tools/design.py` (ngspice from KiCad + behavioural models; see `sim/README.md` for what is and isn't modelled).
 
 | Status | Test | What it checks |
 |---|---|---|
@@ -85,7 +85,7 @@ Worst-case simultaneous loads on the Pico's 3V3 output (Raspberry Pi recommends 
 
 ## kicad_checks
 
-**KiCad ERC, DRC and schematic/PCB parity** - PASS (4.9 s)
+**KiCad ERC, DRC and schematic/PCB parity** - PASS (4.7 s)
 
 Runs kicad-cli on the real project files.
 
@@ -172,7 +172,7 @@ Battery 3.7 V and 3.4 V, no USB, power switch turned ON at 1 ms.
 
 ## usb_hotplug
 
-**USB-C hot-plug and unplug with battery (load sharing)** - PASS (6.5 s)
+**USB-C hot-plug and unplug with battery (load sharing)** - PASS (6.6 s)
 
 Battery 3.7 V, switch ON, MCU running. A live 5 V charger is hot-plugged through a cable of 1 uH / 0.1 Ohm (worst-case ringing) and later unplugged. Ringing is simulated with a 5 ns step for both ends of the PTC fuse range (0.15 / 0.3 Ohm).
 
@@ -337,7 +337,7 @@ GP11 low at 1 ms (SE on), RST released at 2 ms; at 20 ms RST low then GP11 high 
 
 ## i2c_timing
 
-**I2C edge rates to the secure element** - PASS (0.4 s)
+**I2C edge rates to the secure element** - PASS (0.5 s)
 
 SE powered, MCU pulls SDA (open-drain) at 400 kHz. Bus = MCU pin 5 pF + SE 10 pF + trace 15 pF (assumed). I2C spec rise time (30->70 %): Fm <= 300 ns, Fm+ <= 120 ns.
 
