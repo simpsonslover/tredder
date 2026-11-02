@@ -14,6 +14,7 @@ via and zone net with the original.
 
 Run with KiCad's python:  & "C:\\Program Files\\KiCad\\10.0\\bin\\python.exe" tools/export_fusion_ecad.py
 """
+import math
 import os
 import re
 import shutil
@@ -121,6 +122,56 @@ def unique_pin_names(text):
     return text, len(edits)
 
 
+def block_end(text, s):
+    """Index of the ')' closing the s-expression that opens at s."""
+    depth, i = 0, s
+    while True:
+        if text[i] == "(":
+            depth += 1
+        elif text[i] == ")":
+            depth -= 1
+            if depth == 0:
+                return i
+        i += 1
+
+
+def plain_custom_pads(text):
+    """Custom-shaped SMD pads (the Pico's pin 1 and GND pins: a rectangle plus a rounded lobe,
+    drawn as copper primitives) reach Fusion as a pad plus loose copper shapes with no net,
+    which Fusion reports as Overlap / Copper Clearance. Replace each with a standard
+    rounded-rectangle pad covering the same outline (the shapes' bounding box, centred)."""
+    out, n, pos = [], 0, 0
+    for m in re.finditer(r'\(pad "([^"]*)" smd custom', text):
+        if m.start() < pos:
+            continue
+        s, e = m.start(), block_end(text, m.start())
+        blk = text[s:e + 1]
+        xs, ys = [], []
+        for x, y in re.findall(r"\(xy ([-\d.]+) ([-\d.]+)\)", blk):
+            xs.append(float(x))
+            ys.append(float(y))
+        for cx, cy, ex, ey in re.findall(r"\(gr_circle\s*\(center ([-\d.]+) ([-\d.]+)\)\s*\(end ([-\d.]+) ([-\d.]+)\)", blk):
+            r = math.hypot(float(ex) - float(cx), float(ey) - float(cy))
+            xs += [float(cx) - r, float(cx) + r]
+            ys += [float(cy) - r, float(cy) + r]
+        if not xs or abs(max(xs) + min(xs)) > 0.01 or abs(max(ys) + min(ys)) > 0.01:
+            continue                                         # not centred: leave it alone
+        keep = [re.search(r"\(at [^)]*\)", blk).group(0),
+                re.search(r"\(layers [^)]*\)", blk).group(0)]
+        for k in (r'\(net "[^"]*"\)', r'\(uuid "[^"]*"\)'):
+            mm_ = re.search(k, blk)
+            if mm_:
+                keep.append(mm_.group(0))
+        w, h = max(xs) - min(xs), max(ys) - min(ys)
+        new = (f'(pad "{m.group(1)}" smd roundrect {keep[0]} (size {w:.4g} {h:.4g}) {keep[1]} '
+               f'(roundrect_rratio 0.25) ' + " ".join(keep[2:]) + ")")
+        out.append(text[pos:s] + new)
+        pos = e + 1
+        n += 1
+    out.append(text[pos:])
+    return "".join(out), n
+
+
 def fusion_geometry(src):
     """Text of src with the changes Fusion needs to see the same board KiCad sees.
     Copper is unchanged. KiCad's python finds the items (removing pads through it
@@ -128,7 +179,7 @@ def fusion_geometry(src):
     board = pcbnew.LoadBoard(src)
     text = open(src, encoding="utf8").read()
     drop, add = set(), []
-    n = {"paste_pads": 0, "npth": 0, "stubs": 0}
+    n = {"paste_pads": 0, "npth": 0, "stubs": 0, "custom": 0}
     mm = lambda v: f"{pcbnew.ToMM(v):.6f}".rstrip("0").rstrip(".")
     for fp in board.GetFootprints():
         for p in fp.Pads():
@@ -164,6 +215,7 @@ def fusion_geometry(src):
                        f"(layer \"{board.GetLayerName(t.GetLayer())}\") (net \"{t.GetNetname()}\") "
                        f"(uuid \"{uuid.uuid4()}\"))")
             n["stubs"] += 1
+    text, n["custom"] = plain_custom_pads(text)
     for u in drop:                                          # delete each (pad ...) block by its uuid
         k = text.index(f'(uuid "{u}")')
         s = node_start(text, k)
@@ -264,7 +316,8 @@ def main():
     os.remove(rpt)
     if "Found 0 unconnected items" not in log or "Found 0 schematic parity issues" not in log:
         sys.exit("export_fusion_ecad: the Fusion copy fails KiCad's connection/parity check:\n" + log)
-    print(f"geometry for Fusion: {geo['paste_pads']} copper-less paste pads removed, {geo['npth']} plain holes "
+    print(f"geometry for Fusion: {geo['custom']} custom-shaped pads made standard, "
+          f"{geo['paste_pads']} copper-less paste pads removed, {geo['npth']} plain holes "
           f"made board cut-outs, {geo['stubs']} track ends joined to their via/pad centre")
     print("KiCad DRC of the copy:", " / ".join(l for l in log.splitlines() if l.startswith("Found")))
     print(f"fusion_ecad: {len(code)} nets ({len(rename)} renamed), {len(pads)} connected pads, "
