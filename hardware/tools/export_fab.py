@@ -194,7 +194,35 @@ def main():
     rows = placement()
     boms()
     notes(len(rows))
+    bundle()
     print("fab package ->", OUT)
+
+
+def bundle():
+    """One zip with everything for a JLCPCB order with full assembly. The Gerber zip stays a separate zip
+    inside it: JLCPCB builds the board from the Gerber zip and takes the BOM / CPL in the assembly step."""
+    howto = "\r\n".join([
+        "JLCPCB order, full assembly (PCBA)",
+        "==================================",
+        "",
+        f"1. Quote page: upload {NAME}-gerbers.zip  (do NOT unzip it)",
+        "   Layers 4 | 1.6 mm | ENIG | Via covering: Tented",
+        "2. Same page, bottom: PCB Assembly ON -> Standard, Top side, Qty 2-5,",
+        "   Tooling holes by JLCPCB, Confirm parts placement: Yes -> NEXT -> NEXT",
+        f"3. Upload page:  BOM = {NAME}-bom-jlc.csv   CPL = {NAME}-cpl-jlc.csv",
+        "   -> Process BOM & CPL",
+        "4. U2 (OPTIGA Trust M, SLS32AIA010MKUSON10XTMA2): choose Global Sourcing",
+        "5. Check the placement preview (rotations), then Save to Cart",
+        "",
+        "Details: FAB_NOTES.md",
+        ""])
+    z = os.path.join(OUT, f"{NAME}-jlcpcb-order.zip")
+    with zipfile.ZipFile(z, "w", zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr("READ_ME_FIRST.txt", howto)
+        for f in (f"{NAME}-gerbers.zip", f"{NAME}-bom-jlc.csv", f"{NAME}-cpl-jlc.csv", "FAB_NOTES.md"):
+            zf.write(os.path.join(OUT, f), f)
+    print("order bundle ->", z)
+
 
 
 if __name__ == "__main__":
