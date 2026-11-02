@@ -1042,7 +1042,7 @@
 				)
 			)
 		)
-		(property "Description" ""
+		(property "Description" "Not the DM3AT-SF-PEJM5(40) variant (C597971)"
 			(at 0 0 0)
 			(unlocked yes)
 			(layer "F.Fab")
@@ -1067,7 +1067,7 @@
 				)
 			)
 		)
-		(property "LCSC" ""
+		(property "LCSC" "C114218"
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
@@ -5286,7 +5286,7 @@
 				)
 			)
 		)
-		(property "Description" "Not stocked at LCSC: buy from Mouser/Digi-Key/Farnell and hand-place, or JLC global sourcing"
+		(property "Description" "Not stocked at LCSC: JLCPCB global sourcing by MPN (from an authorised distributor), or consign your own"
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
@@ -6131,7 +6131,7 @@
 				)
 			)
 		)
-		(property "MPN" "SMD1206P050TF (or eq. 0.5 A hold)"
+		(property "MPN" "SMD1206-050 (JKSEMI, 6 V, 0.5 A hold, 1 A trip)"
 			(at 0 0 90)
 			(layer "F.Fab")
 			(hide yes)
@@ -6143,7 +6143,7 @@
 				)
 			)
 		)
-		(property "LCSC" ""
+		(property "LCSC" "C2846128"
 			(at 0 0 90)
 			(layer "F.Fab")
 			(hide yes)
@@ -7592,7 +7592,7 @@
 				)
 			)
 		)
-		(property "LCSC" ""
+		(property "LCSC" "C221665"
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
@@ -10843,7 +10843,7 @@
 				)
 			)
 		)
-		(property "MPN" "2.54mm 1x8 female header"
+		(property "MPN" "2.54-1*8P female header, 8.5 mm (BOOMELE)"
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
@@ -10855,7 +10855,7 @@
 				)
 			)
 		)
-		(property "LCSC" ""
+		(property "LCSC" "C27438"
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
@@ -17879,7 +17879,7 @@
 				)
 			)
 		)
-		(property "Description" "Buy from an authorised Raspberry Pi reseller; check RP2350 stepping (A4 or later) on arrival"
+		(property "Description" "JLCPCB SMT-assembles the module (extended part); check RP2350 stepping (A4 or later) on arrival"
 			(at 0 0 90)
 			(layer "F.Fab")
 			(hide yes)
@@ -17903,7 +17903,7 @@
 				)
 			)
 		)
-		(property "LCSC" ""
+		(property "LCSC" "C42394205"
 			(at 0 0 90)
 			(layer "F.Fab")
 			(hide yes)

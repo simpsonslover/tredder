@@ -15,7 +15,8 @@ from collections import OrderedDict
 import design as D
 
 OUT = os.path.join(os.path.dirname(__file__), "..", "bom")
-HAND = {"A1", "U2", "J4", "SW1", "J3", "J2", "F1"}  # source yourself / hand-solder (see notes)
+HAND = set()       # nothing is hand-soldered: JLCPCB assembles every fitted part
+GLOBAL = {"U2"}    # no LCSC stock: JLCPCB "global sourcing" buys it by MPN from an authorised distributor
 
 
 def natural(ref):
@@ -38,7 +39,7 @@ def main():
         for (val, fp, mpn, lcsc), refs in groups.items():
             p = D.P[refs[0]]
             populate = "DNP" if p["dnp"] else "yes"
-            source = "hand / other distributor" if set(refs) & HAND else ("none" if p["dnp"] else "JLCPCB")
+            source = "none" if p["dnp"] else ("JLCPCB global sourcing (MPN)" if set(refs) & GLOBAL else "JLCPCB / LCSC")
             verify = "" if (p["lcsc_ok"] or p["dnp"]) else "YES - LCSC number / stock / pinout"
             notes = "; ".join(sorted({D.P[r]["note"] for r in refs if D.P[r]["note"]}))
             w.writerow([len(refs), " ".join(refs), val, mpn, lcsc, fp.split(":")[1], populate, source, verify, notes])
@@ -50,6 +51,8 @@ def main():
             refs = [r for r in refs if not D.P[r]["dnp"] and r not in HAND]
             if refs and lcsc:
                 w.writerow([f"{val} {mpn}".strip(), ",".join(refs), fp.split(":")[1], lcsc])
+            elif refs and set(refs) & GLOBAL:  # blank LCSC: JLC matches the MPN and offers global sourcing
+                w.writerow([mpn, ",".join(refs), fp.split(":")[1], ""])
     write_parts_list(groups)
     print("bom written to", os.path.abspath(OUT))
 
@@ -90,7 +93,7 @@ def write_parts_list(groups):
         row = (len(refs), " ".join(refs), val, mpn, lcsc, fp.split(":")[1], verify)
         if p["dnp"]:
             rows_dnp.append(row)
-        elif set(refs) & HAND:
+        elif set(refs) & GLOBAL:
             rows_hand.append(row + ("; ".join(sorted({D.P[r]["note"] for r in refs if D.P[r]["note"]})),))
         else:
             rows_jlc.append(row)
@@ -103,11 +106,12 @@ def write_parts_list(groups):
          "## Summary", "",
          "| What | Where | Line items | Parts |", "|---|---|---|---|",
          f"| PCB, 4-layer | JLCPCB (or any fab) | 1 | 1 |",
-         f"| Parts JLCPCB assembles | JLCPCB assembly | {len(rows_jlc)} | {sum(r[0] for r in rows_jlc)} |",
-         f"| Parts you buy and solder | other distributors | {len(rows_hand)} | {sum(r[0] for r in rows_hand)} |",
+         f"| Parts JLCPCB sources (LCSC) and assembles | JLCPCB assembly | {len(rows_jlc)} | {sum(r[0] for r in rows_jlc)} |",
+         f"| Parts JLCPCB buys for you (global sourcing) and assembles | JLCPCB assembly | {len(rows_hand)} | {sum(r[0] for r in rows_hand)} |",
          f"| Off-board parts | various | {len(OFF_BOARD)} | {sum(r[1] for r in OFF_BOARD)} |",
          f"| Not fitted (pads, holes) | - | {len(rows_dnp)} | 0 |", "",
-         f"{n_parts} components on the board, plus the display module and the battery.", "",
+         f"{n_parts} components on the board, **all assembled by JLCPCB** (nothing to solder yourself), "
+         "plus the display module and the battery, which plug in.", "",
          "## 1. Circuit board", "",
          "| Item | Spec |", "|---|---|",
          "| Size | 85.6 x 54.0 mm (credit card), 3 mm corner radius |",
@@ -115,12 +119,12 @@ def write_parts_list(groups):
          "| Thickness | 1.6 mm FR-4 |",
          "| Finish | ENIG preferred (flat pads for the castellated Pico 2 W and the 0.5 mm-pitch OPTIGA) |",
          "| Files | `wallet.kicad_pcb`: export Gerbers + drill from KiCad |",
-         "| Assembly | single-sided (top), plus the hand-soldered parts below |", "",
-         "## 2. Assembled by JLCPCB (`wallet_bom_jlc.csv`)", "",
+         "| Assembly | JLCPCB **Standard PCBA**, top side only: SMT + one through-hole part (J4) |", "",
+         "## 2. JLCPCB sources and assembles (`wallet_bom_jlc.csv`)", "",
          "| Qty | Designators | Value | Part number | LCSC | Package |", "|---|---|---|---|---|---|"]
     for q, refs, val, mpn, lcsc, fp, v in rows_jlc:
         L.append(f"| {q} | {refs} | {val} | {mpn} | {lcsc}{v} | {fp} |")
-    L += ["", "## 3. Buy separately and hand-solder", "",
+    L += ["", "## 3. JLCPCB global sourcing (no LCSC stock: bought by part number, then assembled)", "",
           "| Qty | Designators | Part | Part number | LCSC | Notes |", "|---|---|---|---|---|---|"]
     for q, refs, val, mpn, lcsc, fp, v, note in rows_hand:
         L.append(f"| {q} | {refs} | {val} | {mpn} | {lcsc or '-'}{v} | {note} |")
@@ -137,9 +141,11 @@ def write_parts_list(groups):
           "1. Buy the display module first and check its pin order and outline against J4.",
           "2. Check every **VERIFY** LCSC number and its stock.",
           "3. Check the battery lead polarity (pin 1 = BAT+) before plugging it in: a reversed pack destroys the charger.",
-          "4. Buy the OPTIGA Trust M from an authorised distributor (Mouser, Digi-Key, Farnell), not a marketplace: "
-          "it is the part your PIN security depends on.",
-          "5. Buy the Pico 2 W from an authorised Raspberry Pi reseller.", ""]
+          "4. JLCPCB buys the OPTIGA Trust M through global sourcing (adds ~9-15 days and is paid separately; "
+          "it cannot be cancelled). Trade-off: you no longer control where the chip your PIN security depends on "
+          "comes from, or who handles the board. To keep that, choose consignment (send JLCPCB chips bought from "
+          "Mouser / Digi-Key) or leave U2 out and solder it yourself.",
+          "5. Check JLCPCB's assembly preview (part rotations) before paying.", ""]
     with open(os.path.join(OUT, "PARTS_LIST.md"), "w", encoding="utf8") as fh:
         fh.write("\n".join(L))
 

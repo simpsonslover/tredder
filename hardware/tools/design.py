@@ -107,13 +107,13 @@ def part(ref, typ, value, fp, mpn="", lcsc="", lcsc_ok=True, group="", dnp=False
 
 # --- MCU module
 part("A1", "PICO2W", "Raspberry Pi Pico 2 W", "wallet:RaspberryPi_Pico_2_W_SMD_SolderHoles",
-     "SC1634 (Pico 2 W)", "", False, "mcu",
-     note="Buy from an authorised Raspberry Pi reseller; check RP2350 stepping (A4 or later) on arrival")
+     "SC1634 (Pico 2 W)", "C42394205", True, "mcu",
+     note="JLCPCB SMT-assembles the module (extended part); check RP2350 stepping (A4 or later) on arrival")
 
 # --- Secure element
 part("U2", "OPTIGA", "OPTIGA Trust M V3", "wallet:Infineon_PG-USON-10-2_3x3mm_P0.5mm",
-     "SLS32AIA010MKUSON10XTMA2", "", False, "se",
-     note="Not stocked at LCSC: buy from Mouser/Digi-Key/Farnell and hand-place, or JLC global sourcing")
+     "SLS32AIA010MKUSON10XTMA2", "", True, "se",
+     note="Not stocked at LCSC: JLCPCB global sourcing by MPN (from an authorised distributor), or consign your own")
 part("Q2", "PMOS", "AO3401A", SOT23, "AO3401A", "C15127", True, "se", note="SE power switch, active-low")
 part("R12", "R", "2.2k", R0603, "0603WAF2201T5E", "C4190", False, "se",
      note="SE switch gate pull-up: must beat RP2350 reset pull-down (36k min) -> keeps Q2 OFF at boot (sim: reset_default_off)")
@@ -127,7 +127,7 @@ part("J1", "USBC", "USB-C 16P", "Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-
      "TYPE-C-31-M-12", "C165948", True, "usb")
 part("R1", "R", "5.1k", R0603, "0603WAF5101T5E", "C23186", True, "usb", note="CC1 sink pull-down")
 part("R2", "R", "5.1k", R0603, "0603WAF5101T5E", "C23186", True, "usb", note="CC2 sink pull-down")
-part("F1", "FUSE", "PTC 500mA", "Fuse:Fuse_1206_3216Metric", "SMD1206P050TF (or eq. 0.5 A hold)", "", False, "usb")
+part("F1", "FUSE", "PTC 500mA", "Fuse:Fuse_1206_3216Metric", "SMD1206-050 (JKSEMI, 6 V, 0.5 A hold, 1 A trip)", "C2846128", True, "usb")
 part("U1", "USBLC6", "USBLC6-2SC6", "Package_TO_SOT_SMD:SOT-23-6", "USBLC6-2SC6", "C7519", True, "usb")
 part("R3", "R", "0R", R0603, "0603WAF0000T5E", "C21189", True, "usb",
      note="USB D+ link. DNP = charge-only port (production option)")
@@ -146,9 +146,9 @@ part("R7", "R", "10k", R0603, "0603WAF1002T5E", "C25804", True, "power", note="S
 part("R8", "R", "15k", R0603, "0603WAF1502T5E", "C22809", False, "power",
      note="STAT divider bottom: 5.5 V VBUS -> 3.30 V, below 3.63 V unpowered-FT limit (sim: switch_off_usb)")
 part("J2", "JST2", "LiPo 1S", "Connector_JST:JST_PH_S2B-PH-SM4-TB_1x02-1MP_P2.00mm_Horizontal",
-     "S2B-PH-SM4-TB(LF)(SN)", "C295747", False, "power",
+     "S2B-PH-SM4-TB(LF)(SN)", "C295747", True, "power",
      note="CHECK battery lead polarity: pin1 = BAT+. Use a cell WITH protection PCM")
-part("SW1", "DPDT", "Power", "Button_Switch_SMD:SW_DPDT_CK_JS202011JCQN", "JS202011JCQN", "", False, "power",
+part("SW1", "DPDT", "Power", "Button_Switch_SMD:SW_DPDT_CK_JS202011JCQN", "JS202011JCQN", "C221665", True, "power",
      note="Pole A disconnects battery, pole B grounds 3V3_EN (kills 3V3 even on USB)")
 part("Q1", "PMOS", "AO3401A", SOT23, "AO3401A", "C15127", True, "power",
      note="Load-sharing: battery->VSYS when USB absent (Pico datasheet 4.6)")
@@ -163,7 +163,7 @@ part("C15", "C", "100nF", C0603, "CC0603KRX7R9BB104", "C14663", True, "power")
 
 # --- microSD
 part("J3", "MICROSD", "microSD", "Connector_Card:microSD_HC_Hirose_DM3AT-SF-PEJM5",
-     "DM3AT-SF-PEJM5", "", False, "sd")
+     "DM3AT-SF-PEJM5", "C114218", True, "sd", note="Not the DM3AT-SF-PEJM5(40) variant (C597971)")
 part("Q3", "PMOS", "AO3401A", SOT23, "AO3401A", "C15127", True, "sd", note="SD power switch (card unpowered unless backing up)")
 part("R21", "R", "2.2k", R0603, "0603WAF2201T5E", "C4190", False, "sd",
      note="Q3 gate pull-up: beats RP2350 reset pull-down -> SD OFF at boot (sim: reset_default_off)")
@@ -178,7 +178,7 @@ part("R20", "R", "10k", R0603, "0603WAF1002T5E", "C25804", True, "sd", note="Car
 
 # --- Display
 part("J4", "LCD8", "LCD 2.0in ST7789", "Connector_PinSocket_2.54mm:PinSocket_1x08_P2.54mm_Vertical",
-     "2.54mm 1x8 female header", "", False, "lcd",
+     "2.54-1*8P female header, 8.5 mm (BOOMELE)", "C27438", True, "lcd",
      note="Pin order must match YOUR module (common: GND VCC SCL SDA RES DC CS BLK)")
 part("Q4", "PMOS", "AO3401A", SOT23, "AO3401A", "C15127", True, "lcd", note="Backlight high-side switch")
 part("R25", "R", "2.2k", R0603, "0603WAF2201T5E", "C4190", False, "lcd",

@@ -31,7 +31,7 @@ CLI = r"C:\Program Files\KiCad\10.0\bin\kicad-cli.exe"
 
 sys.path.insert(0, HERE)
 import design as D  # noqa: E402
-from gen_bom import HAND, natural  # noqa: E402
+from gen_bom import GLOBAL, HAND, natural  # noqa: E402
 
 LAYERS = ["F.Cu", "In1.Cu", "In2.Cu", "B.Cu", "F.Paste", "B.Paste", "F.Silkscreen", "B.Silkscreen",
           "F.Mask", "B.Mask", "Edge.Cuts"]
@@ -93,7 +93,7 @@ def placement():
         w = csv.writer(fh)
         w.writerow(["Designator", "Mid X", "Mid Y", "Layer", "Rotation"])
         for r in rows:
-            if r["Ref"] not in HAND:
+            if r["Ref"] not in HAND:  # every fitted part
                 w.writerow([r["Ref"], r["PosX"] + "mm", r["PosY"] + "mm", "Top", r["Rot"]])
     print(f"pick-and-place: {len(rows)} parts")
     return rows
@@ -113,10 +113,9 @@ def boms():
         for i, ((val, fp, mpn, lcsc), refs) in enumerate(groups.items(), 1):
             pkg = fp.split(":")[1]
             tht = any(k in pkg for k in ("PinSocket", "JST_PH", "MountingHole"))
-            hand = bool(set(refs) & HAND)
             note = []
-            if hand:
-                note.append("CUSTOMER SUPPLIED / do not source" if refs[0] in ("A1", "U2", "J4") else "please source; verify part")
+            if set(refs) & GLOBAL:
+                note.append("please source by MPN from an authorised distributor (not stocked at LCSC)")
             if not D.P[refs[0]]["lcsc_ok"]:
                 note.append(f"LCSC {lcsc or 'n/a'} unverified")
             elif lcsc:
@@ -165,9 +164,13 @@ For assembly, also upload a BOM (`-bom-pcbway.csv` or `-bom-jlc.csv`) and the pi
 ## Assembly
 
 - **Top side only.** Nothing is placed on the bottom (the battery is stuck on later).
-- **Customer-supplied / hand-solder:** A1 Raspberry Pi Pico 2 W, U2 OPTIGA Trust M (buy from an authorised
-  distributor: your PIN security depends on it), J4 display socket. Plus J2, J3, SW1, F1 if the assembler
-  cannot source them. See `hardware/bom/PARTS_LIST.md`.
+- **JLCPCB assembles everything.** Choose **Standard PCBA** (J4 is a through-hole socket; the Pico 2 W
+  C42394205 is an extended part). Upload `-bom-jlc.csv` + `-cpl-jlc.csv`.
+- **U2 (OPTIGA Trust M) has no LCSC stock:** JLCPCB's BOM step offers **global sourcing** by its MPN
+  (SLS32AIA010MKUSON10XTMA2); accept it (~9-15 days extra, paid separately, not cancellable).
+  Security trade-off: the chip your PIN protection depends on is bought and fitted by a third party.
+  Alternatives: consign your own (from Mouser / Digi-Key), or untick U2 and solder it yourself.
+- **Not assembled:** the display module and the battery: they plug in (J4, J2).
 - **Do not fit:** J5 (Tag-Connect footprint), TP1-TP8 (test pads), H1-H4 (holes).
 - **Production option:** leave R3/R4 unfitted for a charge-only USB port (no USB data / BOOTSEL attack surface).
 - **Check rotations** in the assembler's preview before paying: centroid rotations follow KiCad's
