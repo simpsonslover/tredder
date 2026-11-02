@@ -287,8 +287,8 @@ def build(out):
                 pad.SetNet(net)
         board.Add(fp)
 
-    import add_lcd_model  # placeholder 3D model of the display module on J4
-    add_lcd_model.attach(board.FindFootprintByReference("J4"))
+    import models3d  # STEP models: display module on J4 + parts the KiCad library has no model for
+    models3d.attach(board)
     import add_battery  # BT1: LiPo cell behind the board (board-only mechanical part + 3D model)
     add_battery.add(board, (OX, OY))
 

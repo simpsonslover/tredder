@@ -6822,7 +6822,7 @@
 			(uuid "205be462-685a-44e9-976e-6d809eafe62c")
 		)
 		(embedded_fonts no)
-		(model "${KICAD10_3DMODEL_DIR}/Connector_USB.3dshapes/USB_C_Receptacle_HRO_TYPE-C-31-M-12.step"
+		(model "${KIPRJMOD}/3d/usb_c_hro_type_c_31_m_12.step"
 			(offset
 				(xyz 0 0 0)
 			)
@@ -7893,7 +7893,7 @@
 			(uuid "71f1b30c-d1f0-4bf4-adef-3484934d2796")
 		)
 		(embedded_fonts no)
-		(model "${KICAD10_3DMODEL_DIR}/Button_Switch_SMD.3dshapes/SW_DPDT_CK_JS202011JCQN.step"
+		(model "${KIPRJMOD}/3d/sw_slide_ck_js202011jcqn.step"
 			(offset
 				(xyz 0 0 0)
 			)
@@ -10644,7 +10644,7 @@
 			(uuid "7bf4731e-9f2f-4a4d-9afd-2c5482746c94")
 		)
 		(embedded_fonts no)
-		(model "${KICAD10_3DMODEL_DIR}/Button_Switch_SMD.3dshapes/SW_Push_1P1T_XKB_TS-1187A.step"
+		(model "${KIPRJMOD}/3d/sw_tact_xkb_ts1187a.step"
 			(offset
 				(xyz 0 0 0)
 			)
@@ -11117,7 +11117,7 @@
 				(xyz 0 0 0)
 			)
 		)
-		(model "${KIPRJMOD}/3d/lcd_2in0_st7789_module.wrl"
+		(model "${KIPRJMOD}/3d/lcd_2in0_st7789_module.step"
 			(offset
 				(xyz 0 0 0)
 			)
@@ -12138,7 +12138,7 @@
 			(uuid "ebe9e86c-8ac9-4cfa-9fdb-d259d1c682e6")
 		)
 		(embedded_fonts no)
-		(model "${KICAD10_3DMODEL_DIR}/Button_Switch_SMD.3dshapes/SW_Push_1P1T_XKB_TS-1187A.step"
+		(model "${KIPRJMOD}/3d/sw_tact_xkb_ts1187a.step"
 			(offset
 				(xyz 0 0 0)
 			)
@@ -13457,7 +13457,7 @@
 			(uuid "233797e6-c180-4b6d-882a-1824b4a20fb7")
 		)
 		(embedded_fonts no)
-		(model "${KICAD10_3DMODEL_DIR}/Button_Switch_SMD.3dshapes/SW_Push_1P1T_XKB_TS-1187A.step"
+		(model "${KIPRJMOD}/3d/sw_tact_xkb_ts1187a.step"
 			(offset
 				(xyz 0 0 0)
 			)
@@ -15287,7 +15287,7 @@
 			(uuid "486e71c4-d2bd-4687-804d-8291b824c3d0")
 		)
 		(embedded_fonts no)
-		(model "${KICAD10_3DMODEL_DIR}/Connector_JST.3dshapes/JST_PH_S2B-PH-SM4-TB_1x02-1MP_P2.00mm_Horizontal.step"
+		(model "${KIPRJMOD}/3d/jst_ph_s2b_ph_sm4_tb.step"
 			(offset
 				(xyz 0 0 0)
 			)
@@ -17691,7 +17691,7 @@
 			(uuid "97fba201-d47b-463a-834f-5c26ab15d40d")
 		)
 		(embedded_fonts no)
-		(model "${KICAD10_3DMODEL_DIR}/Button_Switch_SMD.3dshapes/SW_Push_1P1T_XKB_TS-1187A.step"
+		(model "${KIPRJMOD}/3d/sw_tact_xkb_ts1187a.step"
 			(offset
 				(xyz 0 0 0)
 			)
@@ -20111,7 +20111,7 @@
 			)
 		)
 		(embedded_fonts no)
-		(model "${KIPRJMOD}/3d/lipo_503035.wrl"
+		(model "${KIPRJMOD}/3d/lipo_503035.step"
 			(offset
 				(xyz 0 0 0)
 			)

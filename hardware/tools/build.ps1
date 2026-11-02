@@ -13,12 +13,13 @@ try {
     python gen_sch.py
     python gen_bom.py
     & "$kicad\python.exe" gen_fp.py
-    python gen_lcd_model.py
+    python gen_step_models.py
     if ($Fresh -or -not (Test-Path "$hw\wallet.kicad_pcb")) {
         & "$kicad\python.exe" gen_pcb.py
         Write-Host "Placement regenerated (unrouted). Route with: & '$kicad\python.exe' route.py <path-to-freerouting-2.1.0.jar> 30"
     } else {
         & "$kicad\python.exe" sync_values.py
+        & "$kicad\python.exe" models3d.py
         Write-Host "PCB kept; values synced. Connection/footprint changes need 'Update PCB from Schematic' (F8) in KiCad."
     }
 } finally { Pop-Location }
