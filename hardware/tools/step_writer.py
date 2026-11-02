@@ -16,6 +16,7 @@ class Step:
         self.name = name
         self.ents = []
         self.solids = []      # (entity id, rgb)
+        self.boxes = []       # (name, (dx, dy, dz) mm), same order as solids
 
     def _e(self, text):
         self.ents.append(text)
@@ -37,6 +38,7 @@ class Step:
         hi = (max(x0, x1), max(y0, y1), max(z0, z1))
         if any(h - l < 1e-6 for l, h in zip(lo, hi)):
             raise ValueError(f"{self.name}/{name}: zero-size box")
+        self.boxes.append((name, tuple(h - l for l, h in zip(lo, hi))))
         corner = [tuple(hi[k] if (i >> k) & 1 else lo[k] for k in range(3)) for i in range(8)]
         vert = [self._e(f"VERTEX_POINT('',{self._pt(c)})") for c in corner]
         edges = {}

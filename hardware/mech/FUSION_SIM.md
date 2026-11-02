@@ -11,7 +11,21 @@ Do not run a simulation on `tredder-revA.step`. The library Pico model has hundr
 
 The display, battery, USB-C, switches and JST are **envelopes**: boxes sized from the footprints and datasheets. They are not exact drawings. Check the display module against the one you buy (`tools/gen_step_models.py`, then re-export).
 
-## 1. Import
+## 0. Quickest way: the Fusion script (makes the .f3d for you)
+
+Only Fusion can write its own `.f3d` files, so this folder ships a script that you run once inside Fusion:
+
+1. Unzip `tredder-fusion-TredderSim.zip`. You get a `TredderSim` folder; keep the files together.
+2. In Fusion, go to **UTILITIES > ADD-INS > Scripts and Add-Ins**. Click **+**, choose **Script or add-in from device**, and pick the `TredderSim` folder.
+3. Select **TredderSim** and click **Run**. The script:
+   - imports the model into a new design;
+   - names every body (for example "RP2350 - heat 0.10 W") and assigns the materials from section 2, creating the FR4, mold compound, LiPo and foam materials;
+   - saves **`tredder-revA-sim.f3d`** in the same folder.
+4. When it finishes, a message lists anything you need to fix by hand. Then go to **Simulation > New Simulation Study** and add the loads from sections 3 and 4.
+
+Fusion's API cannot create simulation studies or loads, so those steps stay manual. The body names tell you which heat value goes where.
+
+## 1. Import (by hand, without the script)
 
 1. Open Fusion and go to **File > Open > Open from my computer**, then pick `tredder-revA-sim.step`. Wait for the upload and translation.
 2. Switch the workspace from **Design** to **Simulation**, then choose **New Simulation Study**:
