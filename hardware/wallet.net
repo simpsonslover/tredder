@@ -1,0 +1,7875 @@
+(export
+	(version "E")
+	(design
+		(source "C:\\Users\\david\\Desktop\\Projects\\tredder\\hardware\\wallet.kicad_sch")
+		(date "2026-11-01T20:19:09")
+		(tool "Eeschema 10.0.7")
+		(sheet
+			(number "1")
+			(name "/")
+			(tstamps "/")
+			(title_block
+				(title "Hardware wallet - Phase 1 main board")
+				(company)
+				(rev "A")
+				(date "2026-10-31")
+				(source "wallet.kicad_sch")
+				(comment
+					(number "1")
+					(value "Generated from hardware/tools/design.py - edit there, not here")
+				)
+				(comment
+					(number "2")
+					(value "RP2350 (Pico 2 W) + OPTIGA Trust M V3 + ST7789 + microSD + LiPo")
+				)
+				(comment
+					(number "3")
+					(value "")
+				)
+				(comment
+					(number "4")
+					(value "")
+				)
+				(comment
+					(number "5")
+					(value "")
+				)
+				(comment
+					(number "6")
+					(value "")
+				)
+				(comment
+					(number "7")
+					(value "")
+				)
+				(comment
+					(number "8")
+					(value "")
+				)
+				(comment
+					(number "9")
+					(value "")
+				)
+			)
+		)
+	)
+	(components
+		(comp
+			(ref "A1")
+			(value "Raspberry Pi Pico 2 W")
+			(footprint "wallet:RaspberryPi_Pico_2_W_SMD_SolderHoles")
+			(description "JLCPCB SMT-assembles the module (extended part); check RP2350 stepping (A4 or later) on arrival")
+			(fields
+				(field
+					(name "MPN") "SC1634 (Pico 2 W)")
+				(field
+					(name "LCSC") "C42394205")
+				(field
+					(name "Footprint") "wallet:RaspberryPi_Pico_2_W_SMD_SolderHoles")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "JLCPCB SMT-assembles the module (extended part); check RP2350 stepping (A4 or later) on arrival")
+			)
+			(libsource
+				(lib "wallet")
+				(part "PICO2W")
+				(description "PICO2W")
+			)
+			(property
+				(name "MPN")
+				(value "SC1634 (Pico 2 W)")
+			)
+			(property
+				(name "LCSC")
+				(value "C42394205")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "3209e3b8-0e91-578f-89c6-ba279737c563")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+						(pin
+							(num "3")
+						)
+						(pin
+							(num "4")
+						)
+						(pin
+							(num "5")
+						)
+						(pin
+							(num "6")
+						)
+						(pin
+							(num "7")
+						)
+						(pin
+							(num "8")
+						)
+						(pin
+							(num "9")
+						)
+						(pin
+							(num "10")
+						)
+						(pin
+							(num "11")
+						)
+						(pin
+							(num "12")
+						)
+						(pin
+							(num "13")
+						)
+						(pin
+							(num "14")
+						)
+						(pin
+							(num "15")
+						)
+						(pin
+							(num "16")
+						)
+						(pin
+							(num "17")
+						)
+						(pin
+							(num "18")
+						)
+						(pin
+							(num "19")
+						)
+						(pin
+							(num "20")
+						)
+						(pin
+							(num "D1")
+						)
+						(pin
+							(num "D2")
+						)
+						(pin
+							(num "D3")
+						)
+						(pin
+							(num "40")
+						)
+						(pin
+							(num "39")
+						)
+						(pin
+							(num "38")
+						)
+						(pin
+							(num "37")
+						)
+						(pin
+							(num "36")
+						)
+						(pin
+							(num "35")
+						)
+						(pin
+							(num "34")
+						)
+						(pin
+							(num "33")
+						)
+						(pin
+							(num "32")
+						)
+						(pin
+							(num "31")
+						)
+						(pin
+							(num "30")
+						)
+						(pin
+							(num "29")
+						)
+						(pin
+							(num "28")
+						)
+						(pin
+							(num "27")
+						)
+						(pin
+							(num "26")
+						)
+						(pin
+							(num "25")
+						)
+						(pin
+							(num "24")
+						)
+						(pin
+							(num "23")
+						)
+						(pin
+							(num "22")
+						)
+						(pin
+							(num "21")
+						)
+						(pin
+							(num "TP1")
+						)
+						(pin
+							(num "TP2")
+						)
+						(pin
+							(num "TP3")
+						)
+						(pin
+							(num "TP4")
+						)
+						(pin
+							(num "TP5")
+						)
+						(pin
+							(num "TP6")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "C1")
+			(value "4.7uF")
+			(footprint "Capacitor_SMD:C_0805_2012Metric")
+			(description "Charger VDD")
+			(fields
+				(field
+					(name "MPN") "CL21A475KAQNNNE")
+				(field
+					(name "LCSC") "C1779")
+				(field
+					(name "Footprint") "Capacitor_SMD:C_0805_2012Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "Charger VDD")
+			)
+			(libsource
+				(lib "wallet")
+				(part "C")
+				(description "C")
+			)
+			(property
+				(name "MPN")
+				(value "CL21A475KAQNNNE")
+			)
+			(property
+				(name "LCSC")
+				(value "C1779")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "0ef5b7a5-ea7b-5080-8d03-713334767da0")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "C2")
+			(value "4.7uF")
+			(footprint "Capacitor_SMD:C_0805_2012Metric")
+			(description "Charger VBAT")
+			(fields
+				(field
+					(name "MPN") "CL21A475KAQNNNE")
+				(field
+					(name "LCSC") "C1779")
+				(field
+					(name "Footprint") "Capacitor_SMD:C_0805_2012Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "Charger VBAT")
+			)
+			(libsource
+				(lib "wallet")
+				(part "C")
+				(description "C")
+			)
+			(property
+				(name "MPN")
+				(value "CL21A475KAQNNNE")
+			)
+			(property
+				(name "LCSC")
+				(value "C1779")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "ae119a62-fba7-52e1-977b-8f917c1c06e7")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "C3")
+			(value "10uF")
+			(footprint "Capacitor_SMD:C_0805_2012Metric")
+			(description "VSYS bulk")
+			(fields
+				(field
+					(name "MPN") "CL21A106KAYNNNE")
+				(field
+					(name "LCSC") "C15850")
+				(field
+					(name "Footprint") "Capacitor_SMD:C_0805_2012Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "VSYS bulk")
+			)
+			(libsource
+				(lib "wallet")
+				(part "C")
+				(description "C")
+			)
+			(property
+				(name "MPN")
+				(value "CL21A106KAYNNNE")
+			)
+			(property
+				(name "LCSC")
+				(value "C15850")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "2427d3d8-6312-54a4-b95a-62badc22095f")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "C4")
+			(value "100nF")
+			(footprint "Capacitor_SMD:C_0603_1608Metric")
+			(fields
+				(field
+					(name "MPN") "CC0603KRX7R9BB104")
+				(field
+					(name "LCSC") "C14663")
+				(field
+					(name "Footprint") "Capacitor_SMD:C_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "wallet")
+				(part "C")
+				(description "C")
+			)
+			(property
+				(name "MPN")
+				(value "CC0603KRX7R9BB104")
+			)
+			(property
+				(name "LCSC")
+				(value "C14663")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "bc337052-3f22-5283-a7da-cbb037b230cf")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "C5")
+			(value "1uF")
+			(footprint "Capacitor_SMD:C_0603_1608Metric")
+			(fields
+				(field
+					(name "MPN") "CL10A105KB8NNNC")
+				(field
+					(name "LCSC") "C15849")
+				(field
+					(name "Footprint") "Capacitor_SMD:C_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "wallet")
+				(part "C")
+				(description "C")
+			)
+			(property
+				(name "MPN")
+				(value "CL10A105KB8NNNC")
+			)
+			(property
+				(name "LCSC")
+				(value "C15849")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "6f1bf115-a86b-575c-800b-6776f28e7fe8")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "C6")
+			(value "10uF")
+			(footprint "Capacitor_SMD:C_0805_2012Metric")
+			(fields
+				(field
+					(name "MPN") "CL21A106KAYNNNE")
+				(field
+					(name "LCSC") "C15850")
+				(field
+					(name "Footprint") "Capacitor_SMD:C_0805_2012Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "wallet")
+				(part "C")
+				(description "C")
+			)
+			(property
+				(name "MPN")
+				(value "CL21A106KAYNNNE")
+			)
+			(property
+				(name "LCSC")
+				(value "C15850")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "cc39bbd5-7654-54ed-8662-a284db2b9e71")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "C7")
+			(value "100nF")
+			(footprint "Capacitor_SMD:C_0603_1608Metric")
+			(fields
+				(field
+					(name "MPN") "CC0603KRX7R9BB104")
+				(field
+					(name "LCSC") "C14663")
+				(field
+					(name "Footprint") "Capacitor_SMD:C_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "wallet")
+				(part "C")
+				(description "C")
+			)
+			(property
+				(name "MPN")
+				(value "CC0603KRX7R9BB104")
+			)
+			(property
+				(name "LCSC")
+				(value "C14663")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "8bb06f93-6fd4-537a-bc7a-9eabbb10ff4d")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "C8")
+			(value "4.7uF")
+			(footprint "Capacitor_SMD:C_0603_1608Metric")
+			(description "Q3 soft-start Cgs: SD_VDD ramp must be >= 0.1 ms (SD spec) (sim: sd_power)")
+			(fields
+				(field
+					(name "MPN") "CL10A475KO8NNNC")
+				(field
+					(name "LCSC") "C19666")
+				(field
+					(name "Footprint") "Capacitor_SMD:C_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "Q3 soft-start Cgs: SD_VDD ramp must be >= 0.1 ms (SD spec) (sim: sd_power)")
+			)
+			(libsource
+				(lib "wallet")
+				(part "C")
+				(description "C")
+			)
+			(property
+				(name "MPN")
+				(value "CL10A475KO8NNNC")
+			)
+			(property
+				(name "LCSC")
+				(value "C19666")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "0e8a74f2-cf78-519a-8ee3-23baff863148")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "C9")
+			(value "10uF")
+			(footprint "Capacitor_SMD:C_0805_2012Metric")
+			(fields
+				(field
+					(name "MPN") "CL21A106KAYNNNE")
+				(field
+					(name "LCSC") "C15850")
+				(field
+					(name "Footprint") "Capacitor_SMD:C_0805_2012Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "wallet")
+				(part "C")
+				(description "C")
+			)
+			(property
+				(name "MPN")
+				(value "CL21A106KAYNNNE")
+			)
+			(property
+				(name "LCSC")
+				(value "C15850")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "ca8470e5-d3eb-5b50-b89c-d86e60fd428e")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "C10")
+			(value "100nF")
+			(footprint "Capacitor_SMD:C_0603_1608Metric")
+			(description "UP debounce")
+			(fields
+				(field
+					(name "MPN") "CC0603KRX7R9BB104")
+				(field
+					(name "LCSC") "C14663")
+				(field
+					(name "Footprint") "Capacitor_SMD:C_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "UP debounce")
+			)
+			(libsource
+				(lib "wallet")
+				(part "C")
+				(description "C")
+			)
+			(property
+				(name "MPN")
+				(value "CC0603KRX7R9BB104")
+			)
+			(property
+				(name "LCSC")
+				(value "C14663")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "7970faae-73ef-5860-b1d9-f90f5e73307d")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "C11")
+			(value "100nF")
+			(footprint "Capacitor_SMD:C_0603_1608Metric")
+			(description "DOWN debounce")
+			(fields
+				(field
+					(name "MPN") "CC0603KRX7R9BB104")
+				(field
+					(name "LCSC") "C14663")
+				(field
+					(name "Footprint") "Capacitor_SMD:C_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "DOWN debounce")
+			)
+			(libsource
+				(lib "wallet")
+				(part "C")
+				(description "C")
+			)
+			(property
+				(name "MPN")
+				(value "CC0603KRX7R9BB104")
+			)
+			(property
+				(name "LCSC")
+				(value "C14663")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "23063bf6-c17b-58a4-9d54-77f483a68e41")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "C12")
+			(value "100nF")
+			(footprint "Capacitor_SMD:C_0603_1608Metric")
+			(description "BACK debounce")
+			(fields
+				(field
+					(name "MPN") "CC0603KRX7R9BB104")
+				(field
+					(name "LCSC") "C14663")
+				(field
+					(name "Footprint") "Capacitor_SMD:C_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "BACK debounce")
+			)
+			(libsource
+				(lib "wallet")
+				(part "C")
+				(description "C")
+			)
+			(property
+				(name "MPN")
+				(value "CC0603KRX7R9BB104")
+			)
+			(property
+				(name "LCSC")
+				(value "C14663")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "e6864703-dae1-5a88-9d31-9122f9a5600d")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "C13")
+			(value "100nF")
+			(footprint "Capacitor_SMD:C_0603_1608Metric")
+			(description "CONFIRM debounce")
+			(fields
+				(field
+					(name "MPN") "CC0603KRX7R9BB104")
+				(field
+					(name "LCSC") "C14663")
+				(field
+					(name "Footprint") "Capacitor_SMD:C_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "CONFIRM debounce")
+			)
+			(libsource
+				(lib "wallet")
+				(part "C")
+				(description "C")
+			)
+			(property
+				(name "MPN")
+				(value "CC0603KRX7R9BB104")
+			)
+			(property
+				(name "LCSC")
+				(value "C14663")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "4f130e68-22cc-595c-a423-1275b82b7925")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "C14")
+			(value "10uF")
+			(footprint "Capacitor_SMD:C_0805_2012Metric")
+			(description "3V3 bulk")
+			(fields
+				(field
+					(name "MPN") "CL21A106KAYNNNE")
+				(field
+					(name "LCSC") "C15850")
+				(field
+					(name "Footprint") "Capacitor_SMD:C_0805_2012Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "3V3 bulk")
+			)
+			(libsource
+				(lib "wallet")
+				(part "C")
+				(description "C")
+			)
+			(property
+				(name "MPN")
+				(value "CL21A106KAYNNNE")
+			)
+			(property
+				(name "LCSC")
+				(value "C15850")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "3b0be8f2-0b7a-5de4-9156-cedd7fd2b086")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "C15")
+			(value "100nF")
+			(footprint "Capacitor_SMD:C_0603_1608Metric")
+			(fields
+				(field
+					(name "MPN") "CC0603KRX7R9BB104")
+				(field
+					(name "LCSC") "C14663")
+				(field
+					(name "Footprint") "Capacitor_SMD:C_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "wallet")
+				(part "C")
+				(description "C")
+			)
+			(property
+				(name "MPN")
+				(value "CC0603KRX7R9BB104")
+			)
+			(property
+				(name "LCSC")
+				(value "C14663")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "9d971514-60a4-51b2-b2a8-424bf7ba213c")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "C16")
+			(value "100nF")
+			(footprint "Capacitor_SMD:C_0603_1608Metric")
+			(description "ADC filter")
+			(fields
+				(field
+					(name "MPN") "CC0603KRX7R9BB104")
+				(field
+					(name "LCSC") "C14663")
+				(field
+					(name "Footprint") "Capacitor_SMD:C_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "ADC filter")
+			)
+			(libsource
+				(lib "wallet")
+				(part "C")
+				(description "C")
+			)
+			(property
+				(name "MPN")
+				(value "CC0603KRX7R9BB104")
+			)
+			(property
+				(name "LCSC")
+				(value "C14663")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "6e81585b-afbc-5b30-adf7-0e26b1ee0392")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "C17")
+			(value "4.7uF")
+			(footprint "Capacitor_SMD:C_0603_1608Metric")
+			(description "Q5 soft-start Cgs: limits inrush into C9 + module so +3V3 does not dip (sim: lcd_power)")
+			(fields
+				(field
+					(name "MPN") "CL10A475KO8NNNC")
+				(field
+					(name "LCSC") "C19666")
+				(field
+					(name "Footprint") "Capacitor_SMD:C_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "Q5 soft-start Cgs: limits inrush into C9 + module so +3V3 does not dip (sim: lcd_power)")
+			)
+			(libsource
+				(lib "wallet")
+				(part "C")
+				(description "C")
+			)
+			(property
+				(name "MPN")
+				(value "CL10A475KO8NNNC")
+			)
+			(property
+				(name "LCSC")
+				(value "C19666")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "1004e766-f26d-5148-b2f5-755054e3d933")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "D1")
+			(value "Red")
+			(footprint "LED_SMD:LED_0603_1608Metric")
+			(description "On = charging")
+			(fields
+				(field
+					(name "MPN") "KT-0603R")
+				(field
+					(name "LCSC") "C2286")
+				(field
+					(name "Footprint") "LED_SMD:LED_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "On = charging")
+			)
+			(libsource
+				(lib "wallet")
+				(part "LED")
+				(description "LED")
+			)
+			(property
+				(name "MPN")
+				(value "KT-0603R")
+			)
+			(property
+				(name "LCSC")
+				(value "C2286")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "b2712e9e-a797-55a1-b539-a6e94b2544e1")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "2")
+						)
+						(pin
+							(num "1")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "F1")
+			(value "PTC 500mA")
+			(footprint "Fuse:Fuse_1206_3216Metric")
+			(fields
+				(field
+					(name "MPN") "SMD1206-050 (JKSEMI, 6 V, 0.5 A hold, 1 A trip)")
+				(field
+					(name "LCSC") "C2846128")
+				(field
+					(name "Footprint") "Fuse:Fuse_1206_3216Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "wallet")
+				(part "FUSE")
+				(description "FUSE")
+			)
+			(property
+				(name "MPN")
+				(value "SMD1206-050 (JKSEMI, 6 V, 0.5 A hold, 1 A trip)")
+			)
+			(property
+				(name "LCSC")
+				(value "C2846128")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "7a9e3aca-876c-5964-8527-008aec02d746")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "H1")
+			(value "M2")
+			(footprint "MountingHole:MountingHole_2.2mm_M2")
+			(fields
+				(field
+					(name "MPN") "No part")
+				(field
+					(name "LCSC")
+				)
+				(field
+					(name "Footprint") "MountingHole:MountingHole_2.2mm_M2")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "wallet")
+				(part "HOLE")
+				(description "HOLE")
+			)
+			(property
+				(name "MPN")
+				(value "No part")
+			)
+			(property
+				(name "LCSC")
+				(value "")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(property
+				(name "exclude_from_bom")
+			)
+			(property
+				(name "dnp")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "849c51a1-d6db-54ef-9180-efc31a451513")
+			(units
+				(unit
+					(name "A")
+					(pins)
+				)
+			)
+		)
+		(comp
+			(ref "H2")
+			(value "M2")
+			(footprint "MountingHole:MountingHole_2.2mm_M2")
+			(fields
+				(field
+					(name "MPN") "No part")
+				(field
+					(name "LCSC")
+				)
+				(field
+					(name "Footprint") "MountingHole:MountingHole_2.2mm_M2")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "wallet")
+				(part "HOLE")
+				(description "HOLE")
+			)
+			(property
+				(name "MPN")
+				(value "No part")
+			)
+			(property
+				(name "LCSC")
+				(value "")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(property
+				(name "exclude_from_bom")
+			)
+			(property
+				(name "dnp")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "4d53f0df-b2c1-5b9e-b46f-d52fa702dee7")
+			(units
+				(unit
+					(name "A")
+					(pins)
+				)
+			)
+		)
+		(comp
+			(ref "H3")
+			(value "M2")
+			(footprint "MountingHole:MountingHole_2.2mm_M2")
+			(fields
+				(field
+					(name "MPN") "No part")
+				(field
+					(name "LCSC")
+				)
+				(field
+					(name "Footprint") "MountingHole:MountingHole_2.2mm_M2")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "wallet")
+				(part "HOLE")
+				(description "HOLE")
+			)
+			(property
+				(name "MPN")
+				(value "No part")
+			)
+			(property
+				(name "LCSC")
+				(value "")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(property
+				(name "exclude_from_bom")
+			)
+			(property
+				(name "dnp")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "343077f5-e170-5810-ac7c-b3caa9c93a3e")
+			(units
+				(unit
+					(name "A")
+					(pins)
+				)
+			)
+		)
+		(comp
+			(ref "H4")
+			(value "M2")
+			(footprint "MountingHole:MountingHole_2.2mm_M2")
+			(fields
+				(field
+					(name "MPN") "No part")
+				(field
+					(name "LCSC")
+				)
+				(field
+					(name "Footprint") "MountingHole:MountingHole_2.2mm_M2")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "wallet")
+				(part "HOLE")
+				(description "HOLE")
+			)
+			(property
+				(name "MPN")
+				(value "No part")
+			)
+			(property
+				(name "LCSC")
+				(value "")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(property
+				(name "exclude_from_bom")
+			)
+			(property
+				(name "dnp")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "68df4488-2330-5728-95d1-f67a9adb2780")
+			(units
+				(unit
+					(name "A")
+					(pins)
+				)
+			)
+		)
+		(comp
+			(ref "J1")
+			(value "USB-C 16P")
+			(footprint "Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12")
+			(fields
+				(field
+					(name "MPN") "TYPE-C-31-M-12")
+				(field
+					(name "LCSC") "C165948")
+				(field
+					(name "Footprint") "Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "wallet")
+				(part "USBC")
+				(description "USBC")
+			)
+			(property
+				(name "MPN")
+				(value "TYPE-C-31-M-12")
+			)
+			(property
+				(name "LCSC")
+				(value "C165948")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "75640052-4a68-5e8e-a4d5-4f3326e50b72")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "A4")
+						)
+						(pin
+							(num "A9")
+						)
+						(pin
+							(num "B4")
+						)
+						(pin
+							(num "B9")
+						)
+						(pin
+							(num "A5")
+						)
+						(pin
+							(num "B5")
+						)
+						(pin
+							(num "A8")
+						)
+						(pin
+							(num "B8")
+						)
+						(pin
+							(num "A6")
+						)
+						(pin
+							(num "B6")
+						)
+						(pin
+							(num "A7")
+						)
+						(pin
+							(num "B7")
+						)
+						(pin
+							(num "A1")
+						)
+						(pin
+							(num "A12")
+						)
+						(pin
+							(num "B1")
+						)
+						(pin
+							(num "B12")
+						)
+						(pin
+							(num "SH")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "J2")
+			(value "LiPo 1S")
+			(footprint "Connector_JST:JST_PH_S2B-PH-SM4-TB_1x02-1MP_P2.00mm_Horizontal")
+			(description "CHECK battery lead polarity: pin1 = BAT+. Use a cell WITH protection PCM")
+			(fields
+				(field
+					(name "MPN") "S2B-PH-SM4-TB(LF)(SN)")
+				(field
+					(name "LCSC") "C295747")
+				(field
+					(name "Footprint") "Connector_JST:JST_PH_S2B-PH-SM4-TB_1x02-1MP_P2.00mm_Horizontal")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "CHECK battery lead polarity: pin1 = BAT+. Use a cell WITH protection PCM")
+			)
+			(libsource
+				(lib "wallet")
+				(part "JST2")
+				(description "JST2")
+			)
+			(property
+				(name "MPN")
+				(value "S2B-PH-SM4-TB(LF)(SN)")
+			)
+			(property
+				(name "LCSC")
+				(value "C295747")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "b26d3095-b2dd-5ad9-b9e5-b6b093c55158")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "J3")
+			(value "microSD")
+			(footprint "Connector_Card:microSD_HC_Hirose_DM3AT-SF-PEJM5")
+			(description "Not the DM3AT-SF-PEJM5(40) variant (C597971)")
+			(fields
+				(field
+					(name "MPN") "DM3AT-SF-PEJM5")
+				(field
+					(name "LCSC") "C114218")
+				(field
+					(name "Footprint") "Connector_Card:microSD_HC_Hirose_DM3AT-SF-PEJM5")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "Not the DM3AT-SF-PEJM5(40) variant (C597971)")
+			)
+			(libsource
+				(lib "wallet")
+				(part "MICROSD")
+				(description "MICROSD")
+			)
+			(property
+				(name "MPN")
+				(value "DM3AT-SF-PEJM5")
+			)
+			(property
+				(name "LCSC")
+				(value "C114218")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "1fa74af3-855e-549a-b398-9d859b9ce8fc")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "4")
+						)
+						(pin
+							(num "2")
+						)
+						(pin
+							(num "3")
+						)
+						(pin
+							(num "5")
+						)
+						(pin
+							(num "7")
+						)
+						(pin
+							(num "8")
+						)
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "6")
+						)
+						(pin
+							(num "9")
+						)
+						(pin
+							(num "10")
+						)
+						(pin
+							(num "SH")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "J4")
+			(value "LCD 2.0in ST7789")
+			(footprint "Connector_PinSocket_2.54mm:PinSocket_1x08_P2.54mm_Vertical")
+			(description "Pin order must match YOUR module (common: GND VCC SCL SDA RES DC CS BLK)")
+			(fields
+				(field
+					(name "MPN") "2.54-1*8P female header, 8.5 mm (BOOMELE)")
+				(field
+					(name "LCSC") "C27438")
+				(field
+					(name "Footprint") "Connector_PinSocket_2.54mm:PinSocket_1x08_P2.54mm_Vertical")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "Pin order must match YOUR module (common: GND VCC SCL SDA RES DC CS BLK)")
+			)
+			(libsource
+				(lib "wallet")
+				(part "LCD8")
+				(description "LCD8")
+			)
+			(property
+				(name "MPN")
+				(value "2.54-1*8P female header, 8.5 mm (BOOMELE)")
+			)
+			(property
+				(name "LCSC")
+				(value "C27438")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "94bc85a0-ee6c-5d4e-92b5-ca80ed530dc0")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+						(pin
+							(num "3")
+						)
+						(pin
+							(num "4")
+						)
+						(pin
+							(num "5")
+						)
+						(pin
+							(num "6")
+						)
+						(pin
+							(num "7")
+						)
+						(pin
+							(num "8")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "J5")
+			(value "SWD (Tag-Connect)")
+			(footprint "Connector:Tag-Connect_TC2030-IDC-NL_2x03_P1.27mm_Vertical")
+			(fields
+				(field
+					(name "MPN") "No part: pogo cable TC2030-IDC-NL")
+				(field
+					(name "LCSC")
+				)
+				(field
+					(name "Footprint") "Connector:Tag-Connect_TC2030-IDC-NL_2x03_P1.27mm_Vertical")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "wallet")
+				(part "TC2030")
+				(description "TC2030")
+			)
+			(property
+				(name "MPN")
+				(value "No part: pogo cable TC2030-IDC-NL")
+			)
+			(property
+				(name "LCSC")
+				(value "")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(property
+				(name "exclude_from_bom")
+			)
+			(property
+				(name "dnp")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "874d621b-8cc7-5d91-b716-f8ed60147df2")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+						(pin
+							(num "3")
+						)
+						(pin
+							(num "4")
+						)
+						(pin
+							(num "5")
+						)
+						(pin
+							(num "6")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "Q1")
+			(value "AO3401A")
+			(footprint "Package_TO_SOT_SMD:SOT-23")
+			(description "Load-sharing: battery->VSYS when USB absent (Pico datasheet 4.6)")
+			(fields
+				(field
+					(name "MPN") "AO3401A")
+				(field
+					(name "LCSC") "C15127")
+				(field
+					(name "Footprint") "Package_TO_SOT_SMD:SOT-23")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "Load-sharing: battery->VSYS when USB absent (Pico datasheet 4.6)")
+			)
+			(libsource
+				(lib "wallet")
+				(part "PMOS")
+				(description "PMOS")
+			)
+			(property
+				(name "MPN")
+				(value "AO3401A")
+			)
+			(property
+				(name "LCSC")
+				(value "C15127")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "cb66c789-2d9b-58cf-9e07-ec914bbdf7a3")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+						(pin
+							(num "3")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "Q2")
+			(value "AO3401A")
+			(footprint "Package_TO_SOT_SMD:SOT-23")
+			(description "SE power switch, active-low")
+			(fields
+				(field
+					(name "MPN") "AO3401A")
+				(field
+					(name "LCSC") "C15127")
+				(field
+					(name "Footprint") "Package_TO_SOT_SMD:SOT-23")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "SE power switch, active-low")
+			)
+			(libsource
+				(lib "wallet")
+				(part "PMOS")
+				(description "PMOS")
+			)
+			(property
+				(name "MPN")
+				(value "AO3401A")
+			)
+			(property
+				(name "LCSC")
+				(value "C15127")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "b411c598-ac45-59db-8278-319714acba24")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+						(pin
+							(num "3")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "Q3")
+			(value "AO3401A")
+			(footprint "Package_TO_SOT_SMD:SOT-23")
+			(description "SD power switch (card unpowered unless backing up)")
+			(fields
+				(field
+					(name "MPN") "AO3401A")
+				(field
+					(name "LCSC") "C15127")
+				(field
+					(name "Footprint") "Package_TO_SOT_SMD:SOT-23")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "SD power switch (card unpowered unless backing up)")
+			)
+			(libsource
+				(lib "wallet")
+				(part "PMOS")
+				(description "PMOS")
+			)
+			(property
+				(name "MPN")
+				(value "AO3401A")
+			)
+			(property
+				(name "LCSC")
+				(value "C15127")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "42231025-8214-5d34-a9c4-a18da4dc102d")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+						(pin
+							(num "3")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "Q4")
+			(value "AO3401A")
+			(footprint "Package_TO_SOT_SMD:SOT-23")
+			(description "Backlight high-side switch")
+			(fields
+				(field
+					(name "MPN") "AO3401A")
+				(field
+					(name "LCSC") "C15127")
+				(field
+					(name "Footprint") "Package_TO_SOT_SMD:SOT-23")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "Backlight high-side switch")
+			)
+			(libsource
+				(lib "wallet")
+				(part "PMOS")
+				(description "PMOS")
+			)
+			(property
+				(name "MPN")
+				(value "AO3401A")
+			)
+			(property
+				(name "LCSC")
+				(value "C15127")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "768b8ea5-0e67-5b05-a5b3-4e522739f485")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+						(pin
+							(num "3")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "Q5")
+			(value "AO3401A")
+			(footprint "Package_TO_SOT_SMD:SOT-23")
+			(description "LCD module power switch (sleep mode), active-low on GP18")
+			(fields
+				(field
+					(name "MPN") "AO3401A")
+				(field
+					(name "LCSC") "C15127")
+				(field
+					(name "Footprint") "Package_TO_SOT_SMD:SOT-23")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "LCD module power switch (sleep mode), active-low on GP18")
+			)
+			(libsource
+				(lib "wallet")
+				(part "PMOS")
+				(description "PMOS")
+			)
+			(property
+				(name "MPN")
+				(value "AO3401A")
+			)
+			(property
+				(name "LCSC")
+				(value "C15127")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "96c99640-bbc5-5f8f-85d1-2aeb7a63eb9c")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+						(pin
+							(num "3")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R1")
+			(value "5.1k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
+			(description "CC1 sink pull-down")
+			(fields
+				(field
+					(name "MPN") "0603WAF5101T5E")
+				(field
+					(name "LCSC") "C23186")
+				(field
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "CC1 sink pull-down")
+			)
+			(libsource
+				(lib "wallet")
+				(part "R")
+				(description "R")
+			)
+			(property
+				(name "MPN")
+				(value "0603WAF5101T5E")
+			)
+			(property
+				(name "LCSC")
+				(value "C23186")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "5388c018-975a-579e-87c6-34184575f62f")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R2")
+			(value "5.1k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
+			(description "CC2 sink pull-down")
+			(fields
+				(field
+					(name "MPN") "0603WAF5101T5E")
+				(field
+					(name "LCSC") "C23186")
+				(field
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "CC2 sink pull-down")
+			)
+			(libsource
+				(lib "wallet")
+				(part "R")
+				(description "R")
+			)
+			(property
+				(name "MPN")
+				(value "0603WAF5101T5E")
+			)
+			(property
+				(name "LCSC")
+				(value "C23186")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "0b4f8e95-860e-5c54-8c8f-1e3934209409")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R3")
+			(value "0R")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
+			(description "USB D+ link. DNP = charge-only port (production option)")
+			(fields
+				(field
+					(name "MPN") "0603WAF0000T5E")
+				(field
+					(name "LCSC") "C21189")
+				(field
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "USB D+ link. DNP = charge-only port (production option)")
+			)
+			(libsource
+				(lib "wallet")
+				(part "R")
+				(description "R")
+			)
+			(property
+				(name "MPN")
+				(value "0603WAF0000T5E")
+			)
+			(property
+				(name "LCSC")
+				(value "C21189")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "01029451-8a39-5a43-b7a9-39b6c72c4a8f")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R4")
+			(value "0R")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
+			(description "USB D- link. DNP = charge-only port (production option)")
+			(fields
+				(field
+					(name "MPN") "0603WAF0000T5E")
+				(field
+					(name "LCSC") "C21189")
+				(field
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "USB D- link. DNP = charge-only port (production option)")
+			)
+			(libsource
+				(lib "wallet")
+				(part "R")
+				(description "R")
+			)
+			(property
+				(name "MPN")
+				(value "0603WAF0000T5E")
+			)
+			(property
+				(name "LCSC")
+				(value "C21189")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "26332af8-a976-5fc4-845c-26a5c2ee721b")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R5")
+			(value "2k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
+			(description "PROG: 1000/2k = 500 mA charge")
+			(fields
+				(field
+					(name "MPN") "0603WAF2001T5E")
+				(field
+					(name "LCSC") "C22975")
+				(field
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "PROG: 1000/2k = 500 mA charge")
+			)
+			(libsource
+				(lib "wallet")
+				(part "R")
+				(description "R")
+			)
+			(property
+				(name "MPN")
+				(value "0603WAF2001T5E")
+			)
+			(property
+				(name "LCSC")
+				(value "C22975")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "b17e18e2-7ef3-5211-b0dc-13ba9f0dc68d")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R6")
+			(value "1k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
+			(description "Charge LED")
+			(fields
+				(field
+					(name "MPN") "0603WAF1001T5E")
+				(field
+					(name "LCSC") "C21190")
+				(field
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "Charge LED")
+			)
+			(libsource
+				(lib "wallet")
+				(part "R")
+				(description "R")
+			)
+			(property
+				(name "MPN")
+				(value "0603WAF1001T5E")
+			)
+			(property
+				(name "LCSC")
+				(value "C21190")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "e838a3d2-17b3-5026-bda6-64c193147a47")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R7")
+			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
+			(description "STAT divider top (5V -> 3.3V)")
+			(fields
+				(field
+					(name "MPN") "0603WAF1002T5E")
+				(field
+					(name "LCSC") "C25804")
+				(field
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "STAT divider top (5V -> 3.3V)")
+			)
+			(libsource
+				(lib "wallet")
+				(part "R")
+				(description "R")
+			)
+			(property
+				(name "MPN")
+				(value "0603WAF1002T5E")
+			)
+			(property
+				(name "LCSC")
+				(value "C25804")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "05e34d85-9319-531f-8089-1a6fcfc0c049")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R8")
+			(value "15k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
+			(description "STAT divider bottom: 5.5 V VBUS -> 3.30 V, below 3.63 V unpowered-FT limit (sim: switch_off_usb)")
+			(fields
+				(field
+					(name "MPN") "0603WAF1502T5E")
+				(field
+					(name "LCSC") "C22809")
+				(field
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "STAT divider bottom: 5.5 V VBUS -> 3.30 V, below 3.63 V unpowered-FT limit (sim: switch_off_usb)")
+			)
+			(libsource
+				(lib "wallet")
+				(part "R")
+				(description "R")
+			)
+			(property
+				(name "MPN")
+				(value "0603WAF1502T5E")
+			)
+			(property
+				(name "LCSC")
+				(value "C22809")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "1b74167c-5613-59a5-a873-fc90b26a3bf2")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R9")
+			(value "100k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
+			(description "Q1 gate pull-down")
+			(fields
+				(field
+					(name "MPN") "0603WAF1003T5E")
+				(field
+					(name "LCSC") "C25803")
+				(field
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "Q1 gate pull-down")
+			)
+			(libsource
+				(lib "wallet")
+				(part "R")
+				(description "R")
+			)
+			(property
+				(name "MPN")
+				(value "0603WAF1003T5E")
+			)
+			(property
+				(name "LCSC")
+				(value "C25803")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "7780cef6-c63b-5bd5-a353-ff51d7472682")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R10")
+			(value "4.7k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
+			(description "VBAT sense divider: low impedance vs ADC Rin >= 100k (sim: vbat_adc). 0.45 mA, only while SW1 ON")
+			(fields
+				(field
+					(name "MPN") "0603WAF4701T5E")
+				(field
+					(name "LCSC") "C23162")
+				(field
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "VBAT sense divider: low impedance vs ADC Rin >= 100k (sim: vbat_adc). 0.45 mA, only while SW1 ON")
+			)
+			(libsource
+				(lib "wallet")
+				(part "R")
+				(description "R")
+			)
+			(property
+				(name "MPN")
+				(value "0603WAF4701T5E")
+			)
+			(property
+				(name "LCSC")
+				(value "C23162")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "cd720925-754e-5bcd-acb3-cf4943bbecb2")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R11")
+			(value "4.7k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
+			(description "VBAT sense divider")
+			(fields
+				(field
+					(name "MPN") "0603WAF4701T5E")
+				(field
+					(name "LCSC") "C23162")
+				(field
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "VBAT sense divider")
+			)
+			(libsource
+				(lib "wallet")
+				(part "R")
+				(description "R")
+			)
+			(property
+				(name "MPN")
+				(value "0603WAF4701T5E")
+			)
+			(property
+				(name "LCSC")
+				(value "C23162")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "cabbe9f1-913b-5961-b66d-56140670cd7c")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R12")
+			(value "2.2k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
+			(description "SE switch gate pull-up: must beat RP2350 reset pull-down (36k min) -> keeps Q2 OFF at boot (sim: reset_default_off)")
+			(fields
+				(field
+					(name "MPN") "0603WAF2201T5E")
+				(field
+					(name "LCSC") "C4190")
+				(field
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "SE switch gate pull-up: must beat RP2350 reset pull-down (36k min) -> keeps Q2 OFF at boot (sim: reset_default_off)")
+			)
+			(libsource
+				(lib "wallet")
+				(part "R")
+				(description "R")
+			)
+			(property
+				(name "MPN")
+				(value "0603WAF2201T5E")
+			)
+			(property
+				(name "LCSC")
+				(value "C4190")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "6dec7df3-ecce-57e7-94da-85b686dfe343")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R13")
+			(value "4.7k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
+			(description "I2C SDA pull-up")
+			(fields
+				(field
+					(name "MPN") "0603WAF4701T5E")
+				(field
+					(name "LCSC") "C23162")
+				(field
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "I2C SDA pull-up")
+			)
+			(libsource
+				(lib "wallet")
+				(part "R")
+				(description "R")
+			)
+			(property
+				(name "MPN")
+				(value "0603WAF4701T5E")
+			)
+			(property
+				(name "LCSC")
+				(value "C23162")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "2e6227b8-f8a4-5ef6-b2c9-16fdda7794c7")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R14")
+			(value "4.7k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
+			(description "I2C SCL pull-up")
+			(fields
+				(field
+					(name "MPN") "0603WAF4701T5E")
+				(field
+					(name "LCSC") "C23162")
+				(field
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "I2C SCL pull-up")
+			)
+			(libsource
+				(lib "wallet")
+				(part "R")
+				(description "R")
+			)
+			(property
+				(name "MPN")
+				(value "0603WAF4701T5E")
+			)
+			(property
+				(name "LCSC")
+				(value "C23162")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "096e124c-fe2b-5fc7-b67a-1752b58e3aab")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R15")
+			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
+			(description "SD CS pull-up to SD_VDD")
+			(fields
+				(field
+					(name "MPN") "0603WAF1002T5E")
+				(field
+					(name "LCSC") "C25804")
+				(field
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "SD CS pull-up to SD_VDD")
+			)
+			(libsource
+				(lib "wallet")
+				(part "R")
+				(description "R")
+			)
+			(property
+				(name "MPN")
+				(value "0603WAF1002T5E")
+			)
+			(property
+				(name "LCSC")
+				(value "C25804")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "3d98e21e-a722-5313-84bc-bf589f382902")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R16")
+			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
+			(description "SD CMD pull-up to SD_VDD")
+			(fields
+				(field
+					(name "MPN") "0603WAF1002T5E")
+				(field
+					(name "LCSC") "C25804")
+				(field
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "SD CMD pull-up to SD_VDD")
+			)
+			(libsource
+				(lib "wallet")
+				(part "R")
+				(description "R")
+			)
+			(property
+				(name "MPN")
+				(value "0603WAF1002T5E")
+			)
+			(property
+				(name "LCSC")
+				(value "C25804")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "c3599191-f6f2-5e76-b0a7-0fb18bf0594c")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R17")
+			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
+			(description "SD DAT0 pull-up to SD_VDD")
+			(fields
+				(field
+					(name "MPN") "0603WAF1002T5E")
+				(field
+					(name "LCSC") "C25804")
+				(field
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "SD DAT0 pull-up to SD_VDD")
+			)
+			(libsource
+				(lib "wallet")
+				(part "R")
+				(description "R")
+			)
+			(property
+				(name "MPN")
+				(value "0603WAF1002T5E")
+			)
+			(property
+				(name "LCSC")
+				(value "C25804")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "8ae739df-6441-5e8b-81b6-ce3c40ffd981")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R18")
+			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
+			(description "SD DAT1 pull-up to SD_VDD")
+			(fields
+				(field
+					(name "MPN") "0603WAF1002T5E")
+				(field
+					(name "LCSC") "C25804")
+				(field
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "SD DAT1 pull-up to SD_VDD")
+			)
+			(libsource
+				(lib "wallet")
+				(part "R")
+				(description "R")
+			)
+			(property
+				(name "MPN")
+				(value "0603WAF1002T5E")
+			)
+			(property
+				(name "LCSC")
+				(value "C25804")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "bdde5d95-20df-577c-a30d-d6f35a777e23")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R19")
+			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
+			(description "SD DAT2 pull-up to SD_VDD")
+			(fields
+				(field
+					(name "MPN") "0603WAF1002T5E")
+				(field
+					(name "LCSC") "C25804")
+				(field
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "SD DAT2 pull-up to SD_VDD")
+			)
+			(libsource
+				(lib "wallet")
+				(part "R")
+				(description "R")
+			)
+			(property
+				(name "MPN")
+				(value "0603WAF1002T5E")
+			)
+			(property
+				(name "LCSC")
+				(value "C25804")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "d422b629-f00b-57cb-a046-45ccc55ea3d6")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R20")
+			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
+			(description "Card-detect pull-up")
+			(fields
+				(field
+					(name "MPN") "0603WAF1002T5E")
+				(field
+					(name "LCSC") "C25804")
+				(field
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "Card-detect pull-up")
+			)
+			(libsource
+				(lib "wallet")
+				(part "R")
+				(description "R")
+			)
+			(property
+				(name "MPN")
+				(value "0603WAF1002T5E")
+			)
+			(property
+				(name "LCSC")
+				(value "C25804")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "9a81577e-a03a-5330-93f9-cf41239fa2a9")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R21")
+			(value "2.2k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
+			(description "Q3 gate pull-up: beats RP2350 reset pull-down -> SD OFF at boot (sim: reset_default_off)")
+			(fields
+				(field
+					(name "MPN") "0603WAF2201T5E")
+				(field
+					(name "LCSC") "C4190")
+				(field
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "Q3 gate pull-up: beats RP2350 reset pull-down -> SD OFF at boot (sim: reset_default_off)")
+			)
+			(libsource
+				(lib "wallet")
+				(part "R")
+				(description "R")
+			)
+			(property
+				(name "MPN")
+				(value "0603WAF2201T5E")
+			)
+			(property
+				(name "LCSC")
+				(value "C4190")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "5d0fe90b-3055-5c97-af1d-a4a44b889690")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R23")
+			(value "470")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
+			(description "Q3 gate series (soft start with C8)")
+			(fields
+				(field
+					(name "MPN") "0603WAF4700T5E")
+				(field
+					(name "LCSC") "C23179")
+				(field
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "Q3 gate series (soft start with C8)")
+			)
+			(libsource
+				(lib "wallet")
+				(part "R")
+				(description "R")
+			)
+			(property
+				(name "MPN")
+				(value "0603WAF4700T5E")
+			)
+			(property
+				(name "LCSC")
+				(value "C23179")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "3e9904a7-d00c-500b-89c8-7ed38a8051af")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R25")
+			(value "2.2k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
+			(description "Backlight gate pull-up: beats RP2350 reset pull-down -> backlight OFF at boot")
+			(fields
+				(field
+					(name "MPN") "0603WAF2201T5E")
+				(field
+					(name "LCSC") "C4190")
+				(field
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "Backlight gate pull-up: beats RP2350 reset pull-down -> backlight OFF at boot")
+			)
+			(libsource
+				(lib "wallet")
+				(part "R")
+				(description "R")
+			)
+			(property
+				(name "MPN")
+				(value "0603WAF2201T5E")
+			)
+			(property
+				(name "LCSC")
+				(value "C4190")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "f9d79d01-f866-503a-87c3-d99c12ce9dd0")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R26")
+			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
+			(description "UP pull-up")
+			(fields
+				(field
+					(name "MPN") "0603WAF1002T5E")
+				(field
+					(name "LCSC") "C25804")
+				(field
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "UP pull-up")
+			)
+			(libsource
+				(lib "wallet")
+				(part "R")
+				(description "R")
+			)
+			(property
+				(name "MPN")
+				(value "0603WAF1002T5E")
+			)
+			(property
+				(name "LCSC")
+				(value "C25804")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "532b5b8c-b2b1-53c6-9710-8b791c1ee335")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R27")
+			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
+			(description "DOWN pull-up")
+			(fields
+				(field
+					(name "MPN") "0603WAF1002T5E")
+				(field
+					(name "LCSC") "C25804")
+				(field
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "DOWN pull-up")
+			)
+			(libsource
+				(lib "wallet")
+				(part "R")
+				(description "R")
+			)
+			(property
+				(name "MPN")
+				(value "0603WAF1002T5E")
+			)
+			(property
+				(name "LCSC")
+				(value "C25804")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "8210e0d1-e23d-5392-886d-7d8bcfe2be40")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R28")
+			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
+			(description "BACK pull-up")
+			(fields
+				(field
+					(name "MPN") "0603WAF1002T5E")
+				(field
+					(name "LCSC") "C25804")
+				(field
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "BACK pull-up")
+			)
+			(libsource
+				(lib "wallet")
+				(part "R")
+				(description "R")
+			)
+			(property
+				(name "MPN")
+				(value "0603WAF1002T5E")
+			)
+			(property
+				(name "LCSC")
+				(value "C25804")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "0efdc5c8-d125-5003-a201-b9abf4c661e6")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R29")
+			(value "10k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
+			(description "CONFIRM pull-up")
+			(fields
+				(field
+					(name "MPN") "0603WAF1002T5E")
+				(field
+					(name "LCSC") "C25804")
+				(field
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "CONFIRM pull-up")
+			)
+			(libsource
+				(lib "wallet")
+				(part "R")
+				(description "R")
+			)
+			(property
+				(name "MPN")
+				(value "0603WAF1002T5E")
+			)
+			(property
+				(name "LCSC")
+				(value "C25804")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "25101df0-e0e2-5571-98a2-a5ab8a462de8")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R30")
+			(value "2.2k")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
+			(description "Q5 gate pull-up: beats RP2350 reset pull-down -> display unpowered at boot (sim: reset_default_off)")
+			(fields
+				(field
+					(name "MPN") "0603WAF2201T5E")
+				(field
+					(name "LCSC") "C4190")
+				(field
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "Q5 gate pull-up: beats RP2350 reset pull-down -> display unpowered at boot (sim: reset_default_off)")
+			)
+			(libsource
+				(lib "wallet")
+				(part "R")
+				(description "R")
+			)
+			(property
+				(name "MPN")
+				(value "0603WAF2201T5E")
+			)
+			(property
+				(name "LCSC")
+				(value "C4190")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "6d23df9d-fb7c-5fb3-824d-dff7306458de")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R31")
+			(value "470")
+			(footprint "Resistor_SMD:R_0603_1608Metric")
+			(description "Q5 gate series (soft start with C17)")
+			(fields
+				(field
+					(name "MPN") "0603WAF4700T5E")
+				(field
+					(name "LCSC") "C23179")
+				(field
+					(name "Footprint") "Resistor_SMD:R_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "Q5 gate series (soft start with C17)")
+			)
+			(libsource
+				(lib "wallet")
+				(part "R")
+				(description "R")
+			)
+			(property
+				(name "MPN")
+				(value "0603WAF4700T5E")
+			)
+			(property
+				(name "LCSC")
+				(value "C23179")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "ca9ef8a5-fccb-5a48-8deb-e5a5c243987c")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "SW1")
+			(value "Power")
+			(footprint "Button_Switch_SMD:SW_DPDT_CK_JS202011JCQN")
+			(description "Pole A disconnects battery, pole B grounds 3V3_EN (kills 3V3 even on USB)")
+			(fields
+				(field
+					(name "MPN") "JS202011JCQN")
+				(field
+					(name "LCSC") "C221665")
+				(field
+					(name "Footprint") "Button_Switch_SMD:SW_DPDT_CK_JS202011JCQN")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "Pole A disconnects battery, pole B grounds 3V3_EN (kills 3V3 even on USB)")
+			)
+			(libsource
+				(lib "wallet")
+				(part "DPDT")
+				(description "DPDT")
+			)
+			(property
+				(name "MPN")
+				(value "JS202011JCQN")
+			)
+			(property
+				(name "LCSC")
+				(value "C221665")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "e95f2e50-0e1c-5ef0-b531-f2f907315be4")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "2")
+						)
+						(pin
+							(num "5")
+						)
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "3")
+						)
+						(pin
+							(num "4")
+						)
+						(pin
+							(num "6")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "SW2")
+			(value "UP")
+			(footprint "Button_Switch_SMD:SW_Push_1P1T_XKB_TS-1187A")
+			(fields
+				(field
+					(name "MPN") "TS-1187A-B-A-B")
+				(field
+					(name "LCSC") "C318884")
+				(field
+					(name "Footprint") "Button_Switch_SMD:SW_Push_1P1T_XKB_TS-1187A")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "wallet")
+				(part "BUTTON")
+				(description "BUTTON")
+			)
+			(property
+				(name "MPN")
+				(value "TS-1187A-B-A-B")
+			)
+			(property
+				(name "LCSC")
+				(value "C318884")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "509aab7d-8358-54c0-8f78-8ddedc248598")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "SW3")
+			(value "DOWN")
+			(footprint "Button_Switch_SMD:SW_Push_1P1T_XKB_TS-1187A")
+			(fields
+				(field
+					(name "MPN") "TS-1187A-B-A-B")
+				(field
+					(name "LCSC") "C318884")
+				(field
+					(name "Footprint") "Button_Switch_SMD:SW_Push_1P1T_XKB_TS-1187A")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "wallet")
+				(part "BUTTON")
+				(description "BUTTON")
+			)
+			(property
+				(name "MPN")
+				(value "TS-1187A-B-A-B")
+			)
+			(property
+				(name "LCSC")
+				(value "C318884")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "55627629-4815-54d6-b5fc-3b5b6e7ab9aa")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "SW4")
+			(value "BACK")
+			(footprint "Button_Switch_SMD:SW_Push_1P1T_XKB_TS-1187A")
+			(fields
+				(field
+					(name "MPN") "TS-1187A-B-A-B")
+				(field
+					(name "LCSC") "C318884")
+				(field
+					(name "Footprint") "Button_Switch_SMD:SW_Push_1P1T_XKB_TS-1187A")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "wallet")
+				(part "BUTTON")
+				(description "BUTTON")
+			)
+			(property
+				(name "MPN")
+				(value "TS-1187A-B-A-B")
+			)
+			(property
+				(name "LCSC")
+				(value "C318884")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "55ee066e-7ee8-51ad-ab3a-43855b4b34a1")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "SW5")
+			(value "CONFIRM")
+			(footprint "Button_Switch_SMD:SW_Push_1P1T_XKB_TS-1187A")
+			(fields
+				(field
+					(name "MPN") "TS-1187A-B-A-B")
+				(field
+					(name "LCSC") "C318884")
+				(field
+					(name "Footprint") "Button_Switch_SMD:SW_Push_1P1T_XKB_TS-1187A")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "wallet")
+				(part "BUTTON")
+				(description "BUTTON")
+			)
+			(property
+				(name "MPN")
+				(value "TS-1187A-B-A-B")
+			)
+			(property
+				(name "LCSC")
+				(value "C318884")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "bba9e7cd-169a-5cca-9bed-ee8f52656253")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "TP1")
+			(value "GND")
+			(footprint "TestPoint:TestPoint_Pad_D1.0mm")
+			(fields
+				(field
+					(name "MPN") "No part (bare pad)")
+				(field
+					(name "LCSC")
+				)
+				(field
+					(name "Footprint") "TestPoint:TestPoint_Pad_D1.0mm")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "wallet")
+				(part "TESTPOINT")
+				(description "TESTPOINT")
+			)
+			(property
+				(name "MPN")
+				(value "No part (bare pad)")
+			)
+			(property
+				(name "LCSC")
+				(value "")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(property
+				(name "exclude_from_bom")
+			)
+			(property
+				(name "dnp")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "ac50dc40-b346-5451-b38f-806f58d1ea92")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "TP2")
+			(value "+3V3")
+			(footprint "TestPoint:TestPoint_Pad_D1.0mm")
+			(fields
+				(field
+					(name "MPN") "No part (bare pad)")
+				(field
+					(name "LCSC")
+				)
+				(field
+					(name "Footprint") "TestPoint:TestPoint_Pad_D1.0mm")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "wallet")
+				(part "TESTPOINT")
+				(description "TESTPOINT")
+			)
+			(property
+				(name "MPN")
+				(value "No part (bare pad)")
+			)
+			(property
+				(name "LCSC")
+				(value "")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(property
+				(name "exclude_from_bom")
+			)
+			(property
+				(name "dnp")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "9cd4cdb2-4c73-54dc-82c5-1f1b3ccf9c4c")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "TP3")
+			(value "VSYS")
+			(footprint "TestPoint:TestPoint_Pad_D1.0mm")
+			(fields
+				(field
+					(name "MPN") "No part (bare pad)")
+				(field
+					(name "LCSC")
+				)
+				(field
+					(name "Footprint") "TestPoint:TestPoint_Pad_D1.0mm")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "wallet")
+				(part "TESTPOINT")
+				(description "TESTPOINT")
+			)
+			(property
+				(name "MPN")
+				(value "No part (bare pad)")
+			)
+			(property
+				(name "LCSC")
+				(value "")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(property
+				(name "exclude_from_bom")
+			)
+			(property
+				(name "dnp")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "3e39fc02-53a4-55e2-ba42-ad6660012161")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "TP4")
+			(value "VBAT")
+			(footprint "TestPoint:TestPoint_Pad_D1.0mm")
+			(fields
+				(field
+					(name "MPN") "No part (bare pad)")
+				(field
+					(name "LCSC")
+				)
+				(field
+					(name "Footprint") "TestPoint:TestPoint_Pad_D1.0mm")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "wallet")
+				(part "TESTPOINT")
+				(description "TESTPOINT")
+			)
+			(property
+				(name "MPN")
+				(value "No part (bare pad)")
+			)
+			(property
+				(name "LCSC")
+				(value "")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(property
+				(name "exclude_from_bom")
+			)
+			(property
+				(name "dnp")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "9c91d803-a93d-5163-9f9d-808346213f22")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "TP5")
+			(value "UART_TX")
+			(footprint "TestPoint:TestPoint_Pad_D1.0mm")
+			(fields
+				(field
+					(name "MPN") "No part (bare pad)")
+				(field
+					(name "LCSC")
+				)
+				(field
+					(name "Footprint") "TestPoint:TestPoint_Pad_D1.0mm")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "wallet")
+				(part "TESTPOINT")
+				(description "TESTPOINT")
+			)
+			(property
+				(name "MPN")
+				(value "No part (bare pad)")
+			)
+			(property
+				(name "LCSC")
+				(value "")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(property
+				(name "exclude_from_bom")
+			)
+			(property
+				(name "dnp")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "bd2eddc4-d078-53de-9aa5-08fbe6e25070")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "TP6")
+			(value "UART_RX")
+			(footprint "TestPoint:TestPoint_Pad_D1.0mm")
+			(fields
+				(field
+					(name "MPN") "No part (bare pad)")
+				(field
+					(name "LCSC")
+				)
+				(field
+					(name "Footprint") "TestPoint:TestPoint_Pad_D1.0mm")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "wallet")
+				(part "TESTPOINT")
+				(description "TESTPOINT")
+			)
+			(property
+				(name "MPN")
+				(value "No part (bare pad)")
+			)
+			(property
+				(name "LCSC")
+				(value "")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(property
+				(name "exclude_from_bom")
+			)
+			(property
+				(name "dnp")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "996e109e-f944-5023-8f47-473a00c423e5")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "TP7")
+			(value "GP4")
+			(footprint "TestPoint:TestPoint_Pad_D1.0mm")
+			(fields
+				(field
+					(name "MPN") "No part (bare pad)")
+				(field
+					(name "LCSC")
+				)
+				(field
+					(name "Footprint") "TestPoint:TestPoint_Pad_D1.0mm")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "wallet")
+				(part "TESTPOINT")
+				(description "TESTPOINT")
+			)
+			(property
+				(name "MPN")
+				(value "No part (bare pad)")
+			)
+			(property
+				(name "LCSC")
+				(value "")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(property
+				(name "exclude_from_bom")
+			)
+			(property
+				(name "dnp")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "0e34e7c6-8b7f-505c-9e60-8d4961906170")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "TP8")
+			(value "LCD_PWR_N")
+			(footprint "TestPoint:TestPoint_Pad_D1.0mm")
+			(fields
+				(field
+					(name "MPN") "No part (bare pad)")
+				(field
+					(name "LCSC")
+				)
+				(field
+					(name "Footprint") "TestPoint:TestPoint_Pad_D1.0mm")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "wallet")
+				(part "TESTPOINT")
+				(description "TESTPOINT")
+			)
+			(property
+				(name "MPN")
+				(value "No part (bare pad)")
+			)
+			(property
+				(name "LCSC")
+				(value "")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(property
+				(name "exclude_from_bom")
+			)
+			(property
+				(name "dnp")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "06d9a50f-0af4-5fa7-93cb-f60929dd3a8e")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "U1")
+			(value "USBLC6-2SC6")
+			(footprint "Package_TO_SOT_SMD:SOT-23-6")
+			(fields
+				(field
+					(name "MPN") "USBLC6-2SC6")
+				(field
+					(name "LCSC") "C7519")
+				(field
+					(name "Footprint") "Package_TO_SOT_SMD:SOT-23-6")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "wallet")
+				(part "USBLC6")
+				(description "USBLC6")
+			)
+			(property
+				(name "MPN")
+				(value "USBLC6-2SC6")
+			)
+			(property
+				(name "LCSC")
+				(value "C7519")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "26bd90a9-2b4a-5183-b146-4ae8bbdca3e9")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "3")
+						)
+						(pin
+							(num "2")
+						)
+						(pin
+							(num "6")
+						)
+						(pin
+							(num "4")
+						)
+						(pin
+							(num "5")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "U2")
+			(value "OPTIGA Trust M V3")
+			(footprint "wallet:Infineon_PG-USON-10-2_3x3mm_P0.5mm")
+			(description "Not stocked at LCSC: JLCPCB global sourcing by MPN (from an authorised distributor), or consign your own")
+			(fields
+				(field
+					(name "MPN") "SLS32AIA010MKUSON10XTMA2")
+				(field
+					(name "LCSC")
+				)
+				(field
+					(name "Footprint") "wallet:Infineon_PG-USON-10-2_3x3mm_P0.5mm")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "Not stocked at LCSC: JLCPCB global sourcing by MPN (from an authorised distributor), or consign your own")
+			)
+			(libsource
+				(lib "wallet")
+				(part "OPTIGA")
+				(description "OPTIGA")
+			)
+			(property
+				(name "MPN")
+				(value "SLS32AIA010MKUSON10XTMA2")
+			)
+			(property
+				(name "LCSC")
+				(value "")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "8ef5d0b2-9fa4-526b-9183-4b185d5fb588")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "10")
+						)
+						(pin
+							(num "9")
+						)
+						(pin
+							(num "3")
+						)
+						(pin
+							(num "8")
+						)
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+						(pin
+							(num "4")
+						)
+						(pin
+							(num "5")
+						)
+						(pin
+							(num "6")
+						)
+						(pin
+							(num "7")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "U3")
+			(value "MCP73831T-2ACI/OT")
+			(footprint "Package_TO_SOT_SMD:SOT-23-5")
+			(fields
+				(field
+					(name "MPN") "MCP73831T-2ACI/OT")
+				(field
+					(name "LCSC") "C424093")
+				(field
+					(name "Footprint") "Package_TO_SOT_SMD:SOT-23-5")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "wallet")
+				(part "MCP73831")
+				(description "MCP73831")
+			)
+			(property
+				(name "MPN")
+				(value "MCP73831T-2ACI/OT")
+			)
+			(property
+				(name "LCSC")
+				(value "C424093")
+			)
+			(property
+				(name "Sheetname")
+				(value "wallet")
+			)
+			(property
+				(name "Sheetfile")
+				(value "wallet.kicad_sch")
+			)
+			(sheetpath
+				(names "/")
+				(tstamps "/")
+			)
+			(tstamps "93972b0f-b5f6-5867-b6bb-e7309d5da7d5")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "4")
+						)
+						(pin
+							(num "5")
+						)
+						(pin
+							(num "2")
+						)
+						(pin
+							(num "3")
+						)
+						(pin
+							(num "1")
+						)
+					)
+				)
+			)
+		)
+	)
+	(groups)
+	(variants)
+	(libparts
+		(libpart
+			(lib "wallet")
+			(part "BUTTON")
+			(description "BUTTON")
+			(fields
+				(field
+					(name "Reference") "SW")
+				(field
+					(name "Value") "BUTTON")
+				(field
+					(name "Footprint")
+				)
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "BUTTON")
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "2")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "wallet")
+			(part "C")
+			(description "C")
+			(fields
+				(field
+					(name "Reference") "C")
+				(field
+					(name "Value") "C")
+				(field
+					(name "Footprint")
+				)
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "C")
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "2")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "wallet")
+			(part "DPDT")
+			(description "DPDT")
+			(fields
+				(field
+					(name "Reference") "SW")
+				(field
+					(name "Value") "DPDT")
+				(field
+					(name "Footprint")
+				)
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "DPDT")
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "A_OFF")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "A_COM")
+					(type "passive")
+				)
+				(pin
+					(num "3")
+					(name "A_ON")
+					(type "passive")
+				)
+				(pin
+					(num "4")
+					(name "B_OFF")
+					(type "passive")
+				)
+				(pin
+					(num "5")
+					(name "B_COM")
+					(type "passive")
+				)
+				(pin
+					(num "6")
+					(name "B_ON")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "wallet")
+			(part "FUSE")
+			(description "FUSE")
+			(fields
+				(field
+					(name "Reference") "F")
+				(field
+					(name "Value") "FUSE")
+				(field
+					(name "Footprint")
+				)
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "FUSE")
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "2")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "wallet")
+			(part "HOLE")
+			(description "HOLE")
+			(fields
+				(field
+					(name "Reference") "H")
+				(field
+					(name "Value") "HOLE")
+				(field
+					(name "Footprint")
+				)
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "HOLE")
+			)
+		)
+		(libpart
+			(lib "wallet")
+			(part "JST2")
+			(description "JST2")
+			(fields
+				(field
+					(name "Reference") "J")
+				(field
+					(name "Value") "JST2")
+				(field
+					(name "Footprint")
+				)
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "JST2")
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "BAT+")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "BAT-")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "wallet")
+			(part "LCD8")
+			(description "LCD8")
+			(fields
+				(field
+					(name "Reference") "J")
+				(field
+					(name "Value") "LCD8")
+				(field
+					(name "Footprint")
+				)
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "LCD8")
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "GND")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "VCC")
+					(type "passive")
+				)
+				(pin
+					(num "3")
+					(name "SCL")
+					(type "passive")
+				)
+				(pin
+					(num "4")
+					(name "SDA")
+					(type "passive")
+				)
+				(pin
+					(num "5")
+					(name "RES")
+					(type "passive")
+				)
+				(pin
+					(num "6")
+					(name "DC")
+					(type "passive")
+				)
+				(pin
+					(num "7")
+					(name "CS")
+					(type "passive")
+				)
+				(pin
+					(num "8")
+					(name "BLK")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "wallet")
+			(part "LED")
+			(description "LED")
+			(fields
+				(field
+					(name "Reference") "D")
+				(field
+					(name "Value") "LED")
+				(field
+					(name "Footprint")
+				)
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "LED")
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "K")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "A")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "wallet")
+			(part "MCP73831")
+			(description "MCP73831")
+			(fields
+				(field
+					(name "Reference") "U")
+				(field
+					(name "Value") "MCP73831")
+				(field
+					(name "Footprint")
+				)
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "MCP73831")
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "STAT")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "VSS")
+					(type "passive")
+				)
+				(pin
+					(num "3")
+					(name "VBAT")
+					(type "passive")
+				)
+				(pin
+					(num "4")
+					(name "VDD")
+					(type "passive")
+				)
+				(pin
+					(num "5")
+					(name "PROG")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "wallet")
+			(part "MICROSD")
+			(description "MICROSD")
+			(fields
+				(field
+					(name "Reference") "J")
+				(field
+					(name "Value") "MICROSD")
+				(field
+					(name "Footprint")
+				)
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "MICROSD")
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "DAT2")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "DAT3/CS")
+					(type "passive")
+				)
+				(pin
+					(num "3")
+					(name "CMD/DI")
+					(type "passive")
+				)
+				(pin
+					(num "4")
+					(name "VDD")
+					(type "passive")
+				)
+				(pin
+					(num "5")
+					(name "CLK")
+					(type "passive")
+				)
+				(pin
+					(num "6")
+					(name "VSS")
+					(type "passive")
+				)
+				(pin
+					(num "7")
+					(name "DAT0/DO")
+					(type "passive")
+				)
+				(pin
+					(num "8")
+					(name "DAT1")
+					(type "passive")
+				)
+				(pin
+					(num "9")
+					(name "DET_B")
+					(type "passive")
+				)
+				(pin
+					(num "10")
+					(name "DET_A")
+					(type "passive")
+				)
+				(pin
+					(num "SH")
+					(name "SHIELD")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "wallet")
+			(part "OPTIGA")
+			(description "OPTIGA")
+			(fields
+				(field
+					(name "Reference") "U")
+				(field
+					(name "Value") "OPTIGA")
+				(field
+					(name "Footprint")
+				)
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "OPTIGA")
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "GND")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "NC")
+					(type "passive")
+				)
+				(pin
+					(num "3")
+					(name "SDA")
+					(type "passive")
+				)
+				(pin
+					(num "4")
+					(name "NC")
+					(type "passive")
+				)
+				(pin
+					(num "5")
+					(name "NC")
+					(type "passive")
+				)
+				(pin
+					(num "6")
+					(name "NC")
+					(type "passive")
+				)
+				(pin
+					(num "7")
+					(name "NC")
+					(type "passive")
+				)
+				(pin
+					(num "8")
+					(name "SCL")
+					(type "passive")
+				)
+				(pin
+					(num "9")
+					(name "~{RST}")
+					(type "passive")
+				)
+				(pin
+					(num "10")
+					(name "VCC")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "wallet")
+			(part "PICO2W")
+			(description "PICO2W")
+			(fields
+				(field
+					(name "Reference") "A")
+				(field
+					(name "Value") "PICO2W")
+				(field
+					(name "Footprint")
+				)
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "PICO2W")
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "GP0")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "GP1")
+					(type "passive")
+				)
+				(pin
+					(num "3")
+					(name "GND")
+					(type "passive")
+				)
+				(pin
+					(num "4")
+					(name "GP2")
+					(type "passive")
+				)
+				(pin
+					(num "5")
+					(name "GP3")
+					(type "passive")
+				)
+				(pin
+					(num "6")
+					(name "GP4")
+					(type "passive")
+				)
+				(pin
+					(num "7")
+					(name "GP5")
+					(type "passive")
+				)
+				(pin
+					(num "8")
+					(name "GND")
+					(type "passive")
+				)
+				(pin
+					(num "9")
+					(name "GP6")
+					(type "passive")
+				)
+				(pin
+					(num "10")
+					(name "GP7")
+					(type "passive")
+				)
+				(pin
+					(num "11")
+					(name "GP8")
+					(type "passive")
+				)
+				(pin
+					(num "12")
+					(name "GP9")
+					(type "passive")
+				)
+				(pin
+					(num "13")
+					(name "GND")
+					(type "passive")
+				)
+				(pin
+					(num "14")
+					(name "GP10")
+					(type "passive")
+				)
+				(pin
+					(num "15")
+					(name "GP11")
+					(type "passive")
+				)
+				(pin
+					(num "16")
+					(name "GP12")
+					(type "passive")
+				)
+				(pin
+					(num "17")
+					(name "GP13")
+					(type "passive")
+				)
+				(pin
+					(num "18")
+					(name "GND")
+					(type "passive")
+				)
+				(pin
+					(num "19")
+					(name "GP14")
+					(type "passive")
+				)
+				(pin
+					(num "20")
+					(name "GP15")
+					(type "passive")
+				)
+				(pin
+					(num "21")
+					(name "GP16")
+					(type "passive")
+				)
+				(pin
+					(num "22")
+					(name "GP17")
+					(type "passive")
+				)
+				(pin
+					(num "23")
+					(name "GND")
+					(type "passive")
+				)
+				(pin
+					(num "24")
+					(name "GP18")
+					(type "passive")
+				)
+				(pin
+					(num "25")
+					(name "GP19")
+					(type "passive")
+				)
+				(pin
+					(num "26")
+					(name "GP20")
+					(type "passive")
+				)
+				(pin
+					(num "27")
+					(name "GP21")
+					(type "passive")
+				)
+				(pin
+					(num "28")
+					(name "GND")
+					(type "passive")
+				)
+				(pin
+					(num "29")
+					(name "GP22")
+					(type "passive")
+				)
+				(pin
+					(num "30")
+					(name "RUN")
+					(type "passive")
+				)
+				(pin
+					(num "31")
+					(name "GP26_A0")
+					(type "passive")
+				)
+				(pin
+					(num "32")
+					(name "GP27_A1")
+					(type "passive")
+				)
+				(pin
+					(num "33")
+					(name "AGND")
+					(type "passive")
+				)
+				(pin
+					(num "34")
+					(name "GP28_A2")
+					(type "passive")
+				)
+				(pin
+					(num "35")
+					(name "ADC_VREF")
+					(type "passive")
+				)
+				(pin
+					(num "36")
+					(name "3V3_OUT")
+					(type "passive")
+				)
+				(pin
+					(num "37")
+					(name "3V3_EN")
+					(type "passive")
+				)
+				(pin
+					(num "38")
+					(name "GND")
+					(type "passive")
+				)
+				(pin
+					(num "39")
+					(name "VSYS")
+					(type "passive")
+				)
+				(pin
+					(num "40")
+					(name "VBUS")
+					(type "passive")
+				)
+				(pin
+					(num "D1")
+					(name "SWCLK")
+					(type "passive")
+				)
+				(pin
+					(num "D2")
+					(name "GND")
+					(type "passive")
+				)
+				(pin
+					(num "D3")
+					(name "SWDIO")
+					(type "passive")
+				)
+				(pin
+					(num "TP1")
+					(name "USB_GND")
+					(type "passive")
+				)
+				(pin
+					(num "TP2")
+					(name "USB_DM")
+					(type "passive")
+				)
+				(pin
+					(num "TP3")
+					(name "USB_DP")
+					(type "passive")
+				)
+				(pin
+					(num "TP4")
+					(name "TP4_WL")
+					(type "passive")
+				)
+				(pin
+					(num "TP5")
+					(name "TP5_WL")
+					(type "passive")
+				)
+				(pin
+					(num "TP6")
+					(name "~{BOOTSEL}")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "wallet")
+			(part "PMOS")
+			(description "PMOS")
+			(fields
+				(field
+					(name "Reference") "Q")
+				(field
+					(name "Value") "PMOS")
+				(field
+					(name "Footprint")
+				)
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "PMOS")
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "G")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "S")
+					(type "passive")
+				)
+				(pin
+					(num "3")
+					(name "D")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "wallet")
+			(part "R")
+			(description "R")
+			(fields
+				(field
+					(name "Reference") "R")
+				(field
+					(name "Value") "R")
+				(field
+					(name "Footprint")
+				)
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "R")
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "2")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "wallet")
+			(part "TC2030")
+			(description "TC2030")
+			(fields
+				(field
+					(name "Reference") "J")
+				(field
+					(name "Value") "TC2030")
+				(field
+					(name "Footprint")
+				)
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "TC2030")
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "VCC")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "SWDIO")
+					(type "passive")
+				)
+				(pin
+					(num "3")
+					(name "~{RESET}")
+					(type "passive")
+				)
+				(pin
+					(num "4")
+					(name "SWCLK")
+					(type "passive")
+				)
+				(pin
+					(num "5")
+					(name "GND")
+					(type "passive")
+				)
+				(pin
+					(num "6")
+					(name "SWO")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "wallet")
+			(part "TESTPOINT")
+			(description "TESTPOINT")
+			(fields
+				(field
+					(name "Reference") "TP")
+				(field
+					(name "Value") "TESTPOINT")
+				(field
+					(name "Footprint")
+				)
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "TESTPOINT")
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "TP")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "wallet")
+			(part "USBC")
+			(description "USBC")
+			(fields
+				(field
+					(name "Reference") "J")
+				(field
+					(name "Value") "USBC")
+				(field
+					(name "Footprint")
+				)
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "USBC")
+			)
+			(pins
+				(pin
+					(num "A1")
+					(name "GND")
+					(type "passive")
+				)
+				(pin
+					(num "A4")
+					(name "VBUS")
+					(type "passive")
+				)
+				(pin
+					(num "A5")
+					(name "CC1")
+					(type "passive")
+				)
+				(pin
+					(num "A6")
+					(name "D+")
+					(type "passive")
+				)
+				(pin
+					(num "A7")
+					(name "D-")
+					(type "passive")
+				)
+				(pin
+					(num "A8")
+					(name "SBU1")
+					(type "passive")
+				)
+				(pin
+					(num "A9")
+					(name "VBUS")
+					(type "passive")
+				)
+				(pin
+					(num "A12")
+					(name "GND")
+					(type "passive")
+				)
+				(pin
+					(num "B1")
+					(name "GND")
+					(type "passive")
+				)
+				(pin
+					(num "B4")
+					(name "VBUS")
+					(type "passive")
+				)
+				(pin
+					(num "B5")
+					(name "CC2")
+					(type "passive")
+				)
+				(pin
+					(num "B6")
+					(name "D+")
+					(type "passive")
+				)
+				(pin
+					(num "B7")
+					(name "D-")
+					(type "passive")
+				)
+				(pin
+					(num "B8")
+					(name "SBU2")
+					(type "passive")
+				)
+				(pin
+					(num "B9")
+					(name "VBUS")
+					(type "passive")
+				)
+				(pin
+					(num "B12")
+					(name "GND")
+					(type "passive")
+				)
+				(pin
+					(num "SH")
+					(name "SHIELD")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "wallet")
+			(part "USBLC6")
+			(description "USBLC6")
+			(fields
+				(field
+					(name "Reference") "U")
+				(field
+					(name "Value") "USBLC6")
+				(field
+					(name "Footprint")
+				)
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description") "USBLC6")
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "IO1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "GND")
+					(type "passive")
+				)
+				(pin
+					(num "3")
+					(name "IO2")
+					(type "passive")
+				)
+				(pin
+					(num "4")
+					(name "IO2")
+					(type "passive")
+				)
+				(pin
+					(num "5")
+					(name "VBUS")
+					(type "passive")
+				)
+				(pin
+					(num "6")
+					(name "IO1")
+					(type "passive")
+				)
+			)
+		)
+	)
+	(libraries
+		(library
+			(logical "wallet")
+			(uri "${KIPRJMOD}/wallet.kicad_sym")
+		)
+	)
+	(nets
+		(net
+			(code "1")
+			(name "+3V3")
+			(class "Power")
+			(node
+				(ref "A1")
+				(pin "36")
+				(pinfunction "3V3_OUT_36")
+				(pintype "passive")
+			)
+			(node
+				(ref "C14")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "C15")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "C17")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "C8")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "J5")
+				(pin "1")
+				(pinfunction "VCC_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "Q2")
+				(pin "2")
+				(pinfunction "S_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "Q3")
+				(pin "2")
+				(pinfunction "S_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "Q4")
+				(pin "2")
+				(pinfunction "S_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "Q5")
+				(pin "2")
+				(pinfunction "S_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "R12")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "R13")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "R14")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "R20")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "R21")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "R25")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "R26")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "R27")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "R28")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "R29")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "R30")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "TP2")
+				(pin "1")
+				(pinfunction "TP_1")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "2")
+			(name "3V3_EN")
+			(class "Default")
+			(node
+				(ref "A1")
+				(pin "37")
+				(pinfunction "3V3_EN_37")
+				(pintype "passive")
+			)
+			(node
+				(ref "SW1")
+				(pin "5")
+				(pinfunction "B_COM_5")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "3")
+			(name "BTN_BACK")
+			(class "Default")
+			(node
+				(ref "A1")
+				(pin "16")
+				(pinfunction "GP12_16")
+				(pintype "passive")
+			)
+			(node
+				(ref "C12")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "R28")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "SW4")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "4")
+			(name "BTN_CONFIRM")
+			(class "Default")
+			(node
+				(ref "A1")
+				(pin "17")
+				(pinfunction "GP13_17")
+				(pintype "passive")
+			)
+			(node
+				(ref "C13")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "R29")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "SW5")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "5")
+			(name "BTN_DOWN")
+			(class "Default")
+			(node
+				(ref "A1")
+				(pin "20")
+				(pinfunction "GP15_20")
+				(pintype "passive")
+			)
+			(node
+				(ref "C11")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "R27")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "SW3")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "6")
+			(name "BTN_UP")
+			(class "Default")
+			(node
+				(ref "A1")
+				(pin "19")
+				(pinfunction "GP14_19")
+				(pintype "passive")
+			)
+			(node
+				(ref "C10")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "R26")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "SW2")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "7")
+			(name "CHG_LED")
+			(class "Default")
+			(node
+				(ref "D1")
+				(pin "2")
+				(pinfunction "A_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "R6")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "8")
+			(name "CHG_PROG")
+			(class "Default")
+			(node
+				(ref "R5")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "U3")
+				(pin "5")
+				(pinfunction "PROG_5")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "9")
+			(name "CHG_STAT")
+			(class "Default")
+			(node
+				(ref "A1")
+				(pin "7")
+				(pinfunction "GP5_7")
+				(pintype "passive")
+			)
+			(node
+				(ref "R7")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "R8")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "10")
+			(name "CHG_STAT_5V")
+			(class "Default")
+			(node
+				(ref "D1")
+				(pin "1")
+				(pinfunction "K_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "R7")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "U3")
+				(pin "1")
+				(pinfunction "STAT_1")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "11")
+			(name "GND")
+			(class "Power")
+			(node
+				(ref "A1")
+				(pin "13")
+				(pinfunction "GND_13")
+				(pintype "passive")
+			)
+			(node
+				(ref "A1")
+				(pin "18")
+				(pinfunction "GND_18")
+				(pintype "passive")
+			)
+			(node
+				(ref "A1")
+				(pin "23")
+				(pinfunction "GND_23")
+				(pintype "passive")
+			)
+			(node
+				(ref "A1")
+				(pin "28")
+				(pinfunction "GND_28")
+				(pintype "passive")
+			)
+			(node
+				(ref "A1")
+				(pin "3")
+				(pinfunction "GND_3")
+				(pintype "passive")
+			)
+			(node
+				(ref "A1")
+				(pin "33")
+				(pinfunction "AGND_33")
+				(pintype "passive")
+			)
+			(node
+				(ref "A1")
+				(pin "38")
+				(pinfunction "GND_38")
+				(pintype "passive")
+			)
+			(node
+				(ref "A1")
+				(pin "8")
+				(pinfunction "GND_8")
+				(pintype "passive")
+			)
+			(node
+				(ref "A1")
+				(pin "D2")
+				(pinfunction "GND_D2")
+				(pintype "passive")
+			)
+			(node
+				(ref "A1")
+				(pin "TP1")
+				(pinfunction "USB_GND_TP1")
+				(pintype "passive")
+			)
+			(node
+				(ref "C1")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "C10")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "C11")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "C12")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "C13")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "C14")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "C15")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "C16")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "C2")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "C3")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "C4")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "C5")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "C6")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "C7")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "C9")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "J1")
+				(pin "A1")
+				(pinfunction "GND_A1")
+				(pintype "passive")
+			)
+			(node
+				(ref "J1")
+				(pin "A12")
+				(pinfunction "GND_A12")
+				(pintype "passive")
+			)
+			(node
+				(ref "J1")
+				(pin "B1")
+				(pinfunction "GND_B1")
+				(pintype "passive")
+			)
+			(node
+				(ref "J1")
+				(pin "B12")
+				(pinfunction "GND_B12")
+				(pintype "passive")
+			)
+			(node
+				(ref "J1")
+				(pin "SH")
+				(pinfunction "SHIELD_SH")
+				(pintype "passive")
+			)
+			(node
+				(ref "J2")
+				(pin "2")
+				(pinfunction "BAT-_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "J3")
+				(pin "10")
+				(pinfunction "DET_A_10")
+				(pintype "passive")
+			)
+			(node
+				(ref "J3")
+				(pin "6")
+				(pinfunction "VSS_6")
+				(pintype "passive")
+			)
+			(node
+				(ref "J3")
+				(pin "SH")
+				(pinfunction "SHIELD_SH")
+				(pintype "passive")
+			)
+			(node
+				(ref "J4")
+				(pin "1")
+				(pinfunction "GND_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "J5")
+				(pin "5")
+				(pinfunction "GND_5")
+				(pintype "passive")
+			)
+			(node
+				(ref "R1")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "R11")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "R2")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "R5")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "R8")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "R9")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "SW1")
+				(pin "4")
+				(pinfunction "B_OFF_4")
+				(pintype "passive")
+			)
+			(node
+				(ref "SW2")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "SW3")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "SW4")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "SW5")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "TP1")
+				(pin "1")
+				(pinfunction "TP_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "U1")
+				(pin "2")
+				(pinfunction "GND_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "U2")
+				(pin "1")
+				(pinfunction "GND_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "U3")
+				(pin "2")
+				(pinfunction "VSS_2")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "12")
+			(name "GP4")
+			(class "Default")
+			(node
+				(ref "A1")
+				(pin "6")
+				(pinfunction "GP4_6")
+				(pintype "passive")
+			)
+			(node
+				(ref "TP7")
+				(pin "1")
+				(pinfunction "TP_1")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "13")
+			(name "LCD_BLK")
+			(class "Default")
+			(node
+				(ref "J4")
+				(pin "8")
+				(pinfunction "BLK_8")
+				(pintype "passive")
+			)
+			(node
+				(ref "Q4")
+				(pin "3")
+				(pinfunction "D_3")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "14")
+			(name "LCD_BL_N")
+			(class "Default")
+			(node
+				(ref "A1")
+				(pin "25")
+				(pinfunction "GP19_25")
+				(pintype "passive")
+			)
+			(node
+				(ref "Q4")
+				(pin "1")
+				(pinfunction "G_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "R25")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "15")
+			(name "LCD_CS")
+			(class "Default")
+			(node
+				(ref "A1")
+				(pin "27")
+				(pinfunction "GP21_27")
+				(pintype "passive")
+			)
+			(node
+				(ref "J4")
+				(pin "7")
+				(pinfunction "CS_7")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "16")
+			(name "LCD_DC")
+			(class "Default")
+			(node
+				(ref "A1")
+				(pin "29")
+				(pinfunction "GP22_29")
+				(pintype "passive")
+			)
+			(node
+				(ref "J4")
+				(pin "6")
+				(pinfunction "DC_6")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "17")
+			(name "LCD_GATE")
+			(class "Default")
+			(node
+				(ref "C17")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "Q5")
+				(pin "1")
+				(pinfunction "G_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "R30")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "R31")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "18")
+			(name "LCD_MOSI")
+			(class "Default")
+			(node
+				(ref "A1")
+				(pin "32")
+				(pinfunction "GP27_A1_32")
+				(pintype "passive")
+			)
+			(node
+				(ref "J4")
+				(pin "4")
+				(pinfunction "SDA_4")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "19")
+			(name "LCD_PWR_N")
+			(class "Default")
+			(node
+				(ref "A1")
+				(pin "24")
+				(pinfunction "GP18_24")
+				(pintype "passive")
+			)
+			(node
+				(ref "R31")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "TP8")
+				(pin "1")
+				(pinfunction "TP_1")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "20")
+			(name "LCD_RST")
+			(class "Default")
+			(node
+				(ref "A1")
+				(pin "26")
+				(pinfunction "GP20_26")
+				(pintype "passive")
+			)
+			(node
+				(ref "J4")
+				(pin "5")
+				(pinfunction "RES_5")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "21")
+			(name "LCD_SCK")
+			(class "Default")
+			(node
+				(ref "A1")
+				(pin "31")
+				(pinfunction "GP26_A0_31")
+				(pintype "passive")
+			)
+			(node
+				(ref "J4")
+				(pin "3")
+				(pinfunction "SCL_3")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "22")
+			(name "LCD_VCC")
+			(class "Default")
+			(node
+				(ref "C9")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "J4")
+				(pin "2")
+				(pinfunction "VCC_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "Q5")
+				(pin "3")
+				(pinfunction "D_3")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "23")
+			(name "RUN")
+			(class "Default")
+			(node
+				(ref "A1")
+				(pin "30")
+				(pinfunction "RUN_30")
+				(pintype "passive")
+			)
+			(node
+				(ref "J5")
+				(pin "3")
+				(pinfunction "~{RESET}_3")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "24")
+			(name "SD_CS")
+			(class "Default")
+			(node
+				(ref "A1")
+				(pin "2")
+				(pinfunction "GP1_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "J3")
+				(pin "2")
+				(pinfunction "DAT3/CS_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "R15")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "25")
+			(name "SD_DAT1")
+			(class "Default")
+			(node
+				(ref "J3")
+				(pin "8")
+				(pinfunction "DAT1_8")
+				(pintype "passive")
+			)
+			(node
+				(ref "R18")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "26")
+			(name "SD_DAT2")
+			(class "Default")
+			(node
+				(ref "J3")
+				(pin "1")
+				(pinfunction "DAT2_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "R19")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "27")
+			(name "SD_DET")
+			(class "Default")
+			(node
+				(ref "A1")
+				(pin "9")
+				(pinfunction "GP6_9")
+				(pintype "passive")
+			)
+			(node
+				(ref "J3")
+				(pin "9")
+				(pinfunction "DET_B_9")
+				(pintype "passive")
+			)
+			(node
+				(ref "R20")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "28")
+			(name "SD_GATE")
+			(class "Default")
+			(node
+				(ref "C8")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "Q3")
+				(pin "1")
+				(pinfunction "G_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "R21")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "R23")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "29")
+			(name "SD_MISO")
+			(class "Default")
+			(node
+				(ref "A1")
+				(pin "1")
+				(pinfunction "GP0_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "J3")
+				(pin "7")
+				(pinfunction "DAT0/DO_7")
+				(pintype "passive")
+			)
+			(node
+				(ref "R17")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "30")
+			(name "SD_MOSI")
+			(class "Default")
+			(node
+				(ref "A1")
+				(pin "5")
+				(pinfunction "GP3_5")
+				(pintype "passive")
+			)
+			(node
+				(ref "J3")
+				(pin "3")
+				(pinfunction "CMD/DI_3")
+				(pintype "passive")
+			)
+			(node
+				(ref "R16")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "31")
+			(name "SD_PWR_N")
+			(class "Default")
+			(node
+				(ref "A1")
+				(pin "10")
+				(pinfunction "GP7_10")
+				(pintype "passive")
+			)
+			(node
+				(ref "R23")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "32")
+			(name "SD_SCK")
+			(class "Default")
+			(node
+				(ref "A1")
+				(pin "4")
+				(pinfunction "GP2_4")
+				(pintype "passive")
+			)
+			(node
+				(ref "J3")
+				(pin "5")
+				(pinfunction "CLK_5")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "33")
+			(name "SD_VDD")
+			(class "Default")
+			(node
+				(ref "C6")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "C7")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "J3")
+				(pin "4")
+				(pinfunction "VDD_4")
+				(pintype "passive")
+			)
+			(node
+				(ref "Q3")
+				(pin "3")
+				(pinfunction "D_3")
+				(pintype "passive")
+			)
+			(node
+				(ref "R15")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "R16")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "R17")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "R18")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "R19")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "34")
+			(name "SE_PWR_N")
+			(class "Default")
+			(node
+				(ref "A1")
+				(pin "15")
+				(pinfunction "GP11_15")
+				(pintype "passive")
+			)
+			(node
+				(ref "Q2")
+				(pin "1")
+				(pinfunction "G_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "R12")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "35")
+			(name "SE_RST_N")
+			(class "Default")
+			(node
+				(ref "A1")
+				(pin "14")
+				(pinfunction "GP10_14")
+				(pintype "passive")
+			)
+			(node
+				(ref "U2")
+				(pin "9")
+				(pinfunction "~{RST}_9")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "36")
+			(name "SE_SCL")
+			(class "Default")
+			(node
+				(ref "A1")
+				(pin "12")
+				(pinfunction "GP9_12")
+				(pintype "passive")
+			)
+			(node
+				(ref "R14")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "U2")
+				(pin "8")
+				(pinfunction "SCL_8")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "37")
+			(name "SE_SDA")
+			(class "Default")
+			(node
+				(ref "A1")
+				(pin "11")
+				(pinfunction "GP8_11")
+				(pintype "passive")
+			)
+			(node
+				(ref "R13")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "U2")
+				(pin "3")
+				(pinfunction "SDA_3")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "38")
+			(name "SE_VCC")
+			(class "Default")
+			(node
+				(ref "C4")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "C5")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "Q2")
+				(pin "3")
+				(pinfunction "D_3")
+				(pintype "passive")
+			)
+			(node
+				(ref "U2")
+				(pin "10")
+				(pinfunction "VCC_10")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "39")
+			(name "SWCLK")
+			(class "Default")
+			(node
+				(ref "A1")
+				(pin "D1")
+				(pinfunction "SWCLK_D1")
+				(pintype "passive")
+			)
+			(node
+				(ref "J5")
+				(pin "4")
+				(pinfunction "SWCLK_4")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "40")
+			(name "SWDIO")
+			(class "Default")
+			(node
+				(ref "A1")
+				(pin "D3")
+				(pinfunction "SWDIO_D3")
+				(pintype "passive")
+			)
+			(node
+				(ref "J5")
+				(pin "2")
+				(pinfunction "SWDIO_2")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "41")
+			(name "UART_RX")
+			(class "Default")
+			(node
+				(ref "A1")
+				(pin "22")
+				(pinfunction "GP17_22")
+				(pintype "passive")
+			)
+			(node
+				(ref "TP6")
+				(pin "1")
+				(pinfunction "TP_1")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "42")
+			(name "UART_TX")
+			(class "Default")
+			(node
+				(ref "A1")
+				(pin "21")
+				(pinfunction "GP16_21")
+				(pintype "passive")
+			)
+			(node
+				(ref "TP5")
+				(pin "1")
+				(pinfunction "TP_1")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "43")
+			(name "USB_CC1")
+			(class "Default")
+			(node
+				(ref "J1")
+				(pin "A5")
+				(pinfunction "CC1_A5")
+				(pintype "passive")
+			)
+			(node
+				(ref "R1")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "44")
+			(name "USB_CC2")
+			(class "Default")
+			(node
+				(ref "J1")
+				(pin "B5")
+				(pinfunction "CC2_B5")
+				(pintype "passive")
+			)
+			(node
+				(ref "R2")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "45")
+			(name "USB_DM")
+			(class "USB")
+			(node
+				(ref "A1")
+				(pin "TP2")
+				(pinfunction "USB_DM_TP2")
+				(pintype "passive")
+			)
+			(node
+				(ref "R4")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "46")
+			(name "USB_DM_C")
+			(class "USB")
+			(node
+				(ref "J1")
+				(pin "A7")
+				(pinfunction "D-_A7")
+				(pintype "passive")
+			)
+			(node
+				(ref "J1")
+				(pin "B7")
+				(pinfunction "D-_B7")
+				(pintype "passive")
+			)
+			(node
+				(ref "R4")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "U1")
+				(pin "3")
+				(pinfunction "IO2_3")
+				(pintype "passive")
+			)
+			(node
+				(ref "U1")
+				(pin "4")
+				(pinfunction "IO2_4")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "47")
+			(name "USB_DP")
+			(class "USB")
+			(node
+				(ref "A1")
+				(pin "TP3")
+				(pinfunction "USB_DP_TP3")
+				(pintype "passive")
+			)
+			(node
+				(ref "R3")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "48")
+			(name "USB_DP_C")
+			(class "USB")
+			(node
+				(ref "J1")
+				(pin "A6")
+				(pinfunction "D+_A6")
+				(pintype "passive")
+			)
+			(node
+				(ref "J1")
+				(pin "B6")
+				(pinfunction "D+_B6")
+				(pintype "passive")
+			)
+			(node
+				(ref "R3")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "U1")
+				(pin "1")
+				(pinfunction "IO1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "U1")
+				(pin "6")
+				(pinfunction "IO1_6")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "49")
+			(name "VBAT")
+			(class "Power")
+			(node
+				(ref "C2")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "J2")
+				(pin "1")
+				(pinfunction "BAT+_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "SW1")
+				(pin "2")
+				(pinfunction "A_COM_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "TP4")
+				(pin "1")
+				(pinfunction "TP_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "U3")
+				(pin "3")
+				(pinfunction "VBAT_3")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "50")
+			(name "VBAT_SENSE")
+			(class "Power")
+			(node
+				(ref "A1")
+				(pin "34")
+				(pinfunction "GP28_A2_34")
+				(pintype "passive")
+			)
+			(node
+				(ref "C16")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "R10")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "R11")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "51")
+			(name "VBAT_SW")
+			(class "Power")
+			(node
+				(ref "Q1")
+				(pin "3")
+				(pinfunction "D_3")
+				(pintype "passive")
+			)
+			(node
+				(ref "R10")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "SW1")
+				(pin "3")
+				(pinfunction "A_ON_3")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "52")
+			(name "VBUS")
+			(class "Power")
+			(node
+				(ref "A1")
+				(pin "40")
+				(pinfunction "VBUS_40")
+				(pintype "passive")
+			)
+			(node
+				(ref "C1")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "F1")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "Q1")
+				(pin "1")
+				(pinfunction "G_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "R6")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "R9")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "U1")
+				(pin "5")
+				(pinfunction "VBUS_5")
+				(pintype "passive")
+			)
+			(node
+				(ref "U3")
+				(pin "4")
+				(pinfunction "VDD_4")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "53")
+			(name "VBUS_C")
+			(class "Power")
+			(node
+				(ref "F1")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "J1")
+				(pin "A4")
+				(pinfunction "VBUS_A4")
+				(pintype "passive")
+			)
+			(node
+				(ref "J1")
+				(pin "A9")
+				(pinfunction "VBUS_A9")
+				(pintype "passive")
+			)
+			(node
+				(ref "J1")
+				(pin "B4")
+				(pinfunction "VBUS_B4")
+				(pintype "passive")
+			)
+			(node
+				(ref "J1")
+				(pin "B9")
+				(pinfunction "VBUS_B9")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "54")
+			(name "VSYS")
+			(class "Power")
+			(node
+				(ref "A1")
+				(pin "39")
+				(pinfunction "VSYS_39")
+				(pintype "passive")
+			)
+			(node
+				(ref "C3")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "Q1")
+				(pin "2")
+				(pinfunction "S_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "TP3")
+				(pin "1")
+				(pinfunction "TP_1")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "55")
+			(name "unconnected-(A1-ADC_VREF-Pad35)")
+			(class "Default")
+			(node
+				(ref "A1")
+				(pin "35")
+				(pinfunction "ADC_VREF_35")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "56")
+			(name "unconnected-(A1-TP4_WL-PadTP4)")
+			(class "Default")
+			(node
+				(ref "A1")
+				(pin "TP4")
+				(pinfunction "TP4_WL_TP4")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "57")
+			(name "unconnected-(A1-TP5_WL-PadTP5)")
+			(class "Default")
+			(node
+				(ref "A1")
+				(pin "TP5")
+				(pinfunction "TP5_WL_TP5")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "58")
+			(name "unconnected-(A1-~{BOOTSEL}-PadTP6)")
+			(class "Default")
+			(node
+				(ref "A1")
+				(pin "TP6")
+				(pinfunction "~{BOOTSEL}_TP6")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "59")
+			(name "unconnected-(J1-SBU1-PadA8)")
+			(class "Default")
+			(node
+				(ref "J1")
+				(pin "A8")
+				(pinfunction "SBU1_A8")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "60")
+			(name "unconnected-(J1-SBU2-PadB8)")
+			(class "Default")
+			(node
+				(ref "J1")
+				(pin "B8")
+				(pinfunction "SBU2_B8")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "61")
+			(name "unconnected-(J5-SWO-Pad6)")
+			(class "Default")
+			(node
+				(ref "J5")
+				(pin "6")
+				(pinfunction "SWO_6")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "62")
+			(name "unconnected-(SW1-A_OFF-Pad1)")
+			(class "Default")
+			(node
+				(ref "SW1")
+				(pin "1")
+				(pinfunction "A_OFF_1")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "63")
+			(name "unconnected-(SW1-B_ON-Pad6)")
+			(class "Default")
+			(node
+				(ref "SW1")
+				(pin "6")
+				(pinfunction "B_ON_6")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "64")
+			(name "unconnected-(U2-NC-Pad2)")
+			(class "Default")
+			(node
+				(ref "U2")
+				(pin "2")
+				(pinfunction "NC_2")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "65")
+			(name "unconnected-(U2-NC-Pad4)")
+			(class "Default")
+			(node
+				(ref "U2")
+				(pin "4")
+				(pinfunction "NC_4")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "66")
+			(name "unconnected-(U2-NC-Pad5)")
+			(class "Default")
+			(node
+				(ref "U2")
+				(pin "5")
+				(pinfunction "NC_5")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "67")
+			(name "unconnected-(U2-NC-Pad6)")
+			(class "Default")
+			(node
+				(ref "U2")
+				(pin "6")
+				(pinfunction "NC_6")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "68")
+			(name "unconnected-(U2-NC-Pad7)")
+			(class "Default")
+			(node
+				(ref "U2")
+				(pin "7")
+				(pinfunction "NC_7")
+				(pintype "passive+no_connect")
+			)
+		)
+	)
+)

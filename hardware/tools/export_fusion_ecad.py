@@ -19,6 +19,7 @@ import re
 import shutil
 import subprocess
 import sys
+import uuid
 import xml.etree.ElementTree as ET
 
 import pcbnew
@@ -120,6 +121,68 @@ def unique_pin_names(text):
     return text, len(edits)
 
 
+def fusion_geometry(src):
+    """Text of src with the changes Fusion needs to see the same board KiCad sees.
+    Copper is unchanged. KiCad's python finds the items (removing pads through it
+    crashes), the edits are made on the file text. Returns (text, summary)."""
+    board = pcbnew.LoadBoard(src)
+    text = open(src, encoding="utf8").read()
+    drop, add = set(), []
+    n = {"paste_pads": 0, "npth": 0, "stubs": 0}
+    mm = lambda v: f"{pcbnew.ToMM(v):.6f}".rstrip("0").rstrip(".")
+    for fp in board.GetFootprints():
+        for p in fp.Pads():
+            # 1. pads with no copper layers (the Pico footprint's 40 solder-paste openings)
+            #    are imported by Fusion as copper SMD pads that overlap the GND pins
+            if not p.GetLayerSet().CuStack():
+                drop.add(p.m_Uuid.AsString())
+                n["paste_pads"] += 1
+            # 2. non-plated holes (mounting holes, USB-C pegs, Tag-Connect guides) arrive as
+            #    plated pads with a 0 mm ring; a plain hole in Fusion is a board cut-out
+            elif p.GetAttribute() == pcbnew.PAD_ATTRIB_NPTH:
+                drop.add(p.m_Uuid.AsString())
+                c, r = p.GetPosition(), p.GetDrillSize().x // 2
+                add.append(f"\t(gr_circle (center {mm(c.x)} {mm(c.y)}) (end {mm(c.x + r)} {mm(c.y)}) "
+                           f"(stroke (width 0.05) (type solid)) (fill no) (layer \"Edge.Cuts\") "
+                           f"(uuid \"{uuid.uuid4()}\"))")
+                n["npth"] += 1
+    # 3. KiCad joins a track to a via/pad wherever the copper overlaps; Fusion only at the
+    #    via/pad centre. Add a stub from each off-centre end to the centre, inside copper
+    #    that is already there
+    vias = [t for t in board.GetTracks() if t.GetClass() == "PCB_VIA"]
+    pads = [p for fp in board.GetFootprints() for p in fp.Pads() if p.GetLayerSet().CuStack()]
+    for t in [t for t in board.GetTracks() if t.GetClass() == "PCB_TRACK"]:
+        for e in (t.GetStart(), t.GetEnd()):
+            hit = next((v for v in vias if v.GetNetCode() == t.GetNetCode() and v.HitTest(e)), None) or \
+                next((p for p in pads if p.GetNetCode() == t.GetNetCode() and p.IsOnLayer(t.GetLayer())
+                      and p.HitTest(e)), None)
+            if hit is None or hit.GetPosition() == e:
+                continue
+            c = hit.GetPosition()
+            add.append(f"\t(segment (start {mm(e.x)} {mm(e.y)}) (end {mm(c.x)} {mm(c.y)}) "
+                       f"(width {mm(min(t.GetWidth(), pcbnew.FromMM(0.2)))}) "
+                       f"(layer \"{board.GetLayerName(t.GetLayer())}\") (net \"{t.GetNetname()}\") "
+                       f"(uuid \"{uuid.uuid4()}\"))")
+            n["stubs"] += 1
+    for u in drop:                                          # delete each (pad ...) block by its uuid
+        k = text.index(f'(uuid "{u}")')
+        s = node_start(text, k)
+        depth, i = 0, s
+        while True:
+            if text[i] == "(":
+                depth += 1
+            elif text[i] == ")":
+                depth -= 1
+                if depth == 0:
+                    break
+            i += 1
+        line0 = text.rfind("\n", 0, s)
+        text = text[:line0] + text[i + 1:]
+    end = text.rstrip().rfind(")")                           # before the board's closing paren
+    text = text[:end] + "\n".join(add) + "\n" + text[end:]
+    return text, n
+
+
 def nets_of(board):
     pads = {(fp.GetReference(), p.GetNumber(), p.GetPosition().x, p.GetPosition().y): p.GetNetname()
             for fp in board.GetFootprints() for p in fp.Pads()}
@@ -142,9 +205,10 @@ def netlist(sch):
 
 def main():
     src = os.path.join(HW, "wallet.kicad_pcb")
-    if os.path.isdir(OUT):
-        shutil.rmtree(OUT)
-    os.makedirs(OUT)
+    os.makedirs(OUT, exist_ok=True)       # empty it but keep the folder: KiCad may have it open
+    for f in os.listdir(OUT):
+        p = os.path.join(OUT, f)
+        shutil.rmtree(p) if os.path.isdir(p) else os.remove(p)
     for f in COPY:
         shutil.copy(os.path.join(HW, f), OUT)
     for f in ("wallet.kicad_sch", "wallet.kicad_sym"):
@@ -164,7 +228,14 @@ def main():
         sys.exit("export_fusion_ecad: renaming pins changed the schematic's connections")
     rename = {k: by_nodes[v] for k, v in old.items() if by_nodes[v] != k}
 
-    text = open(src, encoding="utf8").read()
+    fixed = os.path.join(OUT, "_fixed.kicad_pcb")     # geometry fixes, still KiCad 10 format
+    text, geo = fusion_geometry(src)
+    with open(fixed, "w", encoding="utf8", newline="\n") as fh:
+        fh.write(text)
+    board = pcbnew.LoadBoard(fixed)                     # re-pour: holes became edge cut-outs (0.3 mm rule)
+    pcbnew.ZONE_FILLER(board).Fill(board.Zones())
+    board.Save(fixed)
+    text = open(fixed, encoding="utf8").read()
     for a, b in rename.items():
         text = text.replace(f'(net "{a}")', f'(net "{b}")')
     out, code = downgrade(text)
@@ -172,7 +243,8 @@ def main():
     with open(dst, "w", encoding="utf8", newline="\n") as fh:
         fh.write(out)
 
-    a, b = nets_of(pcbnew.LoadBoard(src)), nets_of(pcbnew.LoadBoard(dst))
+    a, b = nets_of(pcbnew.LoadBoard(fixed)), nets_of(pcbnew.LoadBoard(dst))
+    os.remove(fixed)
     a = ({k: rename.get(v, v) for k, v in a[0].items()},
          sorted(x[:-1] + (rename.get(x[-1], x[-1]),) for x in a[1]),
          sorted((rename.get(n, n), l) for n, l in a[2]))
@@ -184,6 +256,16 @@ def main():
     bad = [k for k, v in pads.items() if sch.get(k) != v]
     if bad:
         sys.exit(f"export_fusion_ecad: board and schematic disagree on {len(bad)} pads, e.g. {bad[:3]}")
+    rpt = os.path.join(OUT, "_drc.rpt")
+    r = subprocess.run([CLI, "pcb", "drc", "--schematic-parity", "--severity-error", "-o", rpt, dst],
+                       capture_output=True, text=True)
+    log = r.stdout + r.stderr
+    os.remove(rpt)
+    if "Found 0 unconnected items" not in log or "Found 0 schematic parity issues" not in log:
+        sys.exit("export_fusion_ecad: the Fusion copy fails KiCad's connection/parity check:\n" + log)
+    print(f"geometry for Fusion: {geo['paste_pads']} copper-less paste pads removed, {geo['npth']} plain holes "
+          f"made board cut-outs, {geo['stubs']} track ends joined to their via/pad centre")
+    print("KiCad DRC of the copy:", " / ".join(l for l in log.splitlines() if l.startswith("Found")))
     print(f"fusion_ecad: {len(code)} nets ({len(rename)} renamed), {len(pads)} connected pads, "
           f"{len(a[1])} tracks/vias, {len(a[2])} zones: identical when loaded back; "
           "every board pad has its schematic net")
