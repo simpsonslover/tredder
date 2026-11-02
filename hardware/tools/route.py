@@ -39,9 +39,9 @@ def main(jar, passes="30"):
 
 
 def import_ses(ses):
-    """Import a routed session. Board-only mechanical parts (BT1, the battery) have
-    no library footprint, which makes ImportSpecctraSES fail: drop them from the
-    session and from the board for the import, then add them back."""
+    """Import a routed session. Boards from before the battery moved onto J2 had BT1 as a
+    board-only footprint with no library id, which makes ImportSpecctraSES fail: drop it
+    from the session and the board for the import, then redraw the battery."""
     import add_battery
     text = open(ses, encoding="utf8").read()
     # BT1 has no library id, so its block is "(component <empty> (place BT1 ...))": drop the whole block

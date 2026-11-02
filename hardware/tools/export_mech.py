@@ -33,7 +33,7 @@ SIM_MODELS = {"A1": "pico2w_sim.step", "J4": "lcd_2in0_st7789_module_sim.step"}
 SIM_BOXES = {"J3": (2.0, (0.75, 0.75, 0.78), (-6.92, -7.83, 6.92, 8.12)),  # Hirose DM3AT body (Fab also draws the card)
              "U2": (0.6, (0.1, 0.1, 0.1), None),      # OPTIGA, USON-10
              "U3": (1.1, (0.1, 0.1, 0.1), None)}      # MCP73831 charger, SOT-23-5 (heat source while charging)
-SIM_REFS = ["A1", "J1", "J2", "J3", "J4", "SW1", "SW2", "SW3", "SW4", "SW5", "U2", "U3", "BT1"]
+SIM_REFS = ["A1", "J1", "J2", "J3", "J4", "SW1", "SW2", "SW3", "SW4", "SW5", "U2", "U3"]   # J2 also carries the battery model
 
 
 def step(board_file, out, filt=None):

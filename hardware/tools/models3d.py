@@ -2,7 +2,7 @@
 Point footprints at the project's STEP models (tools/gen_step_models.py), no copper changes:
   - J4 gets the display module on top of its socket
   - parts whose KiCad library model does not exist get our envelope models
-BT1's model is set by add_battery.py.
+The battery (BT1) model rides on J2 and is set by add_battery.py.
 
 Run on the routed board:  kicad python tools/models3d.py
 """
@@ -21,14 +21,21 @@ BY_FOOTPRINT = {
 }
 
 
+OWNED_ELSEWHERE = ("lipo_503035",)   # the battery model on J2 belongs to add_battery.py: keep it
+
+
 def _set(fp, files):
     models = fp.Models()
-    if [m.m_Filename for m in models] == files:
+    keep = [(m.m_Filename, m.m_Offset, m.m_Rotation) for m in models
+            if any(k in m.m_Filename for k in OWNED_ELSEWHERE)]
+    if [m.m_Filename for m in models] == files + [k[0] for k in keep]:
         return False
     models.clear()
-    for f in files:
+    for f, off, rot in [(f, None, None) for f in files] + keep:
         m = pcbnew.FP_3DMODEL()
         m.m_Filename = f
+        if off is not None:
+            m.m_Offset, m.m_Rotation = off, rot
         models.append(m)
     return True
 

@@ -15298,6 +15298,17 @@
 				(xyz 0 0 0)
 			)
 		)
+		(model "${KIPRJMOD}/3d/lipo_503035.step"
+			(offset
+				(xyz -9.3 19.6 -1.6)
+			)
+			(scale
+				(xyz 1 1 1)
+			)
+			(rotate
+				(xyz 180 0 270)
+			)
+		)
 	)
 	(footprint "Capacitor_SMD:C_0603_1608Metric"
 		(layer "F.Cu")
@@ -20034,95 +20045,6 @@
 			)
 		)
 	)
-	(footprint ""
-		(layer "B.Cu")
-		(uuid "45bd2171-6d1f-4a55-895e-124cee304008")
-		(at 125 122)
-		(property "Reference" "BT1"
-			(at 0 0 180)
-			(layer "B.SilkS")
-			(hide yes)
-			(uuid "761f691f-f305-47aa-8a2e-c52a71a05d5a")
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify mirror)
-			)
-		)
-		(property "Value" "LiPo 503035 500mAh (behind board, plugs into J2)"
-			(at 0 0 180)
-			(layer "B.Fab")
-			(hide yes)
-			(uuid "2d51e632-76fe-4c76-bf20-de103690670e")
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify mirror)
-			)
-		)
-		(property "Datasheet" ""
-			(at 0 0 180)
-			(layer "B.Fab")
-			(hide yes)
-			(uuid "3108c75c-aed7-45dd-816c-b8dd888a17f3")
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify mirror)
-			)
-		)
-		(property "Description" ""
-			(at 0 0 180)
-			(layer "B.Fab")
-			(hide yes)
-			(uuid "9e83efc0-b081-44c4-853f-eed3a39497fe")
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify mirror)
-			)
-		)
-		(attr board_only exclude_from_pos_files exclude_from_bom)
-		(duplicate_pad_numbers_are_jumpers no)
-		(fp_rect
-			(start -17.5 15)
-			(end 17.5 -15)
-			(stroke
-				(width 0.12)
-				(type default)
-			)
-			(fill no)
-			(layer "B.Fab")
-			(uuid "b7739aee-5e94-4b5c-a710-71a19944006a")
-		)
-		(fp_text user "BT1 LiPo 503035 500mAh (bottom)"
-			(at 0 0 180)
-			(layer "B.Fab")
-			(uuid "bb644ced-9056-4dfe-9958-52f7ec491896")
-			(effects
-				(font
-					(size 1.2 1.2)
-				)
-				(justify mirror)
-			)
-		)
-		(embedded_fonts no)
-		(model "${KIPRJMOD}/3d/lipo_503035.step"
-			(offset
-				(xyz 0 0 0)
-			)
-			(scale
-				(xyz 1 1 1)
-			)
-			(rotate
-				(xyz 0 0 0)
-			)
-		)
-	)
 	(gr_arc
 		(start 100 103)
 		(mid 100.878679 100.878679)
@@ -20206,6 +20128,17 @@
 		)
 		(layer "Edge.Cuts")
 		(uuid "f8050732-2422-4f22-a3d1-08969b5c52e7")
+	)
+	(gr_rect
+		(start 107.5 107)
+		(end 142.5 137)
+		(stroke
+			(width 0.12)
+			(type default)
+		)
+		(fill no)
+		(layer "B.Fab")
+		(uuid "e02a003a-6562-4d11-881a-65657a6fe6d8")
 	)
 	(gr_rect
 		(start 102 102)
@@ -20303,6 +20236,17 @@
 			(font
 				(size 0.8 0.8)
 				(thickness 0.12)
+			)
+			(justify mirror)
+		)
+	)
+	(gr_text "BT1 LiPo 503035 500mAh (bottom, plugs into J2)"
+		(at 125 122 0)
+		(layer "B.Fab")
+		(uuid "dac9e09c-f683-4391-8ae0-5ac25510eb9a")
+		(effects
+			(font
+				(size 1.2 1.2)
 			)
 			(justify mirror)
 		)
