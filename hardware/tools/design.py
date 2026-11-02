@@ -115,7 +115,7 @@ part("U2", "OPTIGA", "OPTIGA Trust M V3", "wallet:Infineon_PG-USON-10-2_3x3mm_P0
      "SLS32AIA010MKUSON10XTMA2", "", True, "se",
      note="Not stocked at LCSC: JLCPCB global sourcing by MPN (from an authorised distributor), or consign your own")
 part("Q2", "PMOS", "AO3401A", SOT23, "AO3401A", "C15127", True, "se", note="SE power switch, active-low")
-part("R12", "R", "2.2k", R0603, "0603WAF2201T5E", "C4190", False, "se",
+part("R12", "R", "2.2k", R0603, "0603WAF2201T5E", "C4190", True, "se",
      note="SE switch gate pull-up: must beat RP2350 reset pull-down (36k min) -> keeps Q2 OFF at boot (sim: reset_default_off)")
 part("R13", "R", "4.7k", R0603, "0603WAF4701T5E", "C23162", True, "se", note="I2C SDA pull-up")
 part("R14", "R", "4.7k", R0603, "0603WAF4701T5E", "C23162", True, "se", note="I2C SCL pull-up")
@@ -136,14 +136,14 @@ part("R4", "R", "0R", R0603, "0603WAF0000T5E", "C21189", True, "usb",
 
 # --- Charger / power path
 part("U3", "MCP73831", "MCP73831T-2ACI/OT", "Package_TO_SOT_SMD:SOT-23-5",
-     "MCP73831T-2ACI/OT", "C424093", False, "power")
-part("C1", "C", "4.7uF", C0805, "CL21A475KAQNNNE", "C1779", False, "power", note="Charger VDD")
-part("C2", "C", "4.7uF", C0805, "CL21A475KAQNNNE", "C1779", False, "power", note="Charger VBAT")
+     "MCP73831T-2ACI/OT", "C424093", True, "power")
+part("C1", "C", "4.7uF", C0805, "CL21A475KAQNNNE", "C1779", True, "power", note="Charger VDD")
+part("C2", "C", "4.7uF", C0805, "CL21A475KAQNNNE", "C1779", True, "power", note="Charger VBAT")
 part("R5", "R", "2k", R0603, "0603WAF2001T5E", "C22975", True, "power", note="PROG: 1000/2k = 500 mA charge")
 part("R6", "R", "1k", R0603, "0603WAF1001T5E", "C21190", True, "power", note="Charge LED")
 part("D1", "LED", "Red", "LED_SMD:LED_0603_1608Metric", "KT-0603R", "C2286", True, "power", note="On = charging")
 part("R7", "R", "10k", R0603, "0603WAF1002T5E", "C25804", True, "power", note="STAT divider top (5V -> 3.3V)")
-part("R8", "R", "15k", R0603, "0603WAF1502T5E", "C22809", False, "power",
+part("R8", "R", "15k", R0603, "0603WAF1502T5E", "C22809", True, "power",
      note="STAT divider bottom: 5.5 V VBUS -> 3.30 V, below 3.63 V unpowered-FT limit (sim: switch_off_usb)")
 part("J2", "JST2", "LiPo 1S", "Connector_JST:JST_PH_S2B-PH-SM4-TB_1x02-1MP_P2.00mm_Horizontal",
      "S2B-PH-SM4-TB(LF)(SN)", "C295747", True, "power",
@@ -165,10 +165,10 @@ part("C15", "C", "100nF", C0603, "CC0603KRX7R9BB104", "C14663", True, "power")
 part("J3", "MICROSD", "microSD", "Connector_Card:microSD_HC_Hirose_DM3AT-SF-PEJM5",
      "DM3AT-SF-PEJM5", "C114218", True, "sd", note="Not the DM3AT-SF-PEJM5(40) variant (C597971)")
 part("Q3", "PMOS", "AO3401A", SOT23, "AO3401A", "C15127", True, "sd", note="SD power switch (card unpowered unless backing up)")
-part("R21", "R", "2.2k", R0603, "0603WAF2201T5E", "C4190", False, "sd",
+part("R21", "R", "2.2k", R0603, "0603WAF2201T5E", "C4190", True, "sd",
      note="Q3 gate pull-up: beats RP2350 reset pull-down -> SD OFF at boot (sim: reset_default_off)")
-part("R23", "R", "470", R0603, "0603WAF4700T5E", "C23179", False, "sd", note="Q3 gate series (soft start with C8)")
-part("C8", "C", "4.7uF", C0603, "CL10A475KO8NNNC", "C19666", False, "sd",
+part("R23", "R", "470", R0603, "0603WAF4700T5E", "C23179", True, "sd", note="Q3 gate series (soft start with C8)")
+part("C8", "C", "4.7uF", C0603, "CL10A475KO8NNNC", "C19666", True, "sd",
      note="Q3 soft-start Cgs: SD_VDD ramp must be >= 0.1 ms (SD spec) (sim: sd_power)")
 part("C6", "C", "10uF", C0805, "CL21A106KAYNNNE", "C15850", True, "sd")
 part("C7", "C", "100nF", C0603, "CC0603KRX7R9BB104", "C14663", True, "sd")
@@ -181,17 +181,17 @@ part("J4", "LCD8", "LCD 2.0in ST7789", "Connector_PinSocket_2.54mm:PinSocket_1x0
      "2.54-1*8P female header, 8.5 mm (BOOMELE)", "C27438", True, "lcd",
      note="Pin order must match YOUR module (common: GND VCC SCL SDA RES DC CS BLK)")
 part("Q4", "PMOS", "AO3401A", SOT23, "AO3401A", "C15127", True, "lcd", note="Backlight high-side switch")
-part("R25", "R", "2.2k", R0603, "0603WAF2201T5E", "C4190", False, "lcd",
+part("R25", "R", "2.2k", R0603, "0603WAF2201T5E", "C4190", True, "lcd",
      note="Backlight gate pull-up: beats RP2350 reset pull-down -> backlight OFF at boot")
 part("C9", "C", "10uF", C0805, "CL21A106KAYNNNE", "C15850", True, "lcd")
 # Display module power switch: in sleep the whole module (controller + its regulator/LED driver)
 # is unpowered. Without it the module's logic draws ~8 mA from +3V3 forever (sim: off_drain).
 part("Q5", "PMOS", "AO3401A", SOT23, "AO3401A", "C15127", True, "lcd",
      note="LCD module power switch (sleep mode), active-low on GP18")
-part("R30", "R", "2.2k", R0603, "0603WAF2201T5E", "C4190", False, "lcd",
+part("R30", "R", "2.2k", R0603, "0603WAF2201T5E", "C4190", True, "lcd",
      note="Q5 gate pull-up: beats RP2350 reset pull-down -> display unpowered at boot (sim: reset_default_off)")
-part("R31", "R", "470", R0603, "0603WAF4700T5E", "C23179", False, "lcd", note="Q5 gate series (soft start with C17)")
-part("C17", "C", "4.7uF", C0603, "CL10A475KO8NNNC", "C19666", False, "lcd",
+part("R31", "R", "470", R0603, "0603WAF4700T5E", "C23179", True, "lcd", note="Q5 gate series (soft start with C17)")
+part("C17", "C", "4.7uF", C0603, "CL10A475KO8NNNC", "C19666", True, "lcd",
      note="Q5 soft-start Cgs: limits inrush into C9 + module so +3V3 does not dip (sim: lcd_power)")
 
 # --- Buttons
