@@ -45,12 +45,21 @@ def pico():
 def uson():
     fp = pcbnew.FootprintLoad(os.path.join(STOCK, "Package_SON.pretty"),
                               "Microchip_USON-10-1EP_3x3mm_P0.5mm_EP1.8x2.5mm")
-    for pad in list(fp.Pads()):
-        if pad.GetNumber() in ("11", ""):
+    # Infineon datasheet rev 3.70 Figure 6: leads 0.25 x 0.4 mm at 0.5 mm pitch, exposed pad
+    # 2.5 x 1.7 mm. Keep the exposed pad (pin 11, floating) at Infineon's size so nothing can
+    # be routed under the chip's bare metal belly; drop the stock footprint's separate paste
+    # openings and give the pad its own, reduced (about 60 % area) paste
+    pads = list(fp.Pads())          # (removing pads breaks iterating fp.Pads() afterwards)
+    ep = next(p for p in pads if p.GetNumber() == "11")
+    for pad in pads:
+        if pad.GetNumber() == "":
             fp.Remove(pad)
+    ep.SetSize(pcbnew.F_Cu, pcbnew.VECTOR2I(pcbnew.FromMM(1.7), pcbnew.FromMM(2.5)))
+    ep.SetLayerSet(pcbnew.LSET(ep.GetLayerSet()).AddLayer(pcbnew.F_Paste))
+    ep.SetLocalSolderPasteMarginRatio(-0.2)
     save(fp, "Infineon_PG-USON-10-2_3x3mm_P0.5mm",
-         "Infineon PG-USON-10-2/-4 (OPTIGA Trust M), 3x3 mm, 0.5 mm pitch, no exposed pad. "
-         "VERIFY against OPTIGA Trust M datasheet Figure 6 before ordering")
+         "Infineon PG-USON-10-2/-4 (OPTIGA Trust M), 3x3 mm, 0.5 mm pitch, exposed pad 2.5 x 1.7 mm "
+         "(pin 11, left floating), per datasheet rev 3.70 Figure 6")
 
 
 if __name__ == "__main__":

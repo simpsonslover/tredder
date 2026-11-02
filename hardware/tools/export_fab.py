@@ -137,12 +137,14 @@ def boms():
         p = D.P[ref]
         if p["dnp"]:
             continue
-        groups.setdefault((p["value"], p["footprint"], p["mpn"], p["lcsc"]), []).append(ref)
+        groups.setdefault((p["footprint"], p["mpn"], p["lcsc"]), []).append(ref)   # one line per physical part
     with open(os.path.join(OUT, f"{NAME}-bom-pcbway.csv"), "w", newline="", encoding="utf8") as fh:
         w = csv.writer(fh)
         w.writerow(["Item #", "Designator", "Qty", "Manufacturer Part #", "Description / Value", "Package",
                     "Type", "Your Instructions / Notes"])
-        for i, ((val, fp, mpn, lcsc), refs) in enumerate(groups.items(), 1):
+        for i, ((fp, mpn, lcsc), refs) in enumerate(groups.items(), 1):
+            vals = sorted({D.P[r]["value"] for r in refs})
+            val = vals[0] if len(vals) == 1 else " / ".join(vals)
             pkg = fp.split(":")[1]
             tht = any(k in pkg for k in ("PinSocket", "JST_PH", "MountingHole"))
             note = []

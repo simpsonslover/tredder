@@ -44,15 +44,24 @@ def main():
             notes = "; ".join(sorted({D.P[r]["note"] for r in refs if D.P[r]["note"]}))
             w.writerow([len(refs), " ".join(refs), val, mpn, lcsc, fp.split(":")[1], populate, source, verify, notes])
 
+    # One line per physical part (footprint + MPN + LCSC). Grouping by value too would split
+    # identical parts with different labels (the four buttons are "UP", "DOWN", ...) into
+    # several lines matched to the same LCSC part, which JLCPCB flags as an error.
+    jlc = OrderedDict()
+    for (val, fp, mpn, lcsc), refs in groups.items():
+        refs = [r for r in refs if not D.P[r]["dnp"] and r not in HAND]
+        if refs and (lcsc or set(refs) & GLOBAL):
+            e = jlc.setdefault((fp, mpn, lcsc), {"vals": [], "refs": []})
+            e["vals"].append(val)
+            e["refs"] += refs
     with open(os.path.join(OUT, "wallet_bom_jlc.csv"), "w", newline="", encoding="utf8") as fh:
         w = csv.writer(fh)
         w.writerow(["Comment", "Designator", "Footprint", "LCSC Part #"])
-        for (val, fp, mpn, lcsc), refs in groups.items():
-            refs = [r for r in refs if not D.P[r]["dnp"] and r not in HAND]
-            if refs and lcsc:
-                w.writerow([f"{val} {mpn}".strip(), ",".join(refs), fp.split(":")[1], lcsc])
-            elif refs and set(refs) & GLOBAL:  # blank LCSC: JLC matches the MPN and offers global sourcing
-                w.writerow([mpn, ",".join(refs), fp.split(":")[1], ""])
+        for (fp, mpn, lcsc), e in jlc.items():
+            val = e["vals"][0] if len(set(e["vals"])) == 1 else ""
+            refs = sorted(e["refs"], key=natural)
+            # blank LCSC: JLC matches the MPN and offers global sourcing / consignment
+            w.writerow([f"{val} {mpn}".strip() if lcsc else mpn, ",".join(refs), fp.split(":")[1], lcsc])
     write_parts_list(groups)
     print("bom written to", os.path.abspath(OUT))
 

@@ -54,7 +54,10 @@ TYPES = {
     "OPTIGA": dict(
         prefix="U", w=8, show_pin_names=True,
         left=[("10", "VCC"), ("9", "~{RST}"), ("3", "SDA"), ("8", "SCL"), ("1", "GND")],
-        right=[("2", "NC"), ("4", "NC"), ("5", "NC"), ("6", "NC"), ("7", "NC")]),
+        right=[("2", "NC"), ("4", "NC"), ("5", "NC"), ("6", "NC"), ("7", "NC"),
+               # exposed pad (2.5 x 1.7 mm, datasheet Figure 6). The datasheet gives it no
+               # function, so it is soldered for mechanical support only and left floating.
+               ("11", "EP")]),
 
     "MCP73831": dict(
         prefix="U", w=8, show_pin_names=True,
@@ -288,7 +291,7 @@ NETS = {
 NETS["+3V3"] += ["Q5.2", "R30.1", "C17.1"]
 
 NC = ["A1.35", "A1.TP4", "A1.TP5", "A1.TP6",
-      "U2.2", "U2.4", "U2.5", "U2.6", "U2.7",
+      "U2.2", "U2.4", "U2.5", "U2.6", "U2.7", "U2.11",
       "J1.A8", "J1.B8", "SW1.1", "SW1.6", "J5.6"]
 
 GROUP_TITLES = {
