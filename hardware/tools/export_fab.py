@@ -62,6 +62,20 @@ def drc_gate():
     check_jlc.main(PCB)
 
 
+def gerber_gate():
+    """Independent check of the files the fab receives (tools/gerber_drc.py, needs the system
+    python with numpy, scipy, pillow and pygerber; KiCad's python does not have them)."""
+    py = shutil.which("python") or shutil.which("py")
+    if not py:
+        raise SystemExit("NOT exporting: no system python for tools/gerber_drc.py")
+    r = subprocess.run([py, os.path.join(os.path.dirname(os.path.abspath(__file__)), "gerber_drc.py"),
+                        os.path.join(OUT, "gerbers")], capture_output=True, text=True)
+    print((r.stdout.strip().splitlines() or ["(no output)"])[-1])
+    if r.returncode != 0:
+        raise SystemExit("NOT exporting: the Gerber check failed, see fab/gerber_drc.md\n"
+                         + r.stdout[-2000:] + r.stderr[-2000:])
+
+
 def gerbers():
     g = os.path.join(OUT, "gerbers")
     shutil.rmtree(g, ignore_errors=True)
@@ -194,6 +208,7 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     drc_gate()
     gerbers()
+    gerber_gate()
     rows = placement()
     boms()
     notes(len(rows))

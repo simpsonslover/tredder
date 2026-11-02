@@ -117,6 +117,17 @@ def zone(board, net, layer, prio=0, inset=0.3):
 SILK_MIN_H, SILK_MIN_W = 1.0, 0.15   # JLCPCB: silkscreen text >= 1.0 mm high, line >= 0.15 mm
 
 
+def silk_min_width(board):
+    """JLCPCB: silkscreen lines >= 0.15 mm (KiCad's library footprints use 0.12 mm)."""
+    n = 0
+    for fp in board.GetFootprints():
+        for g in fp.GraphicalItems():
+            if g.GetClass() == "PCB_SHAPE" and g.GetLayer() in (pcbnew.F_SilkS, pcbnew.B_SilkS)                     and g.GetWidth() < mm(SILK_MIN_W):
+                g.SetWidth(mm(SILK_MIN_W))
+                n += 1
+    return n
+
+
 def text(board, s, x, y, layer=pcbnew.F_SilkS, size=1.0, rot=0):
     t = pcbnew.PCB_TEXT(board)
     t.SetText(s); t.SetPosition(P(x, y)); t.SetLayer(layer)
@@ -334,6 +345,7 @@ def build(out):
     text(board, "SWD/UART disabled in OTP for production. Seed never stored in plain form.",
          OX * 0 + 42.8, 27.0, pcbnew.B_SilkS, 0.8, 0)
 
+    silk_min_width(board)
     pcbnew.ZONE_FILLER(board).Fill(board.Zones())
     board.Save(out)
     print(f"pcb: {len(D.P)} footprints, {len(nets)} nets, {n_vias} plane vias -> {out}")
