@@ -5286,7 +5286,7 @@
 				)
 			)
 		)
-		(property "Description" "Not stocked at LCSC: JLCPCB global sourcing by MPN (from an authorised distributor), or consign your own"
+		(property "Description" "You buy and solder this one (JLCPCB cannot source it): Mouser / Digi-Key. Same chip, any of SLS32AIA010MKUSON10XTMB2 (current), ...XTMA2 (older packing), or SLS32AIA010ML... (-40..105 C)"
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
@@ -5309,7 +5309,7 @@
 				)
 			)
 		)
-		(property "MPN" "SLS32AIA010MKUSON10XTMA2"
+		(property "MPN" "SLS32AIA010MKUSON10XTMB2"
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)

@@ -115,8 +115,9 @@ part("A1", "PICO2W", "Raspberry Pi Pico 2 W", "wallet:RaspberryPi_Pico_2_W_SMD_S
 
 # --- Secure element
 part("U2", "OPTIGA", "OPTIGA Trust M V3", "wallet:Infineon_PG-USON-10-2_3x3mm_P0.5mm",
-     "SLS32AIA010MKUSON10XTMA2", "", True, "se",
-     note="Not stocked at LCSC: JLCPCB global sourcing by MPN (from an authorised distributor), or consign your own")
+     "SLS32AIA010MKUSON10XTMB2", "", True, "se",
+     note="You buy and solder this one (JLCPCB cannot source it): Mouser / Digi-Key. Same chip, any of "
+          "SLS32AIA010MKUSON10XTMB2 (current), ...XTMA2 (older packing), or SLS32AIA010ML... (-40..105 C)")
 part("Q2", "PMOS", "AO3401A", SOT23, "AO3401A", "C15127", True, "se", note="SE power switch, active-low")
 part("R12", "R", "2.2k", R0603, "0603WAF2201T5E", "C4190", True, "se",
      note="SE switch gate pull-up: must beat RP2350 reset pull-down (36k min) -> keeps Q2 OFF at boot (sim: reset_default_off)")

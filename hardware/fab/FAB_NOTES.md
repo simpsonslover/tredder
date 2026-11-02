@@ -36,12 +36,12 @@ For assembly, also upload a BOM (`-bom-pcbway.csv` or `-bom-jlc.csv`) and the pi
 ## Assembly
 
 - **Top side only.** Nothing is placed on the bottom (the battery is stuck on later).
-- **JLCPCB assembles everything.** Choose **Standard PCBA** (J4 is a through-hole socket; the Pico 2 W
-  C42394205 is an extended part). Upload `-bom-jlc.csv` + `-cpl-jlc.csv`.
-- **U2 (OPTIGA Trust M) has no LCSC stock:** JLCPCB's BOM step offers **global sourcing** by its MPN
-  (SLS32AIA010MKUSON10XTMA2); accept it (~9-15 days extra, paid separately, not cancellable).
-  Security trade-off: the chip your PIN protection depends on is bought and fitted by a third party.
-  Alternatives: consign your own (from Mouser / Digi-Key), or untick U2 and solder it yourself.
+- **JLCPCB assembles everything except U2.** Choose **Standard PCBA** (J4 is a through-hole socket; the
+  Pico 2 W C42394205 is an extended part). Upload `-bom-jlc.csv` + `-cpl-jlc.csv`.
+- **U2 (OPTIGA Trust M) is not on the JLCPCB order** (JLCPCB cannot source it): it is left out of the
+  JLC BOM and placement file, so its pads arrive bare. Buy it from Mouser / Digi-Key
+  (SLS32AIA010MKUSON10XTMB2, or ...XTMA2, or SLS32AIA010ML...: same V3 chip and package) and solder it:
+  solder paste, hot air or a hot plate; the pad underneath is floating (mechanical support only).
 - **Not assembled:** the display module and the battery: they plug in (J4, J2).
 - **Do not fit:** J5 (Tag-Connect footprint), TP1-TP8 (test pads), H1-H4 (holes).
 - **Production option:** leave R3/R4 unfitted for a charge-only USB port (no USB data / BOOTSEL attack surface).

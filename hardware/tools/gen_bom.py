@@ -15,8 +15,8 @@ from collections import OrderedDict
 import design as D
 
 OUT = os.path.join(os.path.dirname(__file__), "..", "bom")
-HAND = set()       # nothing is hand-soldered: JLCPCB assembles every fitted part
-GLOBAL = {"U2"}    # no LCSC stock: JLCPCB "global sourcing" buys it by MPN from an authorised distributor
+HAND = {"U2"}      # you buy and solder these (not on the JLCPCB order): the OPTIGA Trust M
+GLOBAL = set()     # parts JLCPCB would buy by MPN ("global sourcing"): none
 
 
 def natural(ref):
@@ -39,7 +39,8 @@ def main():
         for (val, fp, mpn, lcsc), refs in groups.items():
             p = D.P[refs[0]]
             populate = "DNP" if p["dnp"] else "yes"
-            source = "none" if p["dnp"] else ("JLCPCB global sourcing (MPN)" if set(refs) & GLOBAL else "JLCPCB / LCSC")
+            source = ("none" if p["dnp"] else "you: buy from Mouser / Digi-Key and solder" if set(refs) & HAND
+                      else "JLCPCB global sourcing (MPN)" if set(refs) & GLOBAL else "JLCPCB / LCSC")
             verify = "" if (p["lcsc_ok"] or p["dnp"]) else "YES - LCSC number / stock / pinout"
             notes = "; ".join(sorted({D.P[r]["note"] for r in refs if D.P[r]["note"]}))
             w.writerow([len(refs), " ".join(refs), val, mpn, lcsc, fp.split(":")[1], populate, source, verify, notes])
@@ -102,7 +103,7 @@ def write_parts_list(groups):
         row = (len(refs), " ".join(refs), val, mpn, lcsc, fp.split(":")[1], verify)
         if p["dnp"]:
             rows_dnp.append(row)
-        elif set(refs) & GLOBAL:
+        elif set(refs) & (GLOBAL | HAND):
             rows_hand.append(row + ("; ".join(sorted({D.P[r]["note"] for r in refs if D.P[r]["note"]})),))
         else:
             rows_jlc.append(row)
@@ -116,11 +117,11 @@ def write_parts_list(groups):
          "| What | Where | Line items | Parts |", "|---|---|---|---|",
          f"| PCB, 4-layer | JLCPCB (or any fab) | 1 | 1 |",
          f"| Parts JLCPCB sources (LCSC) and assembles | JLCPCB assembly | {len(rows_jlc)} | {sum(r[0] for r in rows_jlc)} |",
-         f"| Parts JLCPCB buys for you (global sourcing) and assembles | JLCPCB assembly | {len(rows_hand)} | {sum(r[0] for r in rows_hand)} |",
+         f"| Parts you buy and solder (not on the JLCPCB order) | Mouser / Digi-Key | {len(rows_hand)} | {sum(r[0] for r in rows_hand)} |",
          f"| Off-board parts | various | {len(OFF_BOARD)} | {sum(r[1] for r in OFF_BOARD)} |",
          f"| Not fitted (pads, holes) | - | {len(rows_dnp)} | 0 |", "",
-         f"{n_parts} components on the board, **all assembled by JLCPCB** (nothing to solder yourself), "
-         "plus the display module and the battery, which plug in.", "",
+         f"{n_parts} components on the board: JLCPCB assembles all of them **except U2, the OPTIGA Trust M, "
+         "which you buy and solder** (section 3). The display module and the battery plug in.", "",
          "## 1. Circuit board", "",
          "| Item | Spec |", "|---|---|",
          "| Size | 85.6 x 54.0 mm (credit card), 3 mm corner radius |",
@@ -133,7 +134,7 @@ def write_parts_list(groups):
          "| Qty | Designators | Value | Part number | LCSC | Package |", "|---|---|---|---|---|---|"]
     for q, refs, val, mpn, lcsc, fp, v in rows_jlc:
         L.append(f"| {q} | {refs} | {val} | {mpn} | {lcsc}{v} | {fp} |")
-    L += ["", "## 3. JLCPCB global sourcing (no LCSC stock: bought by part number, then assembled)", "",
+    L += ["", "## 3. You buy and solder (not on the JLCPCB order)", "",
           "| Qty | Designators | Part | Part number | LCSC | Notes |", "|---|---|---|---|---|---|"]
     for q, refs, val, mpn, lcsc, fp, v, note in rows_hand:
         L.append(f"| {q} | {refs} | {val} | {mpn} | {lcsc or '-'}{v} | {note} |")
@@ -150,10 +151,11 @@ def write_parts_list(groups):
           "1. Buy the display module first and check its pin order and outline against J4.",
           "2. Check every **VERIFY** LCSC number and its stock.",
           "3. Check the battery lead polarity (pin 1 = BAT+) before plugging it in: a reversed pack destroys the charger.",
-          "4. JLCPCB buys the OPTIGA Trust M through global sourcing (adds ~9-15 days and is paid separately; "
-          "it cannot be cancelled). Trade-off: you no longer control where the chip your PIN security depends on "
-          "comes from, or who handles the board. To keep that, choose consignment (send JLCPCB chips bought from "
-          "Mouser / Digi-Key) or leave U2 out and solder it yourself.",
+          "4. Order the OPTIGA Trust M (U2) from Mouser or Digi-Key: SLS32AIA010MKUSON10XTMB2 (or ...XTMA2, or the "
+          "-40..105 C SLS32AIA010ML...: same V3 chip and package). Buying it yourself from an authorised "
+          "distributor also means you know where the chip your PIN protection depends on came from. Fitting it: "
+          "3 x 3 mm, 0.5 mm pitch with a pad underneath (floating, for mechanical support): use solder paste and "
+          "hot air or a hot plate (hardware/README.md section 8).",
           "5. Check JLCPCB's assembly preview (part rotations) before paying.", ""]
     with open(os.path.join(OUT, "PARTS_LIST.md"), "w", encoding="utf8") as fh:
         fh.write("\n".join(L))

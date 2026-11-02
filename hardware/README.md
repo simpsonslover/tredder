@@ -70,7 +70,7 @@ All five switch controls (Q2 SE, Q3 SD, Q4 backlight, Q5 display power, and SW1)
 
 ## 3. Secure element: OPTIGA Trust M V3 (recommended) vs ATECC608B
 
-**Recommendation: Infineon OPTIGA Trust M V3, `SLS32AIA010MKUSON10XTMA2`.**
+**Recommendation: Infineon OPTIGA Trust M V3, `SLS32AIA010MKUSON10XTMB2`** (current part number; `...XTMA2` is the older packing, `SLS32AIA010ML...` the -40..105 C grade: same V3 chip and package). JLCPCB cannot source it, so **you buy it from Mouser / Digi-Key and solder it yourself**; it is left out of the JLCPCB BOM and placement file.
 
 | | OPTIGA Trust M V3 | ATECC608B |
 |---|---|---|

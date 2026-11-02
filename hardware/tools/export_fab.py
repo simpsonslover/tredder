@@ -118,7 +118,7 @@ def placement():
             if r["Ref"] in HAND:
                 continue
             x, y, rot = float(r["PosX"]), float(r["PosY"]), float(r["Rot"])
-            th, t, note = fix.get(r["Ref"], (None, None, "no LCSC part (global sourcing)"))
+            th, t, note = fix.get(r["Ref"], (None, None, "no LCSC part"))
             if th is None:
                 check.append(f"{r['Ref']}: {note}")
             else:
@@ -150,6 +150,8 @@ def boms():
             note = []
             if set(refs) & GLOBAL:
                 note.append("please source by MPN from an authorised distributor (not stocked at LCSC)")
+            if set(refs) & HAND:
+                note.append("DO NOT FIT: customer fits this part")
             if not D.P[refs[0]]["lcsc_ok"]:
                 note.append(f"LCSC {lcsc or 'n/a'} unverified")
             elif lcsc:
@@ -198,12 +200,12 @@ For assembly, also upload a BOM (`-bom-pcbway.csv` or `-bom-jlc.csv`) and the pi
 ## Assembly
 
 - **Top side only.** Nothing is placed on the bottom (the battery is stuck on later).
-- **JLCPCB assembles everything.** Choose **Standard PCBA** (J4 is a through-hole socket; the Pico 2 W
-  C42394205 is an extended part). Upload `-bom-jlc.csv` + `-cpl-jlc.csv`.
-- **U2 (OPTIGA Trust M) has no LCSC stock:** JLCPCB's BOM step offers **global sourcing** by its MPN
-  (SLS32AIA010MKUSON10XTMA2); accept it (~9-15 days extra, paid separately, not cancellable).
-  Security trade-off: the chip your PIN protection depends on is bought and fitted by a third party.
-  Alternatives: consign your own (from Mouser / Digi-Key), or untick U2 and solder it yourself.
+- **JLCPCB assembles everything except U2.** Choose **Standard PCBA** (J4 is a through-hole socket; the
+  Pico 2 W C42394205 is an extended part). Upload `-bom-jlc.csv` + `-cpl-jlc.csv`.
+- **U2 (OPTIGA Trust M) is not on the JLCPCB order** (JLCPCB cannot source it): it is left out of the
+  JLC BOM and placement file, so its pads arrive bare. Buy it from Mouser / Digi-Key
+  (SLS32AIA010MKUSON10XTMB2, or ...XTMA2, or SLS32AIA010ML...: same V3 chip and package) and solder it:
+  solder paste, hot air or a hot plate; the pad underneath is floating (mechanical support only).
 - **Not assembled:** the display module and the battery: they plug in (J4, J2).
 - **Do not fit:** J5 (Tag-Connect footprint), TP1-TP8 (test pads), H1-H4 (holes).
 - **Production option:** leave R3/R4 unfitted for a charge-only USB port (no USB data / BOOTSEL attack surface).
@@ -248,9 +250,10 @@ def bundle():
         "   Tooling holes by JLCPCB, Confirm parts placement: Yes -> NEXT -> NEXT",
         f"3. Upload page:  BOM = {NAME}-bom-jlc.csv   CPL = {NAME}-cpl-jlc.csv",
         "   -> Process BOM & CPL",
-        "4. U2 (OPTIGA Trust M, SLS32AIA010MKUSON10XTMA2): choose Global Sourcing",
+        "4. U2 (OPTIGA Trust M) is NOT in these files: JLCPCB leaves its pads bare.",
+        "   Buy SLS32AIA010MKUSON10XTMB2 from Mouser / Digi-Key and solder it yourself.",
         "5. Placement preview: rotations are already corrected for JLCPCB's footprints.",
-        "   Still check pin 1 / polarity of U1, U2, U3, Q1-Q5 and D1, then Save to Cart",
+        "   Still check pin 1 / polarity of U1, U3, Q1-Q5 and D1, then Save to Cart",
         "",
         "Details: FAB_NOTES.md",
         ""])

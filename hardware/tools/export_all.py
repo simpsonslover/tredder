@@ -82,9 +82,12 @@ BEFORE YOU PAY (hardware README section 6):
   3. Check the DPDT power switch commons (pins 2 and 5) and the microSD
      card-detect direction against their datasheets.
   4. Look over the routed tracks yourself in KiCad.
-  5. On JLCPCB: 4 layers, every BOM line in stock, Global Sourcing for U2,
-     and look at the placement preview (pin 1 / polarity of U1, U2, U3, Q1-Q5, D1).
-  6. Before plugging the battery in: check its lead polarity (pin 1 = BAT+).
+  5. On JLCPCB: 4 layers, every BOM line in stock, and look at the placement
+     preview (pin 1 / polarity of U1, U3, Q1-Q5, D1).
+  6. Order the OPTIGA Trust M (U2) yourself from Mouser / Digi-Key:
+     SLS32AIA010MKUSON10XTMB2. JLCPCB leaves its pads bare; you solder it
+     (solder paste + hot air or a hot plate).
+  7. Before plugging the battery in: check its lead polarity (pin 1 = BAT+).
 """
 
 

@@ -38,5 +38,5 @@ Qty,Designators,Value,MPN,LCSC,Footprint,Populate,Source,VERIFY before ordering,
 1,TP7,GP4,No part (bare pad),,TestPoint_Pad_D1.0mm,DNP,none,,
 1,TP8,LCD_PWR_N,No part (bare pad),,TestPoint_Pad_D1.0mm,DNP,none,,
 1,U1,USBLC6-2SC6,USBLC6-2SC6,C7519,SOT-23-6,yes,JLCPCB / LCSC,,
-1,U2,OPTIGA Trust M V3,SLS32AIA010MKUSON10XTMA2,,Infineon_PG-USON-10-2_3x3mm_P0.5mm,yes,JLCPCB global sourcing (MPN),,"Not stocked at LCSC: JLCPCB global sourcing by MPN (from an authorised distributor), or consign your own"
+1,U2,OPTIGA Trust M V3,SLS32AIA010MKUSON10XTMB2,,Infineon_PG-USON-10-2_3x3mm_P0.5mm,yes,you: buy from Mouser / Digi-Key and solder,,"You buy and solder this one (JLCPCB cannot source it): Mouser / Digi-Key. Same chip, any of SLS32AIA010MKUSON10XTMB2 (current), ...XTMA2 (older packing), or SLS32AIA010ML... (-40..105 C)"
 1,U3,MCP73831T-2ACI/OT,MCP73831T-2ACI/OT,C424093,SOT-23-5,yes,JLCPCB / LCSC,,
