@@ -252,6 +252,10 @@ static void board(HDC dc) {
   rrect(dc, 34.9, 46.8, 36.1, 48.6, 0.5, GOLD, GOLD, 1), rrect(dc, 43.9, 46.8, 45.1, 48.6, 0.5, GOLD, GOLD, 1);
   rrect(dc, 34.9, 50.2, 36.1, 52.0, 0.5, GOLD, GOLD, 1), rrect(dc, 43.9, 50.2, 45.1, 52.0, 0.5, GOLD, GOLD, 1);
   silk(dc, f_silk_s, SILK, 40.0, 44.6, "J1");
+  if (battery_model_usb_plugged()) { /* USB-C plug + cable coming in from below the board edge */
+    rrect(dc, 36.2, BH - 2.2, 43.8, BH + 6.0, 1.2, RGB(70, 72, 78), RGB(40, 40, 44), 1);
+    rect(dc, 38.4, BH + 6.0, 41.6, BH + 14.0, RGB(30, 30, 34), RGB(30, 30, 34));
+  }
 
   /* microSD (J3), card inserts from the bottom edge */
   rect(dc, 8.6, 37.6, 23.4, BH - 0.4, SILVER, STEEL);
@@ -330,6 +334,20 @@ static void paint(HDC dc, RECT *client) {
     text(dc, f_text, up ? RGB(90, 210, 140) : PANEL_TXT, x, y, l);
   }
   y += 22;
+  battery_state_t bat;
+  battery_model_read(&bat);
+  if (bat.usb)
+    snprintf(l, sizeof(l), "Battery (BT1 500 mAh):  %.0f %%, %.2f V, %s", bat.percent, bat.vbat_mv / 1000.0,
+             bat.charging ? "charging" : "full, on USB");
+  else
+    snprintf(l, sizeof(l), "Battery (BT1 500 mAh):  %.0f %%, %.2f V, using %.1f mA", bat.percent, bat.vbat_mv / 1000.0,
+             bat.current_ma);
+  text(dc, f_text, bat.percent < 15 && !bat.usb ? RGB(255, 110, 110) : PANEL_TXT, x, y, l);
+  y += 22;
+  if (emu_sleeping()) {
+    text(dc, f_text, RGB(150, 170, 255), x, y, "ASLEEP: display off, radio off. Press any button to wake.");
+    y += 22;
+  }
   snprintf(l, sizeof(l), "OPTIGA Trust M (U2):  PIN tries left %u/10", se_model_tries_left());
   text(dc, f_text, PANEL_TXT, x, y, l);
   y += 22;
@@ -347,6 +365,8 @@ static void paint(HDC dc, RECT *client) {
   text(dc, f_text, DIM_TXT, x, y, "makes the emulator press the buttons for you.");
   y += 20;
   text(dc, f_text, DIM_TXT, x, y, "SW1 (PWR) power-cycles: RAM lost, chips keep state.");
+  y += 20;
+  text(dc, f_text, DIM_TXT, x, y, "Click the USB-C port (J1) to plug / unplug the charger.");
   y += 30;
   text(dc, f_title, PANEL_TXT, x, y, "Log");
   y += 32;
@@ -366,6 +386,9 @@ static int hit_button(int mx, int my) {
   }
   return -1;
 }
+static bool hit_usb(int mx, int my) {
+  return mx >= X(35.0) && mx <= X(45.0) && my >= Y(45.0) && my <= Y(BH + 14.0);
+}
 static bool hit_power(int mx, int my) {
   return mx >= X(SW1_X - 5.0) && mx <= X(SW1_X + 5.0) && my >= Y(SW1_Y - 3.0) && my <= Y(SW1_Y + 3.0);
 }
@@ -383,6 +406,8 @@ static uint8_t key_bit(WPARAM vk) {
 static LRESULT CALLBACK proc(HWND h, UINT m, WPARAM w, LPARAM lp) {
   switch (m) {
     case WM_TIMER: {
+      static unsigned tick;
+      if (++tick % 33 == 0) InterlockedExchange(&repaint, 1); /* ~1 s: battery reading in the panel */
       uint32_t f = lcd_model_snapshot(pixels);
       if (f != last_frame || InterlockedExchange(&repaint, 0)) {
         last_frame = f;
@@ -413,7 +438,7 @@ static LRESULT CALLBACK proc(HWND h, UINT m, WPARAM w, LPARAM lp) {
         POINT p;
         GetCursorPos(&p);
         ScreenToClient(h, &p);
-        SetCursor(LoadCursor(NULL, hit_button(p.x, p.y) >= 0 || hit_power(p.x, p.y) ? IDC_HAND : IDC_ARROW));
+        SetCursor(LoadCursor(NULL, hit_button(p.x, p.y) >= 0 || hit_power(p.x, p.y) || hit_usb(p.x, p.y) ? IDC_HAND : IDC_ARROW));
         return TRUE;
       }
       return DefWindowProcW(h, m, w, lp);
@@ -421,6 +446,11 @@ static LRESULT CALLBACK proc(HWND h, UINT m, WPARAM w, LPARAM lp) {
       int mx = (short)LOWORD(lp), my = (short)HIWORD(lp);
       if (hit_power(mx, my)) {
         emu_power_switch();
+        InvalidateRect(h, NULL, FALSE);
+        return 0;
+      }
+      if (hit_usb(mx, my)) {
+        battery_model_usb(!battery_model_usb_plugged());
         InvalidateRect(h, NULL, FALSE);
         return 0;
       }

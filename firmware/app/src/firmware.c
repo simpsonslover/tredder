@@ -1,5 +1,12 @@
 /*
- * Firmware main loop: buttons -> UI, radio -> protocol, auto-lock.
+ * Firmware main loop: buttons -> UI, radio -> protocol, auto-lock, sleep.
+ *
+ * Sleep: after fw_config.sleep_ms idle on the home/lock screen (or
+ * flow_sleep_ms anywhere else) the device LOCKS (seeds wiped from RAM, any
+ * flow abandoned), unpowers the display and the RP2350 goes dormant until a
+ * button is pressed. Never while the app is connected or a request waits for
+ * the user. The press that wakes it does nothing else.
+ * Trade-off (security over convenience): waking always needs the PIN.
  * Identical on the RP2350 board and in the PC emulator.
  */
 #include "app/firmware.h"
@@ -12,7 +19,9 @@
 #include "app/ui.h"
 #include "app/vault.h"
 
-fw_config_t fw_config = {5u * 60u * 1000u, 1000u};
+fw_config_t fw_config = {5u * 60u * 1000u, 1000u, 60u * 1000u, 10u * 60u * 1000u};
+
+#define POWER_POLL_MS 2000u
 
 #define DEBOUNCE_MS 15u
 #define REPEAT_DELAY_MS 450u
@@ -24,7 +33,22 @@ static struct {
   uint32_t last_activity;
   uint32_t session;
   bool connected;
+  bool wake_hold; /* woke from sleep: ignore buttons until all are released */
+  uint32_t power_at;
+  bool low_warned;
+  uint32_t low_since;
 } M;
+
+int fw_battery_percent(uint16_t mv) {
+  /* 1S LiPo open-circuit curve (typical), linear between points */
+  static const uint16_t MV[] = {3300, 3500, 3600, 3650, 3700, 3750, 3800, 3900, 4000, 4100, 4200};
+  static const uint8_t PCT[] = {0, 5, 12, 20, 30, 40, 50, 65, 78, 90, 100};
+  if (!mv) return -1;
+  if (mv <= MV[0]) return 0;
+  for (unsigned i = 1; i < sizeof(MV) / sizeof(MV[0]); i++)
+    if (mv <= MV[i]) return PCT[i - 1] + (int)((uint32_t)(mv - MV[i - 1]) * (PCT[i] - PCT[i - 1]) / (MV[i] - MV[i - 1]));
+  return 100;
+}
 
 void fw_state_changed(void) {
   if (!vault_initialized()) proto_forget_pairing();
@@ -56,6 +80,7 @@ void fw_init(void) {
   proto_init();
   ui_init();
   M.last_activity = hal_millis();
+  M.power_at = M.last_activity - POWER_POLL_MS;
   M.session = ~hal_link_session(); /* force a link check on the first poll: a phone may already be connected */
   hal_log("tredder firmware %s started (%s)", FW_VERSION, vault_initialized() ? "wallet present, locked" : "new device");
   ui_render();
@@ -63,6 +88,13 @@ void fw_init(void) {
 
 static void buttons(uint32_t now) {
   uint8_t raw = hal_buttons_raw();
+  if (M.wake_hold) { /* the press that woke the device is not an input */
+    if (raw) return;
+    M.wake_hold = false;
+    M.stable = M.last_raw = 0;
+    M.changed_at = now;
+    return;
+  }
   if (raw != M.last_raw) {
     M.last_raw = raw;
     M.changed_at = now;
@@ -87,8 +119,44 @@ static void buttons(uint32_t now) {
   }
 }
 
+static void fw_sleep(const char *why) {
+  hal_log("sleep (%s)", why);
+  fw_lock("sleep");
+  ui_render(); /* the lock screen is in the framebuffer for wake-up */
+  gfx_sleep();
+  hal_sleep();
+  hal_log("woke up");
+  M.wake_hold = true;
+  M.low_warned = false;
+  gfx_init(); /* the module was unpowered: full re-init + redraw */
+  ui_redraw();
+  M.last_activity = M.power_at = hal_millis();
+}
+
+static void power(uint32_t now) {
+  if (now - M.power_at < POWER_POLL_MS) return;
+  M.power_at = now;
+  hal_power_t p;
+  hal_power(&p);
+  ui_set_battery(fw_battery_percent(p.vbat_mv), p.charging);
+  bool low = !p.usb && p.vbat_mv && p.vbat_mv < FW_BATTERY_LOW_MV;
+  if (!low) {
+    M.low_warned = false;
+    return;
+  }
+  if (!M.low_warned) { /* warn once, then sleep shortly after unless plugged in */
+    M.low_warned = true;
+    M.low_since = now;
+    hal_log("battery low (%u mV)", p.vbat_mv);
+    if (!proto_waiting_user()) ui_battery_low();
+  } else if (now - M.low_since > 10000u && !proto_waiting_user()) {
+    fw_sleep("battery low");
+  }
+}
+
 void fw_poll(void) {
   uint32_t now = hal_millis();
+  power(now);
   ui_tick(now);
   buttons(now);
 
@@ -112,6 +180,11 @@ void fw_poll(void) {
   /* Fresh time: handling a request above may have moved last_activity past `now`. */
   int32_t idle = (int32_t)(hal_millis() - M.last_activity);
   if (vault_unlocked() && idle > (int32_t)fw_config.idle_lock_ms) fw_lock("idle timeout");
+  uint32_t limit = ui_idle() ? fw_config.sleep_ms : fw_config.flow_sleep_ms;
+  if (fw_config.sleep_ms && !M.connected && !proto_waiting_user() && idle > (int32_t)limit) {
+    fw_sleep("idle");
+    return;
+  }
   ui_render();
 }
 

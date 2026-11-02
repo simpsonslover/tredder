@@ -1,6 +1,6 @@
 # Hardware simulation report
 
-Generated 2026-10-31 16:13 by `sim/run_all.py` from `tools/design.py` (ngspice from KiCad + behavioural models; see `sim/README.md` for what is and isn't modelled).
+Generated 2026-11-01 16:14 by `sim/run_all.py` from `tools/design.py` (ngspice from KiCad + behavioural models; see `sim/README.md` for what is and isn't modelled).
 
 | Status | Test | What it checks |
 |---|---|---|
@@ -15,6 +15,7 @@ Generated 2026-10-31 16:13 by `sim/run_all.py` from `tools/design.py` (ngspice f
 | **PASS** | [off_drain](#off-drain) | Battery drain when switched OFF / idle |
 | **PASS** | [charge_cycle](#charge-cycle) | Full charge cycle (CC -> CV -> complete) |
 | **PASS** | [sd_power](#sd-power) | microSD power switch: soft-start, write load, power-off |
+| **PASS** | [lcd_power](#lcd-power) | Display module power switch (Q5): sleep / wake |
 | **PASS** | [se_power](#se-power) | Secure element power-up / hibernate |
 | **PASS** | [i2c_timing](#i2c-timing) | I2C edge rates to the secure element |
 | **PASS** | [buttons](#buttons) | Button debounce (contact bounce on CONFIRM) |
@@ -59,9 +60,9 @@ Each IC/module supply net must carry at least one capacitor.
 | PASS | U3 charger VDD (VBUS) | C1  | >= 1 capacitor |
 | PASS | U3 charger VBAT (VBAT) | C2  | >= 1 capacitor |
 | PASS | J3 microSD VDD (SD_VDD) | C6, C7  | >= 1 capacitor |
-| PASS | J4 display VCC (+3V3) | C14, C15, C8, C9  | >= 1 capacitor |
+| PASS | J4 display VCC (+3V3) | C14, C15, C8, C17  | >= 1 capacitor |
 | PASS | A1 VSYS (VSYS) | C3  | >= 1 capacitor |
-| PASS | A1 3V3 (+3V3) | C14, C15, C8, C9  | >= 1 capacitor |
+| PASS | A1 3V3 (+3V3) | C14, C15, C8, C17  | >= 1 capacitor |
 
 ## power_budget
 
@@ -84,7 +85,7 @@ Worst-case simultaneous loads on the Pico's 3V3 output (Raspberry Pi recommends 
 
 ## kicad_checks
 
-**KiCad ERC, DRC and schematic/PCB parity** - PASS (4.7 s)
+**KiCad ERC, DRC and schematic/PCB parity** - PASS (4.8 s)
 
 Runs kicad-cli on the real project files.
 
@@ -99,34 +100,40 @@ Runs kicad-cli on the real project files.
 
 ## reset_default_off
 
-**Boot / reset: peripherals default OFF** - PASS (0.0 s)
+**Boot / reset: peripherals default OFF** - PASS (0.1 s)
 
-All GPIOs in RP2350 reset state (input, pull-DOWN 36-113 k). The SE, microSD and backlight switches must stay OFF until firmware turns them on. Swept over pull-down and AO3401A Vth corners.
+All GPIOs in RP2350 reset state (input, pull-DOWN 36-113 k). The SE, microSD, display power and backlight switches must stay OFF until firmware turns them on. Swept over pull-down and AO3401A Vth corners.
 
 | Result | Check | Value | Limit |
 |---|---|---|---|
 | PASS | SE_VCC at reset (RPD 36k, Vth -0.5 V) | 6.539e-07 V | <= 0.3 V |
 | PASS | SD_VDD at reset (RPD 36k, Vth -0.5 V) | 1.166e-07 V | <= 0.3 V |
-| PASS | Backlight current at reset (RPD 36k, Vth -0.5 V) | 2.532e-12 mA | <= 1 mA |
+| PASS | LCD_VCC at reset (RPD 36k, Vth -0.5 V) | 0.003786 V | <= 0.3 V |
+| PASS | Backlight current at reset (RPD 36k, Vth -0.5 V) | 2.533e-12 mA | <= 1 mA |
 | PASS | SE_VCC at reset (RPD 36k, Vth -0.9 V) | 6.539e-07 V | <= 0.3 V |
 | PASS | SD_VDD at reset (RPD 36k, Vth -0.9 V) | 1.166e-07 V | <= 0.3 V |
-| PASS | Backlight current at reset (RPD 36k, Vth -0.9 V) | 2.532e-12 mA | <= 1 mA |
-| PASS | BTN_UP idle level with reset pull-down (reads 'not pressed') | 2.58 V | >= 2 V |
-| PASS | BTN_DOWN idle level with reset pull-down (reads 'not pressed') | 2.58 V | >= 2 V |
-| PASS | BTN_BACK idle level with reset pull-down (reads 'not pressed') | 2.58 V | >= 2 V |
-| PASS | BTN_CONFIRM idle level with reset pull-down (reads 'not pressed') | 2.58 V | >= 2 V |
+| PASS | LCD_VCC at reset (RPD 36k, Vth -0.9 V) | 0.003786 V | <= 0.3 V |
+| PASS | Backlight current at reset (RPD 36k, Vth -0.9 V) | 2.533e-12 mA | <= 1 mA |
+| PASS | BTN_UP idle level with reset pull-down (reads 'not pressed') | 2.581 V | >= 2 V |
+| PASS | BTN_DOWN idle level with reset pull-down (reads 'not pressed') | 2.581 V | >= 2 V |
+| PASS | BTN_BACK idle level with reset pull-down (reads 'not pressed') | 2.581 V | >= 2 V |
+| PASS | BTN_CONFIRM idle level with reset pull-down (reads 'not pressed') | 2.581 V | >= 2 V |
 | PASS | SE_VCC at reset (RPD 36k, Vth -1.3 V) | 6.539e-07 V | <= 0.3 V |
 | PASS | SD_VDD at reset (RPD 36k, Vth -1.3 V) | 1.166e-07 V | <= 0.3 V |
-| PASS | Backlight current at reset (RPD 36k, Vth -1.3 V) | 2.532e-12 mA | <= 1 mA |
+| PASS | LCD_VCC at reset (RPD 36k, Vth -1.3 V) | 0.003786 V | <= 0.3 V |
+| PASS | Backlight current at reset (RPD 36k, Vth -1.3 V) | 2.533e-12 mA | <= 1 mA |
 | PASS | SE_VCC at reset (RPD 113k, Vth -0.5 V) | 1.239e-06 V | <= 0.3 V |
-| PASS | SD_VDD at reset (RPD 113k, Vth -0.5 V) | 3.116e-07 V | <= 0.3 V |
-| PASS | Backlight current at reset (RPD 113k, Vth -0.5 V) | 2.532e-12 mA | <= 1 mA |
+| PASS | SD_VDD at reset (RPD 113k, Vth -0.5 V) | 3.117e-07 V | <= 0.3 V |
+| PASS | LCD_VCC at reset (RPD 113k, Vth -0.5 V) | 0.003786 V | <= 0.3 V |
+| PASS | Backlight current at reset (RPD 113k, Vth -0.5 V) | 2.533e-12 mA | <= 1 mA |
 | PASS | SE_VCC at reset (RPD 113k, Vth -0.9 V) | 1.239e-06 V | <= 0.3 V |
-| PASS | SD_VDD at reset (RPD 113k, Vth -0.9 V) | 3.116e-07 V | <= 0.3 V |
-| PASS | Backlight current at reset (RPD 113k, Vth -0.9 V) | 2.532e-12 mA | <= 1 mA |
+| PASS | SD_VDD at reset (RPD 113k, Vth -0.9 V) | 3.117e-07 V | <= 0.3 V |
+| PASS | LCD_VCC at reset (RPD 113k, Vth -0.9 V) | 0.003786 V | <= 0.3 V |
+| PASS | Backlight current at reset (RPD 113k, Vth -0.9 V) | 2.533e-12 mA | <= 1 mA |
 | PASS | SE_VCC at reset (RPD 113k, Vth -1.3 V) | 1.239e-06 V | <= 0.3 V |
-| PASS | SD_VDD at reset (RPD 113k, Vth -1.3 V) | 3.116e-07 V | <= 0.3 V |
-| PASS | Backlight current at reset (RPD 113k, Vth -1.3 V) | 2.532e-12 mA | <= 1 mA |
+| PASS | SD_VDD at reset (RPD 113k, Vth -1.3 V) | 3.117e-07 V | <= 0.3 V |
+| PASS | LCD_VCC at reset (RPD 113k, Vth -1.3 V) | 0.003786 V | <= 0.3 V |
+| PASS | Backlight current at reset (RPD 113k, Vth -1.3 V) | 2.533e-12 mA | <= 1 mA |
 
 ## battery_boot
 
@@ -136,67 +143,67 @@ Battery 3.7 V and 3.4 V, no USB, power switch turned ON at 1 ms.
 
 | Result | Check | Value | Limit |
 |---|---|---|---|
-| PASS | [VBAT 3.7 V] 3V3 reaches 3.2 V after switch-on | 1.081 ms | <= 5 ms |
-| PASS | [VBAT 3.7 V] 3V3 steady state | 3.297 V | 3.2 .. 3.4 V |
-| PASS | [VBAT 3.7 V] 3V3 overshoot | 3.297 V | <= 3.6 V |
-| INFO | [VBAT 3.7 V] battery current, idle (MCU 60 mA) | 70.66 mA |  |
-| PASS | [VBAT 3.7 V] SE_VCC glitch during power-up (GPIOs in reset) | 0.0006685 V | <= 0.3 V |
-| PASS | [VBAT 3.7 V] SD_VDD glitch during power-up (GPIOs in reset) | 5.111e-05 V | <= 0.3 V |
-| PASS | [VBAT 3.7 V] backlight current during power-up | 0.0005804 mA | <= 1 mA |
-| PASS | [abs max] RP2350 FT pin margin vs 5.5 V powered / 3.63 V unpowered (worst: GP7 SD_PWR_N) | -0.6803 V | <= 0 V |
+| PASS | [VBAT 3.7 V] 3V3 reaches 3.2 V after switch-on | 1.079 ms | <= 5 ms |
+| PASS | [VBAT 3.7 V] 3V3 steady state | 3.298 V | 3.2 .. 3.4 V |
+| PASS | [VBAT 3.7 V] 3V3 overshoot | 3.298 V | <= 3.6 V |
+| INFO | [VBAT 3.7 V] battery current, idle (MCU 60 mA) | 62.58 mA |  |
+| PASS | [VBAT 3.7 V] SE_VCC glitch during power-up (GPIOs in reset) | 0.0006686 V | <= 0.3 V |
+| PASS | [VBAT 3.7 V] SD_VDD glitch during power-up (GPIOs in reset) | 5.112e-05 V | <= 0.3 V |
+| PASS | [VBAT 3.7 V] backlight current during power-up | 0.0005815 mA | <= 1 mA |
+| PASS | [abs max] RP2350 FT pin margin vs 5.5 V powered / 3.63 V unpowered (worst: GP7 SD_PWR_N) | -0.6811 V | <= 0 V |
 | PASS | [abs max] RP2350 ADC pin above IOVDD+0.5 (worst: GP28) | -0.2758 V | <= 0 V |
-| PASS | [abs max] OPTIGA VCC | 0.0006685 V | <= 5.5 V |
-| PASS | [abs max] microSD VDD | 5.111e-05 V | <= 3.6 V |
+| PASS | [abs max] OPTIGA VCC | 0.0006686 V | <= 5.5 V |
+| PASS | [abs max] microSD VDD | 5.112e-05 V | <= 3.6 V |
 | PASS | [abs max] MCP73831 VDD (VBUS) | 0.004587 V | <= 7 V |
-| PASS | [VBAT 3.4 V] 3V3 reaches 3.2 V after switch-on | 1.081 ms | <= 5 ms |
-| PASS | [VBAT 3.4 V] 3V3 steady state | 3.297 V | 3.2 .. 3.4 V |
-| PASS | [VBAT 3.4 V] 3V3 overshoot | 3.297 V | <= 3.6 V |
-| INFO | [VBAT 3.4 V] battery current, idle (MCU 60 mA) | 76.9 mA |  |
-| PASS | [VBAT 3.4 V] SE_VCC glitch during power-up (GPIOs in reset) | 0.0006685 V | <= 0.3 V |
-| PASS | [VBAT 3.4 V] SD_VDD glitch during power-up (GPIOs in reset) | 5.111e-05 V | <= 0.3 V |
-| PASS | [VBAT 3.4 V] backlight current during power-up | 0.0005804 mA | <= 1 mA |
-| PASS | [abs max] RP2350 FT pin margin vs 5.5 V powered / 3.63 V unpowered (worst: GP7 SD_PWR_N) | -0.6802 V | <= 0 V |
+| PASS | [VBAT 3.4 V] 3V3 reaches 3.2 V after switch-on | 1.08 ms | <= 5 ms |
+| PASS | [VBAT 3.4 V] 3V3 steady state | 3.298 V | 3.2 .. 3.4 V |
+| PASS | [VBAT 3.4 V] 3V3 overshoot | 3.298 V | <= 3.6 V |
+| INFO | [VBAT 3.4 V] battery current, idle (MCU 60 mA) | 68.09 mA |  |
+| PASS | [VBAT 3.4 V] SE_VCC glitch during power-up (GPIOs in reset) | 0.0006686 V | <= 0.3 V |
+| PASS | [VBAT 3.4 V] SD_VDD glitch during power-up (GPIOs in reset) | 5.112e-05 V | <= 0.3 V |
+| PASS | [VBAT 3.4 V] backlight current during power-up | 0.0005816 mA | <= 1 mA |
+| PASS | [abs max] RP2350 FT pin margin vs 5.5 V powered / 3.63 V unpowered (worst: GP7 SD_PWR_N) | -0.6804 V | <= 0 V |
 | PASS | [abs max] RP2350 ADC pin above IOVDD+0.5 (worst: GP28) | -0.291 V | <= 0 V |
-| PASS | [abs max] OPTIGA VCC | 0.0006685 V | <= 5.5 V |
-| PASS | [abs max] microSD VDD | 5.111e-05 V | <= 3.6 V |
+| PASS | [abs max] OPTIGA VCC | 0.0006686 V | <= 5.5 V |
+| PASS | [abs max] microSD VDD | 5.112e-05 V | <= 3.6 V |
 | PASS | [abs max] MCP73831 VDD (VBUS) | 0.00455 V | <= 7 V |
 
 ![battery_boot](out/battery_boot.svg)
 
 ## usb_hotplug
 
-**USB-C hot-plug and unplug with battery (load sharing)** - PASS (6.4 s)
+**USB-C hot-plug and unplug with battery (load sharing)** - PASS (6.7 s)
 
 Battery 3.7 V, switch ON, MCU running. A live 5 V charger is hot-plugged through a cable of 1 uH / 0.1 Ohm (worst-case ringing) and later unplugged. Ringing is simulated with a 5 ns step for both ends of the PTC fuse range (0.15 / 0.3 Ohm).
 
 | Result | Check | Value | Limit |
 |---|---|---|---|
-| PASS | [PTC 0.15 Ohm] peak VBUS_C at USB-C connector (before F1) | 5.365 V | <= 6 V |
-| PASS | [PTC 0.15 Ohm] peak VBUS on board (Pico VBUS/VSYS, charger) | 4.896 V | <= 5.5 V |
-| PASS | [PTC 0.15 Ohm] peak VBUS on board (abs max) | 4.896 V | <= 6 V |
-| PASS | [abs max] RP2350 FT pin margin vs 5.5 V powered / 3.63 V unpowered (worst: GP11 SE_PWR_N) | -2.393 V | <= 0 V |
+| PASS | [PTC 0.15 Ohm] peak VBUS_C at USB-C connector (before F1) | 5.367 V | <= 6 V |
+| PASS | [PTC 0.15 Ohm] peak VBUS on board (Pico VBUS/VSYS, charger) | 4.898 V | <= 5.5 V |
+| PASS | [PTC 0.15 Ohm] peak VBUS on board (abs max) | 4.898 V | <= 6 V |
+| PASS | [abs max] RP2350 FT pin margin vs 5.5 V powered / 3.63 V unpowered (worst: GP11 SE_PWR_N) | -2.392 V | <= 0 V |
 | PASS | [abs max] RP2350 ADC pin above IOVDD+0.5 (worst: GP28) | -2.036 V | <= 0 V |
 | PASS | [abs max] OPTIGA VCC | 6.539e-07 V | <= 5.5 V |
 | PASS | [abs max] microSD VDD | 1.166e-07 V | <= 3.6 V |
-| PASS | [abs max] MCP73831 VDD (VBUS) | 4.896 V | <= 7 V |
-| PASS | [PTC 0.3 Ohm] peak VBUS_C at USB-C connector (before F1) | 5.583 V | <= 6 V |
-| PASS | [PTC 0.3 Ohm] peak VBUS on board (Pico VBUS/VSYS, charger) | 4.748 V | <= 5.5 V |
-| PASS | [PTC 0.3 Ohm] peak VBUS on board (abs max) | 4.748 V | <= 6 V |
-| PASS | [abs max] RP2350 FT pin margin vs 5.5 V powered / 3.63 V unpowered (worst: GP19 LCD_BL_N) | -2.393 V | <= 0 V |
+| PASS | [abs max] MCP73831 VDD (VBUS) | 4.898 V | <= 7 V |
+| PASS | [PTC 0.3 Ohm] peak VBUS_C at USB-C connector (before F1) | 5.585 V | <= 6 V |
+| PASS | [PTC 0.3 Ohm] peak VBUS on board (Pico VBUS/VSYS, charger) | 4.751 V | <= 5.5 V |
+| PASS | [PTC 0.3 Ohm] peak VBUS on board (abs max) | 4.751 V | <= 6 V |
+| PASS | [abs max] RP2350 FT pin margin vs 5.5 V powered / 3.63 V unpowered (worst: GP19 LCD_BL_N) | -2.392 V | <= 0 V |
 | PASS | [abs max] RP2350 ADC pin above IOVDD+0.5 (worst: GP28) | -2.036 V | <= 0 V |
 | PASS | [abs max] OPTIGA VCC | 6.539e-07 V | <= 5.5 V |
 | PASS | [abs max] microSD VDD | 1.166e-07 V | <= 3.6 V |
-| PASS | [abs max] MCP73831 VDD (VBUS) | 4.748 V | <= 7 V |
-| PASS | 3V3 minimum across plug + unplug | 3.297 V | >= 3.2 V |
-| PASS | VSYS minimum after unplug (RT6154 needs >= 1.8 V) | 3.033 V | >= 2.5 V |
+| PASS | [abs max] MCP73831 VDD (VBUS) | 4.751 V | <= 7 V |
+| PASS | 3V3 minimum across plug + unplug | 3.298 V | >= 3.2 V |
+| PASS | VSYS minimum after unplug (RT6154 needs >= 1.8 V) | 3.038 V | >= 2.5 V |
 | PASS | Battery charge current while USB present (system runs from USB) | 0.4993 A | 0.45 .. 0.55 A |
-| PASS | Q1 Vgs while USB present (FET off: gate above source) | 0.2837 V | >= 0 V |
-| INFO | Time Q1 body diode carries the load after unplug (VSYS < VBAT - 0.3 V) | 7.58 ms |  |
-| PASS | [abs max] RP2350 FT pin margin vs 5.5 V powered / 3.63 V unpowered (worst: GP19 LCD_BL_N) | -2.393 V | <= 0 V |
-| PASS | [abs max] RP2350 ADC pin above IOVDD+0.5 (worst: GP28) | -2.032 V | <= 0 V |
+| PASS | Q1 Vgs while USB present (FET off: gate above source) | 0.2798 V | >= 0 V |
+| INFO | Time Q1 body diode carries the load after unplug (VSYS < VBAT - 0.3 V) | 7.5 ms |  |
+| PASS | [abs max] RP2350 FT pin margin vs 5.5 V powered / 3.63 V unpowered (worst: GP19 LCD_BL_N) | -2.392 V | <= 0 V |
+| PASS | [abs max] RP2350 ADC pin above IOVDD+0.5 (worst: GP28) | -2.033 V | <= 0 V |
 | PASS | [abs max] OPTIGA VCC | 6.539e-07 V | <= 5.5 V |
 | PASS | [abs max] microSD VDD | 1.166e-07 V | <= 3.6 V |
-| PASS | [abs max] MCP73831 VDD (VBUS) | 4.748 V | <= 7 V |
+| PASS | [abs max] MCP73831 VDD (VBUS) | 4.751 V | <= 7 V |
 
 ![usb_hotplug](out/usb_hotplug.svg)
 
@@ -204,7 +211,7 @@ Battery 3.7 V, switch ON, MCU running. A live 5 V charger is hot-plugged through
 
 ## switch_off_usb
 
-**Power switch OFF while charging** - PASS (0.1 s)
+**Power switch OFF while charging** - PASS (0.2 s)
 
 SW1 OFF (battery disconnected from system, 3V3_EN grounded) with USB attached. The device must be completely off but still charge. Worst case: VBUS 5.5 V and a full battery (charger STAT drives VBUS-level 'complete' into the divider).
 
@@ -236,7 +243,9 @@ No USB. SW1 OFF: battery must see only charger leakage. SW1 ON with firmware asl
 |---|---|---|---|
 | PASS | Battery current, switch OFF | 0.759 uA | <= 5 uA |
 | INFO | Shelf life of 1000 mAh cell from this drain alone | 150.4 years |  |
-| INFO | Battery current, switch ON, MCU 1 mA sleep, peripherals off (divider + pull-ups + module) | 12.57 mA |  |
+| PASS | Battery current in SLEEP (switch ON, MCU 1 mA dormant, display + SE + SD unpowered) | 2.556 mA | <= 3 mA |
+| INFO | Sleep time of a 500 mAh cell (BT1) from this drain | 8.15 days |  |
+| INFO | Same, display module left powered (no Q5 / firmware forgets): module logic load | 14.09 mA |  |
 
 ## charge_cycle
 
@@ -248,15 +257,15 @@ Battery capacity scaled to 2 mAh so a full CC/CV cycle fits in 40 s of simulated
 |---|---|---|---|
 | PASS | Constant-current phase current (R5 sets 1000/R5) | 0.4993 A | 0.45 .. 0.55 A |
 | PASS | Maximum VBAT (CV regulation 4.20 V) | 4.2 V | <= 4.25 V |
-| PASS | CHG_STAT level while charging (must read LOW) | 0.08387 V | <= 0.8 V |
-| PASS | CHG_STAT level when complete (must read HIGH) | 2.979 V | >= 2 V |
-| PASS | Charge LED current while charging | 2.757 mA | 1 .. 6 mA |
+| PASS | CHG_STAT level while charging (must read LOW) | 0.08396 V | <= 0.8 V |
+| PASS | CHG_STAT level when complete (must read HIGH) | 2.981 V | >= 2 V |
+| PASS | Charge LED current while charging | 2.76 mA | 1 .. 6 mA |
 | INFO | Time to 'complete' (2 mAh scaled cell) | 15.77 s |  |
-| PASS | [abs max] RP2350 FT pin margin vs 5.5 V powered / 3.63 V unpowered (worst: GP11 SE_PWR_N) | -2.393 V | <= 0 V |
+| PASS | [abs max] RP2350 FT pin margin vs 5.5 V powered / 3.63 V unpowered (worst: GP11 SE_PWR_N) | -2.392 V | <= 0 V |
 | PASS | [abs max] RP2350 ADC pin above IOVDD+0.5 (worst: GP28) | -1.826 V | <= 0 V |
 | PASS | [abs max] OPTIGA VCC | 6.539e-07 V | <= 5.5 V |
 | PASS | [abs max] microSD VDD | 1.166e-07 V | <= 3.6 V |
-| PASS | [abs max] MCP73831 VDD (VBUS) | 4.975 V | <= 7 V |
+| PASS | [abs max] MCP73831 VDD (VBUS) | 4.978 V | <= 7 V |
 
 ![charge_cycle](out/charge_cycle.svg)
 
@@ -268,20 +277,42 @@ Firmware: GP7 low at 2 ms (SD on), card writes 60 mA 10-20 ms, GP7 high at 30 ms
 
 | Result | Check | Value | Limit |
 |---|---|---|---|
-| PASS | SD_VDD ramp 10-90 % (SD spec: 0.1 .. 35 ms) | 0.7181 ms | 0.1 .. 35 ms |
+| PASS | SD_VDD ramp 10-90 % (SD spec: 0.1 .. 35 ms) | 0.718 ms | 0.1 .. 35 ms |
 | PASS | SD_VDD while on, during 60 mA write | 3.289 V | >= 3.2 V |
 | PASS | 3V3 minimum at SD switch-on (rail stays in spec) | 3.29 V | >= 3.2 V |
-| INFO | Inrush from 3V3 rail above baseline | 180.2 mA |  |
-| INFO | 3V3 droop at SD switch-on | 9.966 mV |  |
+| INFO | Inrush from 3V3 rail above baseline | 181.4 mA |  |
+| INFO | 3V3 droop at SD switch-on | 9.697 mV |  |
 | RULE | SD_VDD fall below 0.5 V after power-off (card reset needs < 0.5 V for >= 1 ms) | 132.3 ms |  |
-| PASS | [abs max] RP2350 FT pin margin vs 5.5 V powered / 3.63 V unpowered (worst: GP7 SD_PWR_N) | -2.203 V | <= 0 V |
+| PASS | [abs max] RP2350 FT pin margin vs 5.5 V powered / 3.63 V unpowered (worst: GP7 SD_PWR_N) | -2.202 V | <= 0 V |
 | PASS | [abs max] RP2350 ADC pin above IOVDD+0.5 (worst: GP28) | -2.064 V | <= 0 V |
 | PASS | [abs max] OPTIGA VCC | 7.249e-07 V | <= 5.5 V |
-| PASS | [abs max] microSD VDD | 3.297 V | <= 3.6 V |
+| PASS | [abs max] microSD VDD | 3.298 V | <= 3.6 V |
 | PASS | [abs max] MCP73831 VDD (VBUS) | 0.01818 V | <= 7 V |
 | RULE | FIRMWARE MISTAKE: SD_VDD with card 'off' but CS left high (back-powered through card I/O) | 2.621 V |  |
 
 ![sd_power](out/sd_power.svg)
+
+## lcd_power
+
+**Display module power switch (Q5): sleep / wake** - PASS (0.3 s)
+
+Firmware: GP18 low at 2 ms (display on), LCD pins driven after 5 ms, pins LOW at 29 ms, GP18 high at 30 ms (sleep). Second run leaves CS/DC high after power-off (firmware mistake).
+
+| Result | Check | Value | Limit |
+|---|---|---|---|
+| PASS | LCD_VCC reaches 90 % (then the driver may send SWRESET) | 1.244 ms | <= 3 ms |
+| INFO | LCD_VCC ramp 10-90 % | 0.2454 ms |  |
+| PASS | 3V3 minimum at display switch-on (rail stays in spec) | 3.283 V | >= 3.2 V |
+| INFO | 3V3 droop at display switch-on | 17.01 mV |  |
+| RULE | LCD_VCC below 0.3 V after power-off | 999 ms |  |
+| PASS | [abs max] RP2350 FT pin margin vs 5.5 V powered / 3.63 V unpowered (worst: GP22 LCD_DC) | -2.202 V | <= 0 V |
+| PASS | [abs max] RP2350 ADC pin above IOVDD+0.5 (worst: GP28) | -2.064 V | <= 0 V |
+| PASS | [abs max] OPTIGA VCC | 6.864e-07 V | <= 5.5 V |
+| PASS | [abs max] microSD VDD | 1.184e-07 V | <= 3.6 V |
+| PASS | [abs max] MCP73831 VDD (VBUS) | 0.01818 V | <= 7 V |
+| RULE | FIRMWARE MISTAKE: LCD_VCC with display 'off' but CS/DC left high (back-powered through ESD diodes) | 2.514 V |  |
+
+![lcd_power](out/lcd_power.svg)
 
 ## se_power
 
@@ -291,14 +322,14 @@ GP11 low at 1 ms (SE on), RST released at 2 ms; at 20 ms RST low then GP11 high 
 
 | Result | Check | Value | Limit |
 |---|---|---|---|
-| PASS | SE_VCC reaches 3.2 V after enable | 0.0005404 ms | <= 1 ms |
-| PASS | 3V3 minimum at SE switch-on (rail stays in spec) | 3.238 V | >= 3.2 V |
-| INFO | 3V3 droop at SE switch-on | 62.07 mV |  |
+| PASS | SE_VCC reaches 3.2 V after enable | 0.0006353 ms | <= 1 ms |
+| PASS | 3V3 minimum at SE switch-on (rail stays in spec) | 3.209 V | >= 3.2 V |
+| INFO | 3V3 droop at SE switch-on | 91 mV |  |
 | RULE | SE_VCC below 0.3 V after power-off (hibernate) | 132 ms |  |
-| PASS | [abs max] RP2350 FT pin margin vs 5.5 V powered / 3.63 V unpowered (worst: GP10 SE_RST_N) | -2.203 V | <= 0 V |
-| PASS | [abs max] RP2350 ADC pin above IOVDD+0.5 (worst: GP28) | -2.007 V | <= 0 V |
-| PASS | [abs max] OPTIGA VCC | 3.297 V | <= 5.5 V |
-| PASS | [abs max] microSD VDD | 1.173e-07 V | <= 3.6 V |
+| PASS | [abs max] RP2350 FT pin margin vs 5.5 V powered / 3.63 V unpowered (worst: GP10 SE_RST_N) | -2.202 V | <= 0 V |
+| PASS | [abs max] RP2350 ADC pin above IOVDD+0.5 (worst: GP28) | -1.977 V | <= 0 V |
+| PASS | [abs max] OPTIGA VCC | 3.298 V | <= 5.5 V |
+| PASS | [abs max] microSD VDD | 1.175e-07 V | <= 3.6 V |
 | PASS | [abs max] MCP73831 VDD (VBUS) | 0.01818 V | <= 7 V |
 | RULE | FIRMWARE MISTAKE: SE_VCC 'off' with RST left high (fed through internal pull-up, assumed 50 k) | 1.519 V |  |
 
@@ -306,7 +337,7 @@ GP11 low at 1 ms (SE on), RST released at 2 ms; at 20 ms RST low then GP11 high 
 
 ## i2c_timing
 
-**I2C edge rates to the secure element** - PASS (0.4 s)
+**I2C edge rates to the secure element** - PASS (0.5 s)
 
 SE powered, MCU pulls SDA (open-drain) at 400 kHz. Bus = MCU pin 5 pF + SE 10 pF + trace 15 pF (assumed). I2C spec rise time (30->70 %): Fm <= 300 ns, Fm+ <= 120 ns.
 
@@ -320,7 +351,7 @@ SE powered, MCU pulls SDA (open-drain) at 400 kHz. Bus = MCU pin 5 pF + SE 10 pF
 
 ## buttons
 
-**Button debounce (contact bounce on CONFIRM)** - PASS (0.5 s)
+**Button debounce (contact bounce on CONFIRM)** - PASS (0.6 s)
 
 CONFIRM pressed at 1 ms with 4 bounces over 0.4 ms, released at 20 ms with 4 bounces. GPIO input (pulls off). Logic level decided with VIL 0.8 V / VIH 2.0 V hysteresis.
 
@@ -329,7 +360,7 @@ CONFIRM pressed at 1 ms with 4 bounces over 0.4 ms, released at 20 ms with 4 bou
 | PASS | Logic transitions seen by firmware (expect exactly 2: press + release) | 2  | == 2 |
 | PASS | Press detected after first contact | -0.02982 us | <= 100 us |
 | PASS | Release detected after last bounce | 0.9329 ms | <= 5 ms |
-| PASS | Pressed level | 3.297e-05 V | <= 0.8 V |
+| PASS | Pressed level | 3.298e-05 V | <= 0.8 V |
 
 ![buttons](out/buttons.svg)
 
@@ -344,7 +375,7 @@ Battery swept 3.0-4.2 V. Firmware assumes the nominal divider ratio. The RP2350 
 | PASS | Worst-case uncalibrated VBAT error (ADC Rin 100 k .. ideal) | 2.296 % | <= 5 % |
 | INFO | Error with ideal ADC | 0.0004699 % |  |
 | INFO | Error with 100 k ADC input | 2.296 % |  |
-| INFO | Divider current at 4.2 V (flows only while SW1 is ON) | 317.6 uA |  |
+| INFO | Divider current at 4.2 V (flows only while SW1 is ON) | 317.8 uA |  |
 
 ## usb_cc
 
@@ -369,12 +400,12 @@ GP19 drives 1 kHz, 50 % duty (low = on).
 
 | Result | Check | Value | Limit |
 |---|---|---|---|
-| PASS | Backlight current when on | 30.79 mA | 10 .. 40 mA |
-| PASS | PWM duty error at 1 kHz | 0.009257 % pts | <= 2 % pts |
-| PASS | Backlight turn-on time 10-90 % | 0.001814 us | <= 20 us |
-| PASS | [abs max] RP2350 FT pin margin vs 5.5 V powered / 3.63 V unpowered (worst: GP19 LCD_BL_N) | -2.203 V | <= 0 V |
+| PASS | Backlight current when on | 30.82 mA | 10 .. 40 mA |
+| PASS | PWM duty error at 1 kHz | 0.009249 % pts | <= 2 % pts |
+| PASS | Backlight turn-on time 10-90 % | 0.001815 us | <= 20 us |
+| PASS | [abs max] RP2350 FT pin margin vs 5.5 V powered / 3.63 V unpowered (worst: GP19 LCD_BL_N) | -2.202 V | <= 0 V |
 | PASS | [abs max] RP2350 ADC pin above IOVDD+0.5 (worst: GP28) | -2.065 V | <= 0 V |
-| PASS | [abs max] OPTIGA VCC | 6.596e-07 V | <= 5.5 V |
+| PASS | [abs max] OPTIGA VCC | 6.597e-07 V | <= 5.5 V |
 | PASS | [abs max] microSD VDD | 1.169e-07 V | <= 3.6 V |
 | PASS | [abs max] MCP73831 VDD (VBUS) | 0.01818 V | <= 7 V |
 
@@ -388,10 +419,10 @@ Battery 3.4 V (almost empty), no USB. MCU 80 mA + BLE TX bursts 60 mA for 1 ms e
 
 | Result | Check | Value | Limit |
 |---|---|---|---|
-| PASS | 3V3 minimum | 3.288 V | >= 3.15 V |
-| PASS | VSYS minimum | 3.32 V | >= 2.5 V |
-| PASS | Peak 3V3 output current | 292 mA | <= 300 mA |
-| INFO | Peak battery current | 0.3289 A |  |
+| PASS | 3V3 minimum | 3.289 V | >= 3.15 V |
+| PASS | VSYS minimum | 3.322 V | >= 2.5 V |
+| PASS | Peak 3V3 output current | 284 mA | <= 300 mA |
+| INFO | Peak battery current | 0.3198 A |  |
 | PASS | [abs max] RP2350 FT pin margin vs 5.5 V powered / 3.63 V unpowered (worst: GP10 SE_RST_N) | -2.209 V | <= 0 V |
 | PASS | [abs max] RP2350 ADC pin above IOVDD+0.5 (worst: GP28) | -2.213 V | <= 0 V |
 | PASS | [abs max] OPTIGA VCC | 3.29 V | <= 5.5 V |

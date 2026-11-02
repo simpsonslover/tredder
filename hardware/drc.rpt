@@ -1,18 +1,14 @@
 ** Drc report for wallet.kicad_pcb **
-** Created on 2026-10-31T16:24:37 **
+** Created on 2026-11-01T16:14:00 **
 ** Report includes: Errors **
 
-** Found 4 DRC violations **
+** Found 3 DRC violations **
 [items_not_allowed]: Items not allowed (keepout area 'RF Copper Keep Out' of A1)
     Rule: keepout area 'RF Copper Keep Out' of A1; error
     @(184.2300 mm, 124.3900 mm): Pad [<no net>] of A1 on F.Paste
 [items_not_allowed]: Items not allowed (keepout area 'RF Copper Keep Out' of A1)
     Rule: keepout area 'RF Copper Keep Out' of A1; error
     @(184.2300 mm, 106.6100 mm): Pad [<no net>] of A1 on F.Paste
-[starved_thermal]: Thermal relief connection to zone incomplete (layer F.Cu; zone min spoke count 2; actual 1)
-    Local override; error
-    @(100.3000 mm, 100.3000 mm): Zone [GND] on F.Cu, priority 0
-    @(139.1000 mm, 115.5000 mm): PTH pad TP1 [GND] of A1
 [starved_thermal]: Thermal relief connection to zone incomplete (layer F.Cu; zone min spoke count 2; actual 1)
     Local override; error
     @(100.3000 mm, 100.3000 mm): Zone [GND] on F.Cu, priority 0

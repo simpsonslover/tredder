@@ -33,6 +33,25 @@ void hal_lcd_reset(void);                         /* pulse LCD_RST low, wait 120
 void hal_lcd_cmd(uint8_t cmd);                    /* DC low, CS low, 1 byte */
 void hal_lcd_data(const uint8_t *d, size_t n);    /* DC high, CS low, n bytes */
 void hal_lcd_backlight(bool on);                  /* LCD_BL_N via Q4 */
+/* Display module supply (LCD_PWR_N on GP18 via Q5). Before switching OFF the HAL
+   drives RST/CS/DC/SCK/MOSI LOW: a pin left high back-powers the unpowered
+   module to ~2.5 V through its ESD diodes (hardware/sim: lcd_power). After ON,
+   LCD_VCC needs ~1.3 ms; gfx_init() waits before talking to the panel. */
+void hal_lcd_power(bool on);
+
+/* ---------------------------------------------------------------- power
+   VBAT from GP28 / ADC2 (divider R10/R11, per-device gain calibration),
+   charging from CHG_STAT (GP5, low = charging), USB from the CYW43 VBUS sense. */
+typedef struct {
+  uint16_t vbat_mv; /* 0 = not measured */
+  bool charging;
+  bool usb;
+} hal_power_t;
+void hal_power(hal_power_t *out);
+
+/* Sleep: display + SE + SD already off; radio off; the RP2350 goes DORMANT and
+   wakes on any button edge (GPIO 12..15). RAM is kept. Returns after wake-up. */
+void hal_sleep(void);
 
 /* ---------------------------------------------------------------- entropy
    Raw samples from the RP2350 TRNG (unconditioned: health tests run in core). */

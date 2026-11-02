@@ -4,7 +4,7 @@ Qty,Designators,Value,MPN,LCSC,Footprint,Populate,Source,VERIFY before ordering,
 4,C3 C6 C9 C14,10uF,CL21A106KAYNNNE,C15850,C_0805_2012Metric,yes,JLCPCB,,3V3 bulk; VSYS bulk
 8,C4 C7 C10 C11 C12 C13 C15 C16,100nF,CC0603KRX7R9BB104,C14663,C_0603_1608Metric,yes,JLCPCB,,ADC filter; BACK debounce; CONFIRM debounce; DOWN debounce; UP debounce
 1,C5,1uF,CL10A105KB8NNNC,C15849,C_0603_1608Metric,yes,JLCPCB,,
-1,C8,4.7uF,CL10A475KO8NNNC,C19666,C_0603_1608Metric,yes,JLCPCB,YES - LCSC number / stock / pinout,Q3 soft-start Cgs: SD_VDD ramp must be >= 0.1 ms (SD spec) (sim: sd_power)
+2,C8 C17,4.7uF,CL10A475KO8NNNC,C19666,C_0603_1608Metric,yes,JLCPCB,YES - LCSC number / stock / pinout,Q3 soft-start Cgs: SD_VDD ramp must be >= 0.1 ms (SD spec) (sim: sd_power); Q5 soft-start Cgs: limits inrush into C9 + module so +3V3 does not dip (sim: lcd_power)
 1,D1,Red,KT-0603R,C2286,LED_0603_1608Metric,yes,JLCPCB,,On = charging
 1,F1,PTC 500mA,SMD1206P050TF (or eq. 0.5 A hold),,Fuse_1206_3216Metric,yes,hand / other distributor,YES - LCSC number / stock / pinout,
 4,H1 H2 H3 H4,M2,No part,,MountingHole_2.2mm_M2,DNP,none,,
@@ -13,7 +13,7 @@ Qty,Designators,Value,MPN,LCSC,Footprint,Populate,Source,VERIFY before ordering,
 1,J3,microSD,DM3AT-SF-PEJM5,,microSD_HC_Hirose_DM3AT-SF-PEJM5,yes,hand / other distributor,YES - LCSC number / stock / pinout,
 1,J4,LCD 2.0in ST7789,2.54mm 1x8 female header,,PinSocket_1x08_P2.54mm_Vertical,yes,hand / other distributor,YES - LCSC number / stock / pinout,Pin order must match YOUR module (common: GND VCC SCL SDA RES DC CS BLK)
 1,J5,SWD (Tag-Connect),No part: pogo cable TC2030-IDC-NL,,Tag-Connect_TC2030-IDC-NL_2x03_P1.27mm_Vertical,DNP,none,,
-4,Q1 Q2 Q3 Q4,AO3401A,AO3401A,C15127,SOT-23,yes,JLCPCB,,"Backlight high-side switch; Load-sharing: battery->VSYS when USB absent (Pico datasheet 4.6); SD power switch (card unpowered unless backing up); SE power switch, active-low"
+5,Q1 Q2 Q3 Q4 Q5,AO3401A,AO3401A,C15127,SOT-23,yes,JLCPCB,,"Backlight high-side switch; LCD module power switch (sleep mode), active-low on GP18; Load-sharing: battery->VSYS when USB absent (Pico datasheet 4.6); SD power switch (card unpowered unless backing up); SE power switch, active-low"
 2,R1 R2,5.1k,0603WAF5101T5E,C23186,R_0603_1608Metric,yes,JLCPCB,,CC1 sink pull-down; CC2 sink pull-down
 2,R3 R4,0R,0603WAF0000T5E,C21189,R_0603_1608Metric,yes,JLCPCB,,USB D+ link. DNP = charge-only port (production option); USB D- link. DNP = charge-only port (production option)
 1,R5,2k,0603WAF2001T5E,C22975,R_0603_1608Metric,yes,JLCPCB,,PROG: 1000/2k = 500 mA charge
@@ -22,8 +22,8 @@ Qty,Designators,Value,MPN,LCSC,Footprint,Populate,Source,VERIFY before ordering,
 1,R8,15k,0603WAF1502T5E,C22809,R_0603_1608Metric,yes,JLCPCB,YES - LCSC number / stock / pinout,"STAT divider bottom: 5.5 V VBUS -> 3.30 V, below 3.63 V unpowered-FT limit (sim: switch_off_usb)"
 1,R9,100k,0603WAF1003T5E,C25803,R_0603_1608Metric,yes,JLCPCB,,Q1 gate pull-down
 4,R10 R11 R13 R14,4.7k,0603WAF4701T5E,C23162,R_0603_1608Metric,yes,JLCPCB,,"I2C SCL pull-up; I2C SDA pull-up; VBAT sense divider; VBAT sense divider: low impedance vs ADC Rin >= 100k (sim: vbat_adc). 0.45 mA, only while SW1 ON"
-3,R12 R21 R25,2.2k,0603WAF2201T5E,C4190,R_0603_1608Metric,yes,JLCPCB,YES - LCSC number / stock / pinout,Backlight gate pull-up: beats RP2350 reset pull-down -> backlight OFF at boot; Q3 gate pull-up: beats RP2350 reset pull-down -> SD OFF at boot (sim: reset_default_off); SE switch gate pull-up: must beat RP2350 reset pull-down (36k min) -> keeps Q2 OFF at boot (sim: reset_default_off)
-1,R23,470,0603WAF4700T5E,C23179,R_0603_1608Metric,yes,JLCPCB,YES - LCSC number / stock / pinout,Q3 gate series (soft start with C8)
+4,R12 R21 R25 R30,2.2k,0603WAF2201T5E,C4190,R_0603_1608Metric,yes,JLCPCB,YES - LCSC number / stock / pinout,Backlight gate pull-up: beats RP2350 reset pull-down -> backlight OFF at boot; Q3 gate pull-up: beats RP2350 reset pull-down -> SD OFF at boot (sim: reset_default_off); Q5 gate pull-up: beats RP2350 reset pull-down -> display unpowered at boot (sim: reset_default_off); SE switch gate pull-up: must beat RP2350 reset pull-down (36k min) -> keeps Q2 OFF at boot (sim: reset_default_off)
+2,R23 R31,470,0603WAF4700T5E,C23179,R_0603_1608Metric,yes,JLCPCB,YES - LCSC number / stock / pinout,Q3 gate series (soft start with C8); Q5 gate series (soft start with C17)
 1,SW1,Power,JS202011JCQN,,SW_DPDT_CK_JS202011JCQN,yes,hand / other distributor,YES - LCSC number / stock / pinout,"Pole A disconnects battery, pole B grounds 3V3_EN (kills 3V3 even on USB)"
 1,SW2,UP,TS-1187A-B-A-B,C318884,SW_Push_1P1T_XKB_TS-1187A,yes,JLCPCB,,
 1,SW3,DOWN,TS-1187A-B-A-B,C318884,SW_Push_1P1T_XKB_TS-1187A,yes,JLCPCB,,
@@ -36,7 +36,7 @@ Qty,Designators,Value,MPN,LCSC,Footprint,Populate,Source,VERIFY before ordering,
 1,TP5,UART_TX,No part (bare pad),,TestPoint_Pad_D1.0mm,DNP,none,,
 1,TP6,UART_RX,No part (bare pad),,TestPoint_Pad_D1.0mm,DNP,none,,
 1,TP7,GP4,No part (bare pad),,TestPoint_Pad_D1.0mm,DNP,none,,
-1,TP8,GP18,No part (bare pad),,TestPoint_Pad_D1.0mm,DNP,none,,
+1,TP8,LCD_PWR_N,No part (bare pad),,TestPoint_Pad_D1.0mm,DNP,none,,
 1,U1,USBLC6-2SC6,USBLC6-2SC6,C7519,SOT-23-6,yes,JLCPCB,,
 1,U2,OPTIGA Trust M V3,SLS32AIA010MKUSON10XTMA2,,Infineon_PG-USON-10-2_3x3mm_P0.5mm,yes,hand / other distributor,YES - LCSC number / stock / pinout,"Not stocked at LCSC: buy from Mouser/Digi-Key/Farnell and hand-place, or JLC global sourcing"
 1,U3,MCP73831T-2ACI/OT,MCP73831T-2ACI/OT,C424093,SOT-23-5,yes,JLCPCB,YES - LCSC number / stock / pinout,

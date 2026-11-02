@@ -23,14 +23,15 @@ Everything is generated from **[tools/design.py](tools/design.py)**, which defin
 ```
  USB-C ──F1──U1(ESD)──R3/R4(0Ω, DNP=charge-only)──► Pico TP2/TP3 (USB D-/D+)
    │ VBUS
-   ├────────► Pico VBUS ──(Schottky on module)──► VSYS ◄──Q1 (load-share PFET)◄── SW1-A ◄── LiPo (J2)
+   ├────────► Pico VBUS ──(Schottky on module)──► VSYS ◄──Q1 (load-share PFET)◄── SW1-A ◄── BT1 LiPo (J2)
    └──► U3 MCP73831 charger ───────────────────────────────────────────────────────┘ VBAT
                                                     SW1-B: 3V3_EN → GND (hard off, even on USB)
 
  Pico 2 W (RP2350 + CYW43439 BLE)
    I2C0  GP8/GP9  ──────► U2 OPTIGA Trust M V3   (VCC switched by Q2, RST on GP10)
    SPI0  GP0-3    ──────► J3 microSD            (VDD switched by Q3, soft-start, DET on GP6)
-   SPI1  GP26/27  ──────► J4 2.0" ST7789 module (CS GP21, DC GP22, RST GP20, BL via Q4 on GP19)
+   SPI1  GP26/27  ──────► J4 2.0" ST7789 module (CS GP21, DC GP22, RST GP20, BL via Q4 on GP19,
+                          module VCC switched by Q5 on GP18: unpowered in sleep)
    GP12-15        ──────► Back / Confirm / Up / Down (10k pull-ups + RC debounce)
    GP28 (ADC2)    ◄────── VBAT divider (after power switch, no drain when off)
    GP5            ◄────── charger STAT (5V→3.3V divider)
@@ -46,7 +47,7 @@ Everything is generated from **[tools/design.py](tools/design.py)**, which defin
 | GP1 | SD CS (SPI0 CSn) | | GP15 | BTN DOWN |
 | GP2 | SD SCK | | GP16 | UART0 TX (test pad) |
 | GP3 | SD MOSI | | GP17 | UART0 RX (test pad) |
-| GP4 | spare (TP7) | | GP18 | spare (TP8) |
+| GP4 | spare (TP7) | | GP18 | LCD power enable (active low, Q5; TP8) |
 | GP5 | CHG_STAT | | GP19 | LCD backlight (active low) |
 | GP6 | SD card detect | | GP20 | LCD RST |
 | GP7 | SD power enable (active low) | | GP21 | LCD CS |
@@ -57,7 +58,7 @@ Everything is generated from **[tools/design.py](tools/design.py)**, which defin
 | GP12 | BTN BACK | | GP23-25, 29 | used inside the module by the radio |
 | GP13 | BTN CONFIRM | | | |
 
-All four switch controls (Q2 SE, Q3 SD, Q4 backlight, and SW1) default to **off** when the MCU is in reset or unprogrammed.
+All five switch controls (Q2 SE, Q3 SD, Q4 backlight, Q5 display power, and SW1) default to **off** when the MCU is in reset or unprogrammed.
 
 ## 3. Secure element: OPTIGA Trust M V3 (recommended) vs ATECC608B
 
@@ -85,6 +86,7 @@ An attacker needs the PIN, **and** must defeat the SE counter, **and** must read
 | R3/R4 0 Ω links on USB D+/D- (DNP in production) | Charge-only USB removes the whole USB stack and BOOTSEL/PICOBOOT as attack surface | Firmware updates then come via a signed image on microSD instead of USB |
 | SW1 pole B grounds `3V3_EN` | Hard off, even when USB is plugged in; nothing runs while it's "off" | Can't wake from USB; must flip the switch |
 | SE power switched (Q2), default off | Lets firmware hard-reset the SE and keep it unpowered when locked | One more GPIO and some firmware sequencing |
+| Display module power-gated (Q5), and sleep locks the wallet | Sleep current 14 mA → 2.6 mA (≈ 8 days on BT1 instead of 1.5). Waking always needs the PIN, so a device left asleep is locked | Waking takes a button press + PIN; the display re-initialises (~0.3 s) |
 | SD on its own SPI bus, power-gated (Q3) | Untrusted removable media can't share a bus with the display, and is unpowered unless in a backup flow | Need to power-cycle the card in firmware |
 | No test points on SE I2C | Makes passive probing slightly harder (Shielded Connection is the real defence) | Harder to debug the SE link (use a scope on the IC pins) |
 | Tag-Connect SWD footprint, no header | Nothing to remove for production; covered by the case; SWD disabled in OTP anyway | Need a TC2030-IDC-NL cable (~$40) |
@@ -112,7 +114,7 @@ An attacker needs the PIN, **and** must defeat the SE counter, **and** must read
 
 1. **OPTIGA footprint:** I built `Infineon_PG-USON-10-2_3x3mm_P0.5mm` from KiCad's USON-10 3×3 land pattern **without an exposed pad**. The pinout comes from datasheet rev 3.70 Table 6 (1 GND, 3 SDA, 8 SCL, 9 RST, 10 VCC, others NC), but I couldn't read the package drawing (Figure 6). **Compare the pads with Figure 6 and check whether there's a thermal/exposed pad.**
 2. **Display module pinout and outline:** J4 assumes the common 2.0" 240×320 ST7789V module order **GND, VCC, SCL, SDA, RES, DC, CS, BLK** and a ~60 × 36 mm outline (F.Fab rectangle). Waveshare and others use different orders. Buy the module first, then edit `NETS` in `design.py` to match. The firmware drives the panel landscape (`MADCTL 0x60` in `firmware/app/src/gfx.c`), assuming the module's native top edge points away from J4. If the picture is upside down on your module, use `0xA0`.
-3. **LiPo connector polarity:** pin 1 = BAT+. Many cheap packs are wired reversed for JST-PH. A reversed pack destroys the charger. Use a cell **with a protection circuit (PCM)**, ≤ 50 × 34 × 6 mm to sit behind the board, ≥ 500 mAh (charge current is set to 500 mA by R5 = 2 kΩ).
+3. **LiPo connector polarity:** pin 1 = BAT+. Many cheap packs are wired reversed for JST-PH. A reversed pack destroys the charger. Use a cell **with a protection circuit (PCM)**, ≤ 50 × 34 × 6 mm to sit behind the board, ≥ 500 mAh (charge current is set to 500 mA by R5 = 2 kΩ). The design uses **BT1 = 1S LiPo "503035" (5.0 × 30 × 35 mm, 500 mAh, PCM, JST-PH 2.0 lead)**: a board-only mechanical part on the bottom side (`tools/add_battery.py`, outline on B.Fab + 3D model), stuck behind the left half with 0.5 mm foam tape, clear of the J4 header pins and the antenna. It is not in the JLC BOM: buy it separately and **check the lead polarity before plugging in**.
 4. **LCSC numbers marked VERIFY in `bom/wallet_bom_full.csv`:** MCP73831 (C424093), 4.7 µF 0805 (C1779), JST PH SMD (C295747), PTC fuse, DM3AT microSD, and the JS202011JCQN switch. Also the parts changed after simulation: 2.2 k (C4190), 470 Ω (C23179), 15 k (C22809), and 4.7 µF 0603 (C19666). I'm not confident of these LCSC IDs. Look each one up and check stock.
 5. **Pico 2 W underside pads:** USB D+/D- (TP2/TP3) and SWD (D1–D3) are **under** the module. The custom footprint adds 0.8 mm plated holes there so you can feed solder from the back. Otherwise reflow the module (stencil and hot plate). Test continuity before powering.
 6. **Pico 2 W stepping:** confirm the RP2350 is stepping **A4** or later (the chip marking or `chip_id` in the bootrom). A4 includes the security fixes from the hacking challenge.
@@ -196,6 +198,8 @@ The simulation showed each of these failure modes when the rule is broken.
 4. **GP28 (battery ADC):** use `adc_gpio_init` (pulls and digital input off), and store a **one-point gain calibration** per device to remove the ±2.3 % ADC-impedance error.
 5. **GP5 (CHG_STAT):** read as an input with no internal pull. Low = charging, high = complete or no USB (use VBUS sense to tell those apart).
 6. **Buttons:** the hardware RC already gives exactly one edge per press. Firmware still needs the hold-to-confirm logic.
+7. **Before powering the display off (GP18 high), drive GP20/21/22/26/27 low** (or inputs). A pin left high back-powers the module to 2.5 V through its ESD diodes. After power-on, wait ≥ 2 ms (LCD_VCC reaches 90 % in 1.2 ms) before the ST7789 reset/init.
+8. **Sleep:** with the display, SE and SD unpowered and the RP2350 dormant, the board draws **2.6 mA** (sim `off_drain`, MCU dormant assumed 1 mA: measure it). The rest is the VBAT divider (0.45 mA), the Pico's regulator and pull-ups. For storage, SW1 OFF draws 0.8 µA.
 
 ### What the simulation confirms
 

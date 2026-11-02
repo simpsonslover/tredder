@@ -4,6 +4,7 @@
  *   tredder-emu [--port 8765] [--state DIR | --ephemeral] [--scale 1.5] [--headless]
  *               [--seed "public test words" --pin 1234 [--sweep-seed "..."]]
  *               [--auto-approve] [--debug-port N] [--pin-delay-ms N] [--idle-lock-ms N]
+ *               [--sleep-ms N (0 = never)] [--battery PCT] [--battery-speed X] [--usb]
  *
  * DEVELOPMENT ONLY. The emulated flash and secure element live in plain files
  * on the PC (default %LOCALAPPDATA%\tredder-emu). Use public test phrases and
@@ -25,7 +26,7 @@
 #include "wallet/mnemonic.h"
 #include "wallet/secure.h"
 
-emu_opts_t emu_opts = {8765, 0, 0, false, false, false, "", NULL, NULL, NULL};
+emu_opts_t emu_opts = {8765, 0, 0, 1.0, -1, false, false, false, false, "", NULL, NULL, NULL};
 
 static CRITICAL_SECTION cs;
 static LARGE_INTEGER qpf, qp0;
@@ -141,6 +142,7 @@ void hal_lcd_reset(void) { lcd_model_reset(); }
 void hal_lcd_cmd(uint8_t c) { lcd_model_cmd(c); }
 void hal_lcd_data(const uint8_t *d, size_t n) { lcd_model_data(d, n); }
 void hal_lcd_backlight(bool on) { lcd_model_backlight(on); }
+void hal_lcd_power(bool on) { lcd_model_power(on); }
 
 void hal_trng_raw(uint8_t *out, size_t n) { emu_random(out, n); }
 
@@ -177,11 +179,41 @@ static void provision(void) {
   emu_logf("provisioned test wallet (%u words), PIN set", (unsigned)n);
 }
 
+/* ---------------------------------------------------------------- sleep */
+static volatile LONG sleeping;
+static volatile LONG power; /* 0 on, 1 switching off, 2 off (MCU halted, sockets closed) */
+
+bool emu_sleeping(void) { return sleeping != 0; }
+
+static _Noreturn void halt_for_power_off(void) {
+  ws_stop();
+  dbg_stop();
+  InterlockedExchange(&power, 2);
+  for (;;) Sleep(1000);
+}
+
+/* RP2350 DORMANT until a button edge. The radio is off: the phone link closes
+   and nothing can connect until wake-up. (The debug link and robot finger are
+   test equipment outside the chip, so they keep running and can press a button.) */
+void hal_sleep(void) {
+  InterlockedExchange(&sleeping, 1);
+  ws_stop();
+  emu_logf("asleep: display unpowered, radio off; press any button to wake");
+  emu_request_repaint();
+  while (!emu_buttons()) {
+    if (power) halt_for_power_off();
+    dbg_poll();
+    robot_step(emu_millis());
+    Sleep(5);
+  }
+  if (!ws_start(emu_opts.port)) emu_logf("phone link port %d could not be reopened", emu_opts.port);
+  InterlockedExchange(&sleeping, 0);
+  emu_request_repaint();
+}
+
 /* ---------------------------------------------------------------- SW1 power switch */
 static int g_argc;
 static char **g_argv;
-static volatile LONG power; /* 0 on, 1 switching off, 2 off (MCU halted, sockets closed) */
-
 bool emu_powered(void) { return power == 0; }
 
 static void power_on_again(void) {
@@ -231,12 +263,7 @@ static DWORD WINAPI mcu_thread(LPVOID arg) {
   }
   fw_init();
   for (;;) {
-    if (power) {
-      ws_stop();
-      dbg_stop();
-      InterlockedExchange(&power, 2);
-      for (;;) Sleep(1000);
-    }
+    if (power) halt_for_power_off();
     fw_poll();
     uint32_t now = hal_millis();
     robot_step(now);
@@ -279,6 +306,10 @@ int main(int argc, char **argv) {
     else if (!strcmp(a, "--pin") && v) emu_opts.pin = v, i++;
     else if (!strcmp(a, "--pin-delay-ms") && v) fw_config.pin_delay_ms = (uint32_t)atoi(v), i++;
     else if (!strcmp(a, "--idle-lock-ms") && v) fw_config.idle_lock_ms = (uint32_t)atoi(v), i++;
+    else if (!strcmp(a, "--sleep-ms") && v) fw_config.sleep_ms = (uint32_t)atoi(v), i++;
+    else if (!strcmp(a, "--battery") && v) emu_opts.battery_pct = atoi(v), i++;
+    else if (!strcmp(a, "--battery-speed") && v) emu_opts.battery_speed = atof(v), i++;
+    else if (!strcmp(a, "--usb")) emu_opts.usb = true;
     else if (!strcmp(a, "--ephemeral")) emu_opts.ephemeral = true;
     else if (!strcmp(a, "--headless")) emu_opts.headless = true;
     else if (!strcmp(a, "--auto-approve")) emu_opts.auto_approve = true;
@@ -298,6 +329,8 @@ int main(int argc, char **argv) {
   if (!emu_opts.ephemeral) CreateDirectoryA(emu_opts.state_dir, NULL);
   if (emu_opts.seed && !emu_opts.ephemeral) emu_logf("WARNING: --seed overwrites the emulator's stored wallet");
 
+  battery_model_init(emu_opts.battery_pct);
+  if (emu_opts.usb) battery_model_usb(true);
   flash_model_load();
   se_model_load();
   if (!ws_start(emu_opts.port)) {

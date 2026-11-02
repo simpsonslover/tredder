@@ -148,18 +148,20 @@ def save_plot(res, r, panels, title=None, xscale=1.0, xlabel="time (s)"):
 
 def t_reset_default_off():
     res = Result("reset_default_off", "Boot / reset: peripherals default OFF",
-                 "All GPIOs in RP2350 reset state (input, pull-DOWN 36-113 k). The SE, microSD and "
-                 "backlight switches must stay OFF until firmware turns them on. Swept over pull-down "
+                 "All GPIOs in RP2350 reset state (input, pull-DOWN 36-113 k). The SE, microSD, "
+                 "display power and backlight switches must stay OFF until firmware turns them on. Swept over pull-down "
                  "and AO3401A Vth corners.")
     rows = []
     for rpd in (36e3, 113e3):
         for vth in ("min", "typ", "max"):
             r = sim(cfg(rpd=rpd, vth=vth, analysis=".op"))
             se, sd = float(V(r, "SE_VCC")[0]), float(V(r, "SD_VDD")[0])
+            lcd = float(V(r, "LCD_VCC")[0])
             bl = float(r["i(vj4blm)"][0])
             tag = f"RPD {rpd / 1e3:.0f}k, Vth {N.VTH[vth]:+.1f} V"
             res.le(f"SE_VCC at reset ({tag})", se, 0.3)
             res.le(f"SD_VDD at reset ({tag})", sd, 0.3)
+            res.le(f"LCD_VCC at reset ({tag})", lcd, 0.3)
             res.le(f"Backlight current at reset ({tag})", bl * 1e3, 1.0, "mA")
             rows.append((tag, se, sd, bl))
             for b in ("BTN_UP", "BTN_DOWN", "BTN_BACK", "BTN_CONFIRM"):
@@ -258,10 +260,44 @@ def t_off_drain():
     res.le("Battery current, switch OFF", i_off * 1e6, 5.0, "uA")
     res.info("Shelf life of 1000 mAh cell from this drain alone",
              1000e-3 / max(i_off, 1e-9) / 24 / 365, "years")
-    r = sim(cfg(battery=dict(v=3.8), mcu_load=1e-3, analysis=".op",
-                gpio={"GP28": "z", "GP7": "high", "GP11": "high", "GP19": "high"}))
-    res.info("Battery current, switch ON, MCU 1 mA sleep, peripherals off (divider + pull-ups + module)",
+    off = {"GP28": "z", "GP7": "high", "GP11": "high", "GP19": "high", "GP18": "high"}
+    lcd_pins_low = {g: "low" for g in ("GP20", "GP21", "GP22", "GP26", "GP27")}
+    r = sim(cfg(battery=dict(v=3.8), mcu_load=1e-3, analysis=".op", gpio={**off, **lcd_pins_low}))
+    i_sleep = float(r["i(vbat)"][0])
+    res.le("Battery current in SLEEP (switch ON, MCU 1 mA dormant, display + SE + SD unpowered)", i_sleep * 1e3, 3.0, "mA")
+    res.info("Sleep time of a 500 mAh cell (BT1) from this drain", 0.5 / i_sleep / 24, "days")
+    r = sim(cfg(battery=dict(v=3.8), mcu_load=1e-3, analysis=".op", gpio={**off, "GP18": "low"}))
+    res.info("Same, display module left powered (no Q5 / firmware forgets): module logic load",
              float(r["i(vbat)"][0]) * 1e3, "mA")
+    return res
+
+
+def t_lcd_power():
+    res = Result("lcd_power", "Display module power switch (Q5): sleep / wake",
+                 "Firmware: GP18 low at 2 ms (display on), LCD pins driven after 5 ms, pins LOW at 29 ms, "
+                 "GP18 high at 30 ms (sleep). Second run leaves CS/DC high after power-off (firmware mistake).")
+    on = [(0, 3.3), (2e-3, 3.3), (2.0001e-3, 0), (30e-3, 0), (30.0001e-3, 3.3)]
+    pin = [(0, 0), (5e-3, 0), (5.0001e-3, 3.3), (29e-3, 3.3), (29.0001e-3, 0)]
+    base = dict(battery=dict(v=3.7), analysis=".tran 5u 200m 0 50u")
+    c = cfg(gpio={"GP18": ("pwl", on), "GP21": ("pwl", pin), "GP22": ("pwl", pin), "GP20": ("pwl", pin),
+                  "GP26": "low", "GP27": "low", "GP19": "high"}, **base)
+    r = sim(c)
+    t, lv, v3 = r["time"], V(r, "LCD_VCC"), V(r, "+3V3")
+    t10, t90 = cross(t, lv, 0.33, after=2e-3), cross(t, lv, 2.97, after=2e-3)
+    res.le("LCD_VCC reaches 90 % (then the driver may send SWRESET)", (t90 - 2e-3) * 1e3 if t90 else 99, 3.0, "ms")
+    res.info("LCD_VCC ramp 10-90 %", (t90 - t10) * 1e3 if t10 and t90 else 99, "ms")
+    res.ge("3V3 minimum at display switch-on (rail stays in spec)", float(window(r, v3, 2e-3, 10e-3).min()), 3.2)
+    res.info("3V3 droop at display switch-on", (3.3 - float(window(r, v3, 2e-3, 10e-3).min())) * 1e3, "mV")
+    toff = cross(t, lv, 0.3, rising=False, after=30e-3)
+    res.info("LCD_VCC below 0.3 V after power-off", (toff - 30e-3) * 1e3 if toff else 999, "ms", kind="RULE")
+    invariants(res, r, c)
+    save_plot(res, r, [dict(ylabel="V", series=[("LCD_VCC", lv), ("3V3", v3), ("LCD_GATE", V(r, "LCD_GATE"))])],
+              xscale=1e3, xlabel="time (ms)")
+    r2 = sim(cfg(gpio={"GP18": ("pwl", on), "GP21": ("pwl", [(0, 0), (5e-3, 3.3)]), "GP22": ("pwl", [(0, 0), (5e-3, 3.3)]),
+                       "GP20": "low", "GP26": "low", "GP27": "low", "GP19": "high"},
+                 **dict(base, analysis=".tran 5u 100m 0 50u")))
+    res.info("FIRMWARE MISTAKE: LCD_VCC with display 'off' but CS/DC left high (back-powered through ESD diodes)",
+             float(V(r2, "LCD_VCC")[-1]), "V", kind="RULE")
     return res
 
 
@@ -489,4 +525,4 @@ def t_worst_load():
 
 
 ALL = [t_reset_default_off, t_battery_boot, t_usb_hotplug, t_switch_off_usb, t_off_drain, t_charge_cycle,
-       t_sd_power, t_se_power, t_i2c, t_buttons, t_vbat_adc, t_usb_cc, t_backlight, t_worst_load]
+       t_sd_power, t_lcd_power, t_se_power, t_i2c, t_buttons, t_vbat_adc, t_usb_cc, t_backlight, t_worst_load]

@@ -75,9 +75,13 @@ static void screen_json(void) {
     if (i) *o++ = ',';
     json_str(&o, end, d.items[i]);
   }
-  o += sprintf(o, "],\"cursor\":%u,\"page\":%u,\"npages\":%u,\"initialized\":%s,\"locked\":%s,\"triesLeft\":%u}\n",
+  battery_state_t bat;
+  battery_model_read(&bat);
+  o += sprintf(o,
+               "],\"cursor\":%u,\"page\":%u,\"npages\":%u,\"initialized\":%s,\"locked\":%s,\"triesLeft\":%u,"
+               "\"sleeping\":%s,\"batteryMv\":%u,\"charging\":%s}\n",
                d.cursor, d.page, d.npages, vault_initialized() ? "true" : "false", vault_unlocked() ? "false" : "true",
-               vault_tries_left());
+               vault_tries_left(), emu_sleeping() ? "true" : "false", bat.vbat_mv, bat.charging ? "true" : "false");
   put(buf);
 }
 

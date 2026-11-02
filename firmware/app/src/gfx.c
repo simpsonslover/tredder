@@ -12,9 +12,11 @@
 
 /* ST7789 commands */
 #define ST_SWRESET 0x01
+#define ST_SLPIN 0x10
 #define ST_SLPOUT 0x11
 #define ST_NORON 0x13
 #define ST_INVON 0x21
+#define ST_DISPOFF 0x28
 #define ST_DISPON 0x29
 #define ST_CASET 0x2A
 #define ST_RASET 0x2B
@@ -36,6 +38,8 @@ static void cmd_data(uint8_t c, const uint8_t *d, size_t n) {
 }
 
 void gfx_init(void) {
+  hal_lcd_power(true);
+  delay_ms(5); /* LCD_VCC soft start through Q5 (~1.3 ms to 90 %) */
   hal_lcd_reset();
   cmd_data(ST_SWRESET, NULL, 0);
   delay_ms(150);
@@ -58,6 +62,14 @@ void gfx_init(void) {
 }
 
 void gfx_backlight(bool on) { hal_lcd_backlight(on); }
+
+void gfx_sleep(void) {
+  gfx_backlight(false);
+  cmd_data(ST_DISPOFF, NULL, 0);
+  cmd_data(ST_SLPIN, NULL, 0);
+  delay_ms(5);
+  hal_lcd_power(false); /* GRAM is lost: the next gfx_init() redraws everything */
+}
 
 static void mark(int y0, int y1) {
   if (y0 < dirty_y0) dirty_y0 = y0;

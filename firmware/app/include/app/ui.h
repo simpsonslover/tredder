@@ -20,6 +20,12 @@ typedef void (*ui_done_fn)(bool approved);
 void ui_prompt(const wl_review_t *rv, bool need_pin, ui_done_fn done);
 void ui_cancel_prompt(void);
 void ui_set_status(bool app_connected, bool paired);
+/* Battery icon in the title bar: percent 0..100 or -1 (unknown / no cell). */
+void ui_set_battery(int percent, bool charging);
+/* "Battery low" warning page (the firmware sleeps shortly after). */
+void ui_battery_low(void);
+/* Redraw everything (after the display was unpowered in sleep). */
+void ui_redraw(void);
 
 #ifdef WL_DEBUGLINK
 #if defined(__arm__) || defined(__riscv)

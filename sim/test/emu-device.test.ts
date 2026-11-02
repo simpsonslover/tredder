@@ -168,6 +168,33 @@ describe('REAL FIRMWARE: on-device flows (buttons only)', { skip }, () => {
     await t.close();
   });
 
+  test('sleep after idle: locks, display off; the waking press does nothing else', async () => {
+    const t = await startEmu({ seed: ABANDON, pin: '1234', extraArgs: ['--sleep-ms', '1500'] });
+    const d = t.debug!;
+    await d.press('ok');
+    await enterPin(d, '1234');
+    await waitFor(d, (x) => !x.locked && x.title === 'tredder');
+    const s = await waitFor(d, (x) => x.sleeping, 8000);
+    assert.equal(s.locked, true, 'sleeping wipes the seed from RAM (locked)');
+    await d.press('ok'); // wakes the device only
+    let w = await waitFor(d, (x) => !x.sleeping);
+    assert.equal(w.kind, 'menu', 'the wake-up press must not act (no PIN pad yet)');
+    assert.equal(w.items[0], 'Unlock');
+    await d.press('ok'); // now a real press
+    w = await waitFor(d, (x) => x.kind === 'pin');
+    assert.equal(w.title, 'Enter PIN');
+    await t.close();
+  });
+
+  test('battery low on battery power: warning, then sleep', async () => {
+    const t = await startEmu({ seed: ABANDON, pin: '1234', extraArgs: ['--battery', '0'] });
+    const d = t.debug!;
+    const s = await waitFor(d, (x) => x.title === 'Battery low', 8000);
+    assert.ok(s.batteryMv < 3350, `VBAT ${s.batteryMv} mV`);
+    await waitFor(d, (x) => x.sleeping, 20_000);
+    await t.close();
+  });
+
   test('power cycle: encrypted flash keeps the wallet, the SE keeps the wrong-PIN count', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'tredder-emu-'));
     try {

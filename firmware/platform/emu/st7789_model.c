@@ -21,6 +21,7 @@ static struct {
   uint8_t cmd;
   uint8_t param[8];
   size_t nparam;
+  bool powered, warned_unpowered;
   bool sleeping, display_on, inverted, backlight, colmod_ok;
   uint8_t madctl;
   uint16_t xs, xe, ys, ye, x, y;
@@ -29,14 +30,45 @@ static struct {
   uint32_t frames;
 } L;
 
-void lcd_model_reset(void) {
-  emu_lock();
+static void power_up_state(void) {
+  bool powered = L.powered, backlight = L.backlight;
   memset(&L, 0, sizeof(L));
+  L.powered = powered;
+  L.backlight = backlight;
   L.sleeping = true;
   L.xe = LCD_W - 1;
   L.ye = LCD_H - 1;
   for (size_t i = 0; i < LCD_W * LCD_H; i++) L.gram[i] = (uint16_t)(i * 2654435761u >> 16); /* power-up garbage */
+}
+
+void lcd_model_reset(void) {
+  emu_lock();
+  power_up_state();
   emu_unlock();
+}
+
+void lcd_model_power(bool on) {
+  emu_lock();
+  if (on && !L.powered) {
+    L.powered = true;
+    power_up_state(); /* fresh controller: sleeping, display off, default MADCTL */
+  } else if (!on) {
+    L.powered = false;
+    L.warned_unpowered = false;
+  }
+  L.frames++;
+  emu_unlock();
+  emu_request_repaint();
+}
+
+bool lcd_model_backlight_on(void) { return L.powered && L.backlight; }
+
+/* SPI traffic to an unpowered module is a driver bug (and would back-power it) */
+static bool unpowered(void) {
+  if (L.powered) return false;
+  if (!L.warned_unpowered) emu_logf("[st7789] SPI traffic while the module is unpowered (LCD_PWR_N high)");
+  L.warned_unpowered = true;
+  return true;
 }
 
 void lcd_model_backlight(bool on) {
@@ -71,6 +103,10 @@ static void apply_params(void) {
 
 void lcd_model_cmd(uint8_t c) {
   emu_lock();
+  if (unpowered()) {
+    emu_unlock();
+    return;
+  }
   L.cmd = c;
   L.nparam = 0;
   L.have_hi = false;
@@ -98,6 +134,10 @@ void lcd_model_cmd(uint8_t c) {
 
 void lcd_model_data(const uint8_t *d, size_t n) {
   emu_lock();
+  if (unpowered()) {
+    emu_unlock();
+    return;
+  }
   if (L.cmd == 0x2C) {
     for (size_t i = 0; i < n; i++) {
       if (!L.have_hi) {
@@ -129,12 +169,12 @@ void lcd_model_data(const uint8_t *d, size_t n) {
 
 uint32_t lcd_model_snapshot(uint32_t *out) {
   emu_lock();
-  bool visible = L.backlight && L.display_on && !L.sleeping;
+  bool visible = L.powered && L.backlight && L.display_on && !L.sleeping;
   for (unsigned gy = 0; gy < GLASS_H; gy++) {
     for (unsigned gx = 0; gx < GLASS_W; gx++) {
       uint32_t *o = &out[gy * GLASS_W + gx];
       if (!visible) {
-        *o = L.backlight && !L.display_on ? 0x101010 : 0;
+        *o = L.powered && L.backlight && !L.display_on ? 0x101010 : 0;
         continue;
       }
       /* mounted landscape: glass (gx, gy) is native pixel (gy, 319 - gx) */

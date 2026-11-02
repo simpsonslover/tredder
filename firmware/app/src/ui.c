@@ -73,6 +73,8 @@ static struct {
 
 static struct {
   bool app_connected, paired;
+  int8_t battery; /* -1 unknown */
+  bool charging;
   uint32_t lockout_until;
   uint32_t now;
 } D;
@@ -145,6 +147,21 @@ static void draw_items(int y) {
   }
 }
 
+/* 24 x 12 battery outline + nub, fill by level; green bar while charging. */
+static void draw_battery(int x, int y) {
+  if (D.battery < 0) return;
+  const int w = 22, h = 12;
+  uint16_t c = D.charging ? C_OK : D.battery <= 15 ? C_DANGER : C_FG;
+  gfx_fill(x, y, w, 1, C_FG);
+  gfx_fill(x, y + h - 1, w, 1, C_FG);
+  gfx_fill(x, y, 1, h, C_FG);
+  gfx_fill(x + w - 1, y, 1, h, C_FG);
+  gfx_fill(x + w, y + 3, 2, h - 6, C_FG);
+  int fw = (w - 4) * (D.battery > 100 ? 100 : D.battery) / 100;
+  if (fw < 1 && D.battery > 0) fw = 1;
+  gfx_fill(x + 2, y + 2, fw, h - 4, c);
+}
+
 static void draw(void) {
   gfx_fill(0, 0, GFX_W, GFX_H, C_BG);
   uint8_t tone = S.tone;
@@ -160,6 +177,7 @@ static void draw(void) {
   gfx_text(10, (TITLE_H - wl_font_title.height) / 2 + 1, title, &wl_font_title, C_FG);
   /* status dot: app link */
   gfx_fill(GFX_W - 14, 11, 8, 8, D.app_connected ? (D.paired ? C_OK : C_WARN) : C_DIM);
+  draw_battery(GFX_W - 48, 9);
 
   int y = BODY_Y;
   uint8_t first = pg ? S.vfirst[S.page] : 0, n = pg ? S.vcount[S.page] : S.nlines;
@@ -952,8 +970,30 @@ void ui_set_status(bool app_connected, bool paired) {
 
 void ui_tick(uint32_t now) { D.now = now; }
 
+void ui_set_battery(int percent, bool charging) {
+  int8_t p = (int8_t)(percent < 0 ? -1 : percent > 100 ? 100 : percent);
+  if (p == D.battery && charging == D.charging) return;
+  D.battery = p;
+  D.charging = charging;
+  S.dirty = true;
+}
+
+void ui_redraw(void) { S.dirty = true; }
+
+static void battery_low_r(int r) {
+  (void)r;
+  ui_home();
+}
+
+void ui_battery_low(void) {
+  static const char *const L[] = {"Charge the device now.", "", "It goes to sleep in a few", "seconds to protect the cell."};
+  if (!ui_idle()) return; /* never interrupt a flow; the sleep follows anyway */
+  show_info("Battery low", WL_TONE_WARN, L, sizeof(L) / sizeof(L[0]), battery_low_r);
+}
+
 void ui_init(void) {
   memset(&D, 0, sizeof(D));
+  D.battery = -1;
   ui_home();
 }
 

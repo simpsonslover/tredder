@@ -106,6 +106,9 @@ export interface Screen {
   initialized: boolean;
   locked: boolean;
   triesLeft: number;
+  sleeping: boolean;
+  batteryMv: number;
+  charging: boolean;
 }
 
 export async function waitFor(d: DebugLink, pred: (s: Screen) => boolean, ms = 10_000): Promise<Screen> {

@@ -31,6 +31,8 @@ PLACE = {
     # Display header (module overhangs x 2..62, y 2..38 -- see F.Fab outline)
     "J4": (4.5, 6.0, 0),
     "C9": (8.5, 10.0, 90), "Q4": (9.0, 25.0, 0), "R25": (9.0, 21.5, 90),
+    # Display power switch (sleep): next to J4 VCC, under the module
+    "Q5": (13.5, 14.0, 0), "R30": (13.5, 10.5, 0), "R31": (17.5, 14.0, 90), "C17": (17.5, 10.0, 90),
     # Secure element: under the display, close to GP8/GP9, away from edges
     "U2": (62.5, 31.5, 0), "Q2": (69.5, 31.0, 90), "R12": (72.0, 31.0, 90),
     "R13": (56.8, 30.5, 90), "R14": (58.4, 30.5, 90), "C4": (62.5, 35.5, 0), "C5": (66.0, 35.5, 90),
@@ -287,6 +289,8 @@ def build(out):
 
     import add_lcd_model  # placeholder 3D model of the display module on J4
     add_lcd_model.attach(board.FindFootprintByReference("J4"))
+    import add_battery  # BT1: LiPo cell behind the board (board-only mechanical part + 3D model)
+    add_battery.add(board, (OX, OY))
 
     edge(board)
 

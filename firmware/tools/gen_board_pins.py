@@ -20,6 +20,7 @@ NAMES = {
     "SD_SCK": ("PIN_SD_SCK", "SPI0 SCK"), "SD_MOSI": ("PIN_SD_MOSI", "SPI0 TX"),
     "SD_DET": ("PIN_SD_DET", "card detect, low = inserted (verify DM3AT switch polarity)"),
     "SD_PWR_N": ("PIN_SD_PWR_N", "low = SD card powered (Q3)"),
+    "LCD_PWR_N": ("PIN_LCD_PWR_N", "low = display module powered (Q5); drive LCD pins LOW before power-off"),
     "GP4": ("PIN_SPARE_GP4", "test pad TP7"), "GP18": ("PIN_SPARE_GP18", "test pad TP8"),
     "CHG_STAT": ("PIN_CHG_STAT", "input, no pull: low = charging, high = done / no USB"),
     "SE_SDA": ("PIN_SE_SDA", "I2C0 SDA (4.7k pull-up)"), "SE_SCL": ("PIN_SE_SCL", "I2C0 SCL (4.7k pull-up)"),

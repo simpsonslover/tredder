@@ -10,6 +10,8 @@
 typedef struct {
   uint32_t idle_lock_ms;  /* auto-lock after this long without input (default 5 min) */
   uint32_t pin_delay_ms;  /* base delay after the 3rd wrong PIN, doubling (default 1 s) */
+  uint32_t sleep_ms;      /* sleep after this long idle on the home / lock screen (default 60 s, 0 = never) */
+  uint32_t flow_sleep_ms; /* ... or anywhere else, abandoning the flow (default 10 min) */
 } fw_config_t;
 
 extern fw_config_t fw_config;
@@ -19,6 +21,10 @@ void fw_poll(void);
 
 /* Lock now (wipes seeds from RAM) and tell the app. */
 void fw_lock(const char *reason);
+/* Battery level 0..100 from the cell voltage (1S LiPo, light load), -1 if unknown. */
+int fw_battery_percent(uint16_t mv);
+#define FW_BATTERY_LOW_MV 3350u /* below this on battery: warn, then sleep */
+
 /* A request arrived (keeps the auto-lock timer from firing mid-session). */
 void fw_activity(void);
 /* The device was wiped / created / unlocked: protocol state must follow. */

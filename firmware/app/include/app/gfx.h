@@ -30,7 +30,8 @@ extern const wl_font_t wl_font_body, wl_font_bold, wl_font_title, wl_font_big;
 
 #define RGB565(r, g, b) ((uint16_t)((((r) & 0xF8) << 8) | (((g) & 0xFC) << 3) | ((b) >> 3)))
 
-void gfx_init(void);              /* ST7789 init sequence + clear */
+void gfx_init(void);              /* power the module, ST7789 init sequence + clear */
+void gfx_sleep(void);             /* backlight off, SLPIN, module unpowered (sleep mode) */
 void gfx_fill(int x, int y, int w, int h, uint16_t color);
 /* Draw UTF-8 text; returns the x after the last glyph. */
 int gfx_text(int x, int y, const char *utf8, const wl_font_t *f, uint16_t color);

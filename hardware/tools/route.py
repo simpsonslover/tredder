@@ -35,12 +35,34 @@ def main(jar, passes="30"):
     print(" ".join(cmd))
     subprocess.run(cmd, cwd=os.path.dirname(jar), check=True, timeout=1500)
 
+    import_ses(ses)
+
+
+def import_ses(ses):
+    """Import a routed session. Board-only mechanical parts (BT1, the battery) have
+    no library footprint, which makes ImportSpecctraSES fail: drop them from the
+    session and from the board for the import, then add them back."""
+    import add_battery
+    text = open(ses, encoding="utf8").read()
+    # BT1 has no library id, so its block is "(component <empty> (place BT1 ...))": drop the whole block
+    clean = re.sub(r"\n\s*\(component\s*\n\s*\(place BT1 [^)]*\)\s*\n\s*\)", "", text)
+    if clean != text:
+        ses = ses[:-4] + "_nobt1.ses"
+        open(ses, "w", encoding="utf8").write(clean)
     board = pcbnew.LoadBoard(PCB)
+    bt1 = board.FindFootprintByReference("BT1")
+    if bt1:
+        board.Remove(bt1)
     assert pcbnew.ImportSpecctraSES(board, ses), "SES import failed"
+    if bt1:
+        add_battery.add(board, (100.0, 100.0))
     pcbnew.ZONE_FILLER(board).Fill(board.Zones())
     board.Save(PCB)
     print("routed ->", PCB)
 
 
 if __name__ == "__main__":
-    main(*sys.argv[1:])
+    if len(sys.argv) == 3 and sys.argv[1] == "--import":
+        import_ses(sys.argv[2])  # re-import an existing .ses without routing again
+    else:
+        main(*sys.argv[1:])

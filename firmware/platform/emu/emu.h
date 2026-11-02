@@ -25,6 +25,9 @@
 typedef struct {
   int port, debug_port;
   double scale; /* LCD pixel scale in the window, 0 = fit the screen */
+  double battery_speed; /* battery model time multiplier (1 = real time) */
+  int battery_pct;      /* initial state of charge, -1 = default */
+  bool usb;             /* start with the USB-C cable plugged in */
   bool headless, ephemeral, auto_approve;
   char state_dir[512];
   const char *seed, *sweep_seed, *pin;
@@ -45,8 +48,24 @@ void lcd_model_reset(void);
 void lcd_model_cmd(uint8_t c);
 void lcd_model_data(const uint8_t *d, size_t n);
 void lcd_model_backlight(bool on);
+void lcd_model_power(bool on); /* Q5: module supply; off loses GRAM and all settings */
+bool lcd_model_backlight_on(void);
 /* Copy what the glass shows, as mounted (after rotation / inversion / sleep / backlight), as 0x00RRGGBB. */
 uint32_t lcd_model_snapshot(uint32_t *out /* GLASS_W*GLASS_H */);
+
+/* BT1 LiPo + MCP73831 charger (battery_model.c) */
+typedef struct {
+  double percent, current_ma; /* current: + discharge, - charge */
+  uint16_t vbat_mv;
+  bool charging, usb;
+} battery_state_t;
+void battery_model_init(int percent);
+void battery_model_read(battery_state_t *out);
+void battery_model_usb(bool plugged);
+bool battery_model_usb_plugged(void);
+
+/* firmware sleep (hal_sleep): MCU dormant until a button */
+bool emu_sleeping(void);
 
 /* flash + secure element persistence */
 void flash_model_load(void);

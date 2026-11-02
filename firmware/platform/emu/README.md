@@ -22,6 +22,8 @@ Only the hardware layer under it (`app/include/app/hal.h`, `se.h`) is emulated:
 | Board part | Emulation | Faithful to |
 |---|---|---|
 | ST7789 240×320 panel (SPI1), mounted landscape | `st7789_model.c` decodes the command stream (CASET/RASET/RAMWR/COLMOD/MADCTL/INVON/…) into the native portrait GRAM, then shows it as the glass lies on the board | The real driver's bytes. A missing `INVON` shows inverted colours, and a wrong `MADCTL` rotation shows the picture sideways or mirrored, as on the board. |
+| BT1 LiPo + MCP73831 charger | `battery_model.c`: 500 mAh cell, VBAT on the "ADC", CHG_STAT, USB present. Click the USB-C port (J1) to plug or unplug the charger | The charger's 500 mA CC / 4.2 V CV and the sleep current from the circuit simulation (2.6 mA). The awake current (~53 mA + backlight) is an estimate. `--battery PCT`, `--battery-speed X`, `--usb`. |
+| Display power (Q5) + sleep | `lcd_model_power`: unpowered = GRAM and settings lost. `hal_sleep`: the MCU waits for a button; the phone link closes (radio off) | SPI traffic to an unpowered module is logged as a driver bug. `--sleep-ms N` (default 60000, 0 = never). |
 | SW1 power switch | Click it on the board: OFF halts the MCU and closes the link; ON restarts the process | RAM is lost and the flash and SE files are kept, so it is a real power cycle. It needs persistent state (not `--ephemeral`). |
 | 4 buttons (GPIO 12–15) | Window buttons, keyboard, robot finger | Raw pin levels. The firmware debounces them itself. |
 | OPTIGA Trust M | `se_model.c`: PIN reference, secret and limit-use counter in `optiga.bin` | The counter is incremented before the comparison, and 10 failures erase the secret. The I2C wire protocol is not modelled. |

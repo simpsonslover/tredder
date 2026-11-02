@@ -184,6 +184,15 @@ part("Q4", "PMOS", "AO3401A", SOT23, "AO3401A", "C15127", True, "lcd", note="Bac
 part("R25", "R", "2.2k", R0603, "0603WAF2201T5E", "C4190", False, "lcd",
      note="Backlight gate pull-up: beats RP2350 reset pull-down -> backlight OFF at boot")
 part("C9", "C", "10uF", C0805, "CL21A106KAYNNNE", "C15850", True, "lcd")
+# Display module power switch: in sleep the whole module (controller + its regulator/LED driver)
+# is unpowered. Without it the module's logic draws ~8 mA from +3V3 forever (sim: off_drain).
+part("Q5", "PMOS", "AO3401A", SOT23, "AO3401A", "C15127", True, "lcd",
+     note="LCD module power switch (sleep mode), active-low on GP18")
+part("R30", "R", "2.2k", R0603, "0603WAF2201T5E", "C4190", False, "lcd",
+     note="Q5 gate pull-up: beats RP2350 reset pull-down -> display unpowered at boot (sim: reset_default_off)")
+part("R31", "R", "470", R0603, "0603WAF4700T5E", "C23179", False, "lcd", note="Q5 gate series (soft start with C17)")
+part("C17", "C", "4.7uF", C0603, "CL10A475KO8NNNC", "C19666", False, "lcd",
+     note="Q5 soft-start Cgs: limits inrush into C9 + module so +3V3 does not dip (sim: lcd_power)")
 
 # --- Buttons
 for i, (sw, r, c, name) in enumerate([("SW2", "R26", "C10", "UP"), ("SW3", "R27", "C11", "DOWN"),
@@ -197,7 +206,7 @@ part("J5", "TC2030", "SWD (Tag-Connect)", "Connector:Tag-Connect_TC2030-IDC-NL_2
      "No part: pogo cable TC2030-IDC-NL", "", True, "debug", dnp=True)
 TP = "TestPoint:TestPoint_Pad_D1.0mm"
 for tp, n in [("TP1", "GND"), ("TP2", "+3V3"), ("TP3", "VSYS"), ("TP4", "VBAT"),
-              ("TP5", "UART_TX"), ("TP6", "UART_RX"), ("TP7", "GP4"), ("TP8", "GP18")]:
+              ("TP5", "UART_TX"), ("TP6", "UART_RX"), ("TP7", "GP4"), ("TP8", "LCD_PWR_N")]:
     part(tp, "TESTPOINT", n, TP, "No part (bare pad)", "", True, "debug", dnp=True)
 
 for h in ["H1", "H2", "H3", "H4"]:
@@ -271,10 +280,12 @@ NETS = {
     "UART_TX": ["A1.21", "TP5.1"],
     "UART_RX": ["A1.22", "TP6.1"],
     "GP4": ["A1.6", "TP7.1"],
-    "GP18": ["A1.24", "TP8.1"],
+    "LCD_PWR_N": ["A1.24", "R31.1", "TP8.1"],  # GP18: next to GP19 (backlight) with the other display pins
+    "LCD_GATE": ["R31.2", "Q5.1", "R30.2", "C17.2"],
+    "LCD_VCC": ["Q5.3", "J4.2", "C9.1"],
 }
 # Display VCC is +3V3 (C9 is local bulk at the header).
-NETS["+3V3"] += ["J4.2", "C9.1"]
+NETS["+3V3"] += ["Q5.2", "R30.1", "C17.1"]
 
 NC = ["A1.35", "A1.TP4", "A1.TP5", "A1.TP6",
       "U2.2", "U2.4", "U2.5", "U2.6", "U2.7",
