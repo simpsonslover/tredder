@@ -29,7 +29,7 @@ HW = os.path.abspath(os.path.join(HERE, ".."))
 OUT = os.path.join(HW, "fusion_ecad")
 CLI = r"C:\Program Files\KiCad\10.0\bin\kicad-cli.exe"
 KICAD9 = "20241229"     # board file version of KiCad 9, the last one with numbered nets
-COPY = ["wallet.kicad_sch", "wallet.kicad_pro", "wallet.kicad_dru", "wallet.kicad_sym", "fp-lib-table", "sym-lib-table"]
+COPY = ["wallet.kicad_sch", "wallet.kicad_pro", "wallet.kicad_dru", "jlcpcb-4L-real.edru", "wallet.kicad_sym", "fp-lib-table", "sym-lib-table"]
 
 
 def node_start(t, pos):

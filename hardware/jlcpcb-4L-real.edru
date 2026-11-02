@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE designrules SYSTEM "eagle.dtd">
+<eagle version="9.7.0">
+<designrules name="jlcpcb-4L-real.edru">
+<classes>
+<class number="0" name="default">
+</class>
+<class number="1" name="pwr">
+</class>
+</classes>
+<rules>
+<rulecategory type="Copper Clearance" manualdrc="yes" livedrc="yes"/>
+ <rulecategory type="Keepout Clearance" manualdrc="yes" livedrc="yes"/>
+ <rulecategory type="Solder-Mask Clearance" manualdrc="yes" livedrc="yes"/>
+ <rulecategory type="Dimension Clearance" manualdrc="yes" livedrc="yes"/>
+ <rulecategory type="Drill Distance" manualdrc="yes" livedrc="yes"/>
+ <rulecategory type="Restrict Clearance" manualdrc="yes" livedrc="yes"/>
+ <rulecategory type="Minimum Drill Size" manualdrc="yes" livedrc="yes"/>
+ <rulecategory type="Minimum Copper Width" manualdrc="yes" livedrc="yes"/>
+ <rulecategory type="Acute Angle" manualdrc="yes" livedrc="yes"/>
+ <rulecategory type="Air-Wire" manualdrc="yes" livedrc="yes"/>
+ <rulecategory type="Small Gap" manualdrc="yes" livedrc="yes"/>
+ <rulecategory type="Wire Stub" manualdrc="yes" livedrc="no"/>
+ <rulecategory type="Matched Lengths" manualdrc="yes" livedrc="yes"/>
+ <rulecategory type="Via Restrict Clearance" manualdrc="yes" livedrc="yes"/>
+ <rule type="Minimum Copper Width" enabled="yes" priority="0" onescope="classes=1" value="0.09mm" preferredvalue="0.3mm" check_polywidth="no" name="Trace size for Power"/>
+ <rule type="Minimum Copper Width" builtin_ruleid="14" enabled="yes" priority="1" value="0.09mm" preferredvalue="0.2mm" check_polywidth="no" name="minimum-copper-width-1"/>
+ <rule type="Minimum Drill Size" enabled="yes" priority="0" onescope="is_via" value="0.15mm" preferredvalue="0.3mm" name="Min Via hole size on 4-layer"/>
+ <rule type="Minimum Drill Size" enabled="no" priority="1" onescope="all" value="0.5mm" preferredvalue="0.5mm" name="Min Non-plated holes"/>
+ <rule type="Minimum Drill Size" builtin_ruleid="15" enabled="yes" priority="2" value="0.15mm" preferredvalue="0.3mm" name="minimum-drill-size-1"/>
+ <rule type="Acute Angle" builtin_ruleid="16" enabled="no" priority="0" name="acute-angle-1"/>
+ <rule type="Wire Stub" builtin_ruleid="17" enabled="yes" priority="0" name="wire-stub-1"/>
+ <rule type="Air-Wire" builtin_ruleid="19" enabled="yes" priority="0" name="air-wire-1"/>
+ <rule type="Matched Lengths" builtin_ruleid="20" enabled="yes" priority="0" tolerance="10mm" gapfactor="2.5" name="matched-lengths-1"/>
+ <rule type="Copper Clearance" enabled="no" priority="0" onescope="all" otherscope="all" value="0.25mm" preferredvalue="0.25mm" samesignal="yes" bothscope="all" name="Same-net track spacing"/>
+ <rule type="Copper Clearance" builtin_ruleid="0" enabled="yes" priority="1" onescope="is_wire_polygon" otherscope="is_wire_polygon" value="0.09mm" preferredvalue="0.18mm" samesignal="no" name="copper-clearance-1"/>
+ <rule type="Copper Clearance" builtin_ruleid="1" enabled="yes" priority="2" onescope="is_wire_polygon" otherscope="is_pad_smd" value="0.1mm" preferredvalue="0.18mm" samesignal="no" name="copper-clearance-2"/>
+ <rule type="Copper Clearance" builtin_ruleid="2" enabled="yes" priority="3" onescope="is_wire_polygon" otherscope="is_via" value="0.09mm" preferredvalue="0.18mm" samesignal="no" name="copper-clearance-3"/>
+ <rule type="Copper Clearance" builtin_ruleid="3" enabled="yes" priority="4" onescope="is_pad_smd" otherscope="is_pad_smd" value="0.15mm" preferredvalue="0.15mm" samesignal="no" name="copper-clearance-4"/>
+ <rule type="Copper Clearance" builtin_ruleid="4" enabled="yes" priority="5" onescope="is_pad_smd" otherscope="is_via" value="0.09mm" preferredvalue="0.18mm" samesignal="no" name="copper-clearance-5"/>
+ <rule type="Copper Clearance" builtin_ruleid="5" enabled="yes" priority="6" onescope="is_via" otherscope="is_via" value="0.09mm" preferredvalue="0.18mm" samesignal="no" name="copper-clearance-6"/>
+ <rule type="Copper Clearance" builtin_ruleid="6" enabled="yes" priority="7" onescope="is_smd" otherscope="is_pad" value="0.09mm" preferredvalue="0.18mm" samesignal="yes" name="copper-clearance-7"/>
+ <rule type="Copper Clearance" builtin_ruleid="7" enabled="yes" priority="8" onescope="is_smd" otherscope="is_via" value="0.09mm" preferredvalue="0.18mm" samesignal="yes" name="copper-clearance-8"/>
+ <rule type="Copper Clearance" builtin_ruleid="8" enabled="yes" priority="9" onescope="is_smd" otherscope="is_smd" value="0.09mm" preferredvalue="0.18mm" samesignal="yes" name="copper-clearance-9"/>
+ <rule type="Dimension Clearance" builtin_ruleid="9" enabled="yes" priority="0" value="0.2mm" preferredvalue="0.4mm" name="dimension-clearance-1"/>
+ <rule type="Via Restrict Clearance" builtin_ruleid="21" enabled="yes" priority="0" value="0mil" preferredvalue="0mil" name="via-restrict-clearance-1"/>
+ <rule type="Restrict Clearance" builtin_ruleid="10" enabled="yes" priority="0" value="0mil" preferredvalue="0mil" name="restrict-clearance-1"/>
+ <rule type="Small Gap" builtin_ruleid="18" enabled="yes" priority="0" name="small-gap-1"/>
+ <rule type="Solder-Mask Clearance" builtin_ruleid="11" enabled="no" priority="0" value="0mil" preferredvalue="0mil" check_name="yes" check_value="no" name="solder-mask-clearance-1"/>
+ <rule type="Drill Distance" builtin_ruleid="12" enabled="yes" priority="0" value="0.2mm" preferredvalue="0.2mm" name="drill-distance-1"/>
+ <rule type="Keepout Clearance" builtin_ruleid="13" enabled="yes" priority="0" value="0mil" preferredvalue="0mil" name="keepout-clearance-1"/>
+ </rules>
+<param name="mdWireWire" value="0.09mm"/>
+<param name="mdWirePad" value="0.1mm"/>
+<param name="mdWireVia" value="0.09mm"/>
+<param name="mdPadPad" value="0.15mm"/>
+<param name="mdPadVia" value="0.09mm"/>
+<param name="mdViaVia" value="0.09mm"/>
+<param name="mdSmdPad" value="0.1mm"/>
+<param name="mdSmdVia" value="0.09mm"/>
+<param name="mdSmdSmd" value="0.15mm"/>
+<param name="mdCopperDimension" value="0.2mm"/>
+<param name="mdDrill" value="0.2mm"/>
+<param name="msWidth" value="0.09mm"/>
+<param name="msDrill" value="0.15mm"/>
+<param name="dpMaxLengthDifference" value="10mm"/>
+<param name="dpGapFactor" value="2.5"/>
+<description language="en">JLCPCB 4-layer (multilayer) design rules, standard process, 1 oz outer / 0.5 oz inner copper, 1.6 mm FR-4.
+
+Values from https://jlcpcb.com/capabilities/pcb-capabilities (read 2026-11-01; the page shows no last-updated date). Re-check the page before ordering.
+
+Set in this file:
+- Min track / spacing: 0.09 mm (3.5 mil)
+- Pad to track: 0.1 mm
+- SMD pad to SMD pad (different nets): 0.15 mm
+- Min drill: 0.15 mm; via 0.15 mm hole / 0.25 mm pad, pad at least hole + 0.1 mm (0.05 mm ring)
+- PTH annular ring: min 0.15 mm (0.20 mm recommended)
+- Hole to hole (drill distance): 0.2 mm
+- Copper to routed board edge: 0.2 mm
+- Solder mask expansion 1:1
+
+On the page but NOT expressible in this file (checked on the KiCad side, tredder hardware/tools/check_jlc.py and wallet.kicad_dru):
+- PTH hole to PTH hole: 0.45 mm (this file has one hole-to-hole value for all holes)
+- PTH hole to track: 0.28 mm (0.35 recommended); via hole to track 0.2 mm
+- Inner layers: via hole to copper 0.2 mm, PTH hole to copper 0.3 mm
+- Non-plated hole: min 0.5 mm
+- Silkscreen: line width 0.15 mm, text height 1.0 mm, pad to silkscreen 0.15 mm
+- Solder mask bridge: 0.1 mm
+
+Changed from the jlcpcb-4L.edru this was based on: PTH ring 0.18 -> 0.15, via ring 0.15 -> 0.05 (the page has no separate via ring rule), pad to track 0.09 -> 0.1, SMD-SMD param 0.09 -> 0.15, mask expansion 0.038 mm -> 1:1.
+</description>
+<param name="layerSetup" value="(1*2*15*16)"/>
+<param name="mtCopper" value="0.035mm 0.035mm 0.035mm 0.035mm 0.035mm 0.035mm 0.035mm 0.035mm 0.035mm 0.035mm 0.035mm 0.035mm 0.035mm 0.035mm 0.035mm 0.035mm"/>
+<param name="mtIsolate" value="1.6mm 0.15mm 0.2mm 0.15mm 0.2mm 0.15mm 0.2mm 0.15mm 0.2mm 0.15mm 0.2mm 0.15mm 0.2mm 0.15mm 0.2mm"/>
+<param name="mdViaViaSameLayer" value="6mil"/>
+<param name="mnLayersViaInSmd" value="2"/>
+<param name="mdSmdStop" value="0mil"/>
+<param name="msMicroVia" value="0.3mm"/>
+<param name="msBlindViaRatio" value="0.5"/>
+<param name="rvPadTop" value="0"/>
+<param name="rvPadInner" value="0"/>
+<param name="rvPadBottom" value="0"/>
+<param name="rvViaOuter" value="0"/>
+<param name="rvViaInner" value="0"/>
+<param name="rvMicroViaOuter" value="0"/>
+<param name="rvMicroViaInner" value="0"/>
+<param name="rlMinPadTop" value="0.15mm"/>
+<param name="rlMaxPadTop" value="80mil"/>
+<param name="rlMinPadInner" value="0.15mm"/>
+<param name="rlMaxPadInner" value="20mil"/>
+<param name="rlMinPadBottom" value="0.15mm"/>
+<param name="rlMaxPadBottom" value="80mil"/>
+<param name="rlMinViaOuter" value="0.05mm"/>
+<param name="rlMaxViaOuter" value="20mil"/>
+<param name="rlMinViaInner" value="0.05mm"/>
+<param name="rlMaxViaInner" value="20mil"/>
+<param name="rlMinMicroViaOuter" value="0.15mm"/>
+<param name="rlMaxMicroViaOuter" value="20mil"/>
+<param name="rlMinMicroViaInner" value="0.15mm"/>
+<param name="rlMaxMicroViaInner" value="20mil"/>
+<param name="psTop" value="-1"/>
+<param name="psBottom" value="-1"/>
+<param name="psFirst" value="-1"/>
+<param name="psElongationLong" value="100"/>
+<param name="psElongationOffset" value="100"/>
+<param name="mvStopFrame" value="0"/>
+<param name="mvCreamFrame" value="0"/>
+<param name="mlMinStopFrame" value="0mil"/>
+<param name="mlMaxStopFrame" value="0mil"/>
+<param name="mlMinCreamFrame" value="0mil"/>
+<param name="mlMaxCreamFrame" value="0mil"/>
+<param name="mlViaStopLimit" value="0.5mm"/>
+<param name="srRoundness" value="0"/>
+<param name="srMinRoundness" value="0mil"/>
+<param name="srMaxRoundness" value="0mil"/>
+<param name="slThermalIsolate" value="10mil"/>
+<param name="slThermalsForVias" value="0"/>
+<param name="checkAngle" value="0"/>
+<param name="checkRestrict" value="1"/>
+<param name="checkStop" value="0"/>
+<param name="checkValues" value="0"/>
+<param name="checkNames" value="1"/>
+<param name="checkWireStubs" value="1"/>
+<param name="checkPolygonWidth" value="0"/>
+<param name="useDiameter" value="13"/>
+<param name="removeAnnularRing" value="0"/>
+<param name="maxErrors" value="50"/>
+ </designrules>
+</eagle>
