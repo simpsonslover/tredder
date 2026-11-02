@@ -45,11 +45,13 @@ For assembly, also upload a BOM (`-bom-pcbway.csv` or `-bom-jlc.csv`) and the pi
 - **Not assembled:** the display module and the battery: they plug in (J4, J2).
 - **Do not fit:** J5 (Tag-Connect footprint), TP1-TP8 (test pads), H1-H4 (holes).
 - **Production option:** leave R3/R4 unfitted for a charge-only USB port (no USB data / BOOTSEL attack surface).
-- **Check rotations** in the assembler's preview before paying: centroid rotations follow KiCad's
-  footprint orientation, and assemblers' part libraries sometimes differ (SOT-23, USB-C, JST-PH).
+- **Rotations:** `-cpl-jlc.csv` is already corrected for JLCPCB's own footprints (measured per part
+  by `tools/jlc_rotation.py`: e.g. SOT-23 +180, SOT-23-5/-6 +270, LED +180, J4 +270 and moved
+  8.89 mm). The plain `-cpl.csv` keeps KiCad's values for other assemblers. Still look at the
+  preview, especially pin 1 of U2, U1, U3, Q1-Q5 and the LED's polarity mark.
 
 ## Before ordering
 
 1. The display module's pin order and outline must match J4 (hardware/README.md section 6.2).
-2. Check every LCSC number marked "unverified" in the BOM.
+2. Check stock for every BOM line in JLCPCB's parts list.
 3. This is rev A: order the minimum quantity and bring it up with hardware/README.md section 8 first.

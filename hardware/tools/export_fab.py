@@ -106,13 +106,28 @@ def placement():
         for r in rows:
             w.writerow([r["Ref"], r["PosX"], r["PosY"], "Top", r["Rot"],
                         "hand-solder / customer-supplied" if r["Ref"] in HAND else "machine"])
+    # JLCPCB places with its own (EasyEDA) footprints: measured rotation/position corrections
+    import jlc_rotation
+    import pcbnew
+    fix = jlc_rotation.corrections(pcbnew.LoadBoard(PCB), D.P)
+    check = []
     with open(os.path.join(OUT, f"{NAME}-cpl-jlc.csv"), "w", newline="", encoding="utf8") as fh:
         w = csv.writer(fh)
         w.writerow(["Designator", "Mid X", "Mid Y", "Layer", "Rotation"])
         for r in rows:
-            if r["Ref"] not in HAND:  # every fitted part
-                w.writerow([r["Ref"], r["PosX"] + "mm", r["PosY"] + "mm", "Top", r["Rot"]])
-    print(f"pick-and-place: {len(rows)} parts")
+            if r["Ref"] in HAND:
+                continue
+            x, y, rot = float(r["PosX"]), float(r["PosY"]), float(r["Rot"])
+            th, t, note = fix.get(r["Ref"], (None, None, "no LCSC part (global sourcing)"))
+            if th is None:
+                check.append(f"{r['Ref']}: {note}")
+            else:
+                x, y, rot = x + t[0], y + t[1], rot + th
+            w.writerow([r["Ref"], f"{x:.4f}mm", f"{y:.4f}mm", "Top", f"{rot % 360:.1f}"])
+    changed = sorted(f for f, (th, t, _) in fix.items() if th is not None and (th or abs(t[0]) + abs(t[1]) > 0.01))
+    print(f"pick-and-place: {len(rows)} parts; JLCPCB rotation/position corrected for {', '.join(changed)}")
+    print("  check in JLCPCB's placement preview: " + ("; ".join(check) if check else "none"))
+    placement.check = check
     return rows
 
 
@@ -190,13 +205,15 @@ For assembly, also upload a BOM (`-bom-pcbway.csv` or `-bom-jlc.csv`) and the pi
 - **Not assembled:** the display module and the battery: they plug in (J4, J2).
 - **Do not fit:** J5 (Tag-Connect footprint), TP1-TP8 (test pads), H1-H4 (holes).
 - **Production option:** leave R3/R4 unfitted for a charge-only USB port (no USB data / BOOTSEL attack surface).
-- **Check rotations** in the assembler's preview before paying: centroid rotations follow KiCad's
-  footprint orientation, and assemblers' part libraries sometimes differ (SOT-23, USB-C, JST-PH).
+- **Rotations:** `-cpl-jlc.csv` is already corrected for JLCPCB's own footprints (measured per part
+  by `tools/jlc_rotation.py`: e.g. SOT-23 +180, SOT-23-5/-6 +270, LED +180, J4 +270 and moved
+  8.89 mm). The plain `-cpl.csv` keeps KiCad's values for other assemblers. Still look at the
+  preview, especially pin 1 of U2, U1, U3, Q1-Q5 and the LED's polarity mark.
 
 ## Before ordering
 
 1. The display module's pin order and outline must match J4 (hardware/README.md section 6.2).
-2. Check every LCSC number marked "unverified" in the BOM.
+2. Check stock for every BOM line in JLCPCB's parts list.
 3. This is rev A: order the minimum quantity and bring it up with hardware/README.md section 8 first.
 """
     open(os.path.join(OUT, "FAB_NOTES.md"), "w", encoding="utf8").write(t)
@@ -230,7 +247,8 @@ def bundle():
         f"3. Upload page:  BOM = {NAME}-bom-jlc.csv   CPL = {NAME}-cpl-jlc.csv",
         "   -> Process BOM & CPL",
         "4. U2 (OPTIGA Trust M, SLS32AIA010MKUSON10XTMA2): choose Global Sourcing",
-        "5. Check the placement preview (rotations), then Save to Cart",
+        "5. Placement preview: rotations are already corrected for JLCPCB's footprints.",
+        "   Still check pin 1 / polarity of U1, U2, U3, Q1-Q5 and D1, then Save to Cart",
         "",
         "Details: FAB_NOTES.md",
         ""])
