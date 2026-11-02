@@ -38,6 +38,19 @@ def main(jar, passes="30"):
     import_ses(ses)
 
 
+def jlc_vias(board, ring=0.15):
+    """Freerouting adds its own vias at 0.6/0.4 mm (0.1 mm copper ring); JLCPCB's rules want
+    >= 0.15 mm. Drill them smaller and keep the copper, so no clearance changes."""
+    n = 0
+    for v in board.GetTracks():
+        if v.GetClass() == "PCB_VIA":
+            d = pcbnew.ToMM(v.GetWidth(pcbnew.F_Cu))
+            if (d - pcbnew.ToMM(v.GetDrillValue())) / 2 < ring - 1e-6:
+                v.SetDrill(pcbnew.FromMM(round(d - 2 * ring, 2)))
+                n += 1
+    return n
+
+
 def import_ses(ses):
     """Import a routed session. Boards from before the battery moved onto J2 had BT1 as a
     board-only footprint with no library id, which makes ImportSpecctraSES fail: drop it
@@ -54,6 +67,7 @@ def import_ses(ses):
     if bt1:
         board.Remove(bt1)
     assert pcbnew.ImportSpecctraSES(board, ses), "SES import failed"
+    print("vias re-drilled for a 0.15 mm ring:", jlc_vias(board))
     if bt1:
         add_battery.add(board, (100.0, 100.0))
     pcbnew.ZONE_FILLER(board).Fill(board.Zones())

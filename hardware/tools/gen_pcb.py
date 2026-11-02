@@ -239,6 +239,7 @@ def build(out):
     ds.m_TrackMinWidth = mm(0.127)
     ds.m_MinClearance = mm(0.127)
     ds.m_ViasMinSize = mm(0.45)
+    ds.m_ViasMinAnnularWidth = mm(0.15)   # JLCPCB rule set: via ring >= 0.15 mm
     ds.m_MinThroughDrill = mm(0.2)
     ds.m_CopperEdgeClearance = mm(0.3)
     ds.m_HoleToHoleMin = mm(0.25)

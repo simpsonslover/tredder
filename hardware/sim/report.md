@@ -1,6 +1,6 @@
 # Hardware simulation report
 
-Generated 2026-11-01 19:44 by `sim/run_all.py` from `tools/design.py` (ngspice from KiCad + behavioural models; see `sim/README.md` for what is and isn't modelled).
+Generated 2026-11-01 20:53 by `sim/run_all.py` from `tools/design.py` (ngspice from KiCad + behavioural models; see `sim/README.md` for what is and isn't modelled).
 
 | Status | Test | What it checks |
 |---|---|---|
@@ -85,7 +85,7 @@ Worst-case simultaneous loads on the Pico's 3V3 output (Raspberry Pi recommends 
 
 ## kicad_checks
 
-**KiCad ERC, DRC and schematic/PCB parity** - PASS (5.8 s)
+**KiCad ERC, DRC and schematic/PCB parity** - PASS (5.1 s)
 
 Runs kicad-cli on the real project files.
 
@@ -100,7 +100,7 @@ Runs kicad-cli on the real project files.
 
 ## reset_default_off
 
-**Boot / reset: peripherals default OFF** - PASS (0.1 s)
+**Boot / reset: peripherals default OFF** - PASS (0.2 s)
 
 All GPIOs in RP2350 reset state (input, pull-DOWN 36-113 k). The SE, microSD, display power and backlight switches must stay OFF until firmware turns them on. Swept over pull-down and AO3401A Vth corners.
 
@@ -249,7 +249,7 @@ No USB. SW1 OFF: battery must see only charger leakage. SW1 ON with firmware asl
 
 ## charge_cycle
 
-**Full charge cycle (CC -> CV -> complete)** - PASS (0.1 s)
+**Full charge cycle (CC -> CV -> complete)** - PASS (0.2 s)
 
 Battery capacity scaled to 2 mAh so a full CC/CV cycle fits in 40 s of simulated time (currents and voltages are those of the real circuit). Firmware reads GP5 as input.
 
@@ -294,7 +294,7 @@ Firmware: GP7 low at 2 ms (SD on), card writes 60 mA 10-20 ms, GP7 high at 30 ms
 
 ## lcd_power
 
-**Display module power switch (Q5): sleep / wake** - PASS (0.2 s)
+**Display module power switch (Q5): sleep / wake** - PASS (0.3 s)
 
 Firmware: GP18 low at 2 ms (display on), LCD pins driven after 5 ms, pins LOW at 29 ms, GP18 high at 30 ms (sleep). Second run leaves CS/DC high after power-off (firmware mistake).
 
