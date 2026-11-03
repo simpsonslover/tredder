@@ -75,6 +75,9 @@ README = f"""tredder rev A: everything needed to make the board
 7_fusion/             For Autodesk Fusion: the electronics import copy (KiCad 9
                       format) and the simulation script package (see FUSION_SIM.md).
 
+8_breadboard_prototype/  Build and test the whole circuit on a breadboard first
+                      (same Pico pins as the PCB, so the same firmware runs).
+
 BEFORE YOU PAY (hardware README section 6):
   1. Buy the display module first; its pin order must be
      GND VCC SCL SDA RES DC CS BLK on J4, about 60 x 36 mm.
@@ -116,6 +119,8 @@ def build():
         ("7_fusion/tredder-revA-fusion-ecad.zip", j("mech", f"{NAME}-fusion-ecad.zip")),
         ("7_fusion/tredder-fusion-TredderSim.zip", j("mech", "tredder-fusion-TredderSim.zip")),
         ("7_fusion/FUSION_SIM.md", j("mech", "FUSION_SIM.md")),
+        ("8_breadboard_prototype/breadboard.png", j("breadboard", "breadboard.png")),
+        ("8_breadboard_prototype/BREADBOARD.md", j("breadboard", "BREADBOARD.md")),
     ]
     for f in ("wallet.kicad_pro", "wallet.kicad_pcb", "wallet.kicad_sch", "wallet.kicad_sym", "wallet.kicad_dru",
               "fp-lib-table", "sym-lib-table", "jlcpcb-4L-real.edru"):

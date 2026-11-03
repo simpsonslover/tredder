@@ -69,10 +69,13 @@ def main():
 
 # Everything needed to build one device that is NOT a part on the PCB (design.py only knows the board).
 OFF_BOARD = [
-    ("Display module", 1, "2.0\" IPS TFT, 240x320, ST7789V controller, 4-wire SPI, 8-pin 2.54 mm male header",
-     "AliExpress / Waveshare / similar",
-     "Plugs into J4. Pin order must be GND VCC SCL SDA RES DC CS BLK, outline about 60 x 36 mm, "
-     "or edit NETS in design.py to match. Buy it BEFORE ordering boards (README section 6.2)."),
+    ("Display module (screen)", 1, "2.0\" IPS TFT 240x320, ST7789V/V2, SPI, 3.3 V, 8-pin 2.54 mm header in the order "
+     "GND VCC SCL SDA RES DC CS BLK: **ZJY200S10Z0TG01** (sold as \"2.0 inch IPS TFT 240x320 ST7789\", "
+     "e.g. tinytronics.nl, AliExpress)",
+     "AliExpress / TinyTronics (not stocked at LCSC)",
+     "Plugs into J4. Check the pin order printed on its back before ordering boards (README section 6.2); "
+     "outline about 60 x 36 mm. NOT the Waveshare 2inch module: its pins are in a different order on a PH2.0 "
+     "connector."),
     ("Battery (BT1)", 1, "1S LiPo 503035, 3.7 V 500 mAh, 5.0 x 30 x 35 mm, WITH protection PCM, JST-PH 2.0 mm 2-pin lead",
      "battery shop / AliExpress",
      "Behind the left half of the board (tools/add_battery.py). CHECK the lead polarity: pin 1 = BAT+. "

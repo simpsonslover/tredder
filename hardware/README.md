@@ -20,6 +20,7 @@ Everything is generated from **[tools/design.py](tools/design.py)**, which defin
 | `tools/check_jlc.py` | JLCPCB hole-to-hole spacing (PTH ≥ 0.45 mm, other ≥ 0.2 mm), which KiCad 10's DRC does not check in this project; `export_fab.py` refuses to build the order without it |
 | `tools/clean_tracks.py` | Removes Freerouting's duplicate segments and dead-end spurs (Fusion's "Wire Stub" check) without changing a connection; `route.py` runs it after every import |
 | `tools/sync_values.py` | Pushes value-only changes from `design.py` into the routed PCB without touching copper |
+| `breadboard/` | **Breadboard prototype** with the same Pico pins as the PCB: wiring picture, parts, wire-by-wire table, what it can and can't test (`tools/gen_breadboard.py`) |
 | `mech/` | STEP for Fusion / MCAD: `tredder-revA.step` (detailed, for the enclosure) and `tredder-revA-sim.step` (clean solids for simulation). Setup: [mech/FUSION_SIM.md](mech/FUSION_SIM.md). Rebuild: `tools/export_mech.py` (KiCad python) |
 | `mech/tredder-revA-fusion-ecad.zip` | The KiCad project for **Fusion's electronics import** (schematic + board). KiCad 10 writes nets in a form Fusion can't read (every pad comes in with no net), so `tools/export_fusion_ecad.py` writes the board with KiCad 9 net syntax and checks every net survives. Import `wallet.kicad_pro` from this zip, not from this folder |
 | `3d/` | The project's own STEP models (display module, LiPo, and parts missing from KiCad's library), from `tools/gen_step_models.py` |
