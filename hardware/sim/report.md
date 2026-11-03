@@ -1,6 +1,6 @@
 # Hardware simulation report
 
-Generated 2026-11-02 09:22 by `sim/run_all.py` from `tools/design.py` (ngspice from KiCad + behavioural models; see `sim/README.md` for what is and isn't modelled).
+Generated 2026-11-02 18:48 by `sim/run_all.py` from `tools/design.py` (ngspice from KiCad + behavioural models; see `sim/README.md` for what is and isn't modelled).
 
 | Status | Test | What it checks |
 |---|---|---|
@@ -39,8 +39,6 @@ Every bus signal must land on a GPIO whose hardware mux offers that function, an
 | PASS | LCD_MOSI on GP27 -> SPI1_TX | SPI1_TX  | == SPI1_TX |
 | PASS | SE_SDA on GP8 -> I2C0_SDA | I2C0_SDA  | == I2C0_SDA |
 | PASS | SE_SCL on GP9 -> I2C0_SCL | I2C0_SCL  | == I2C0_SCL |
-| PASS | UART_TX on GP16 -> UART0_TX | UART0_TX  | == UART0_TX |
-| PASS | UART_RX on GP17 -> UART0_RX | UART0_RX  | == UART0_RX |
 | PASS | VBAT_SENSE on GP28 -> GP28 | GP28  | == ADC |
 | PASS | microSD and display on separate SPI peripherals | {'SPI0'} / {'SPI1'}  | disjoint |
 | PASS | GP23 unused (wired to CYW43 radio inside the module) | False  | absent |
@@ -85,7 +83,7 @@ Worst-case simultaneous loads on the Pico's 3V3 output (Raspberry Pi recommends 
 
 ## kicad_checks
 
-**KiCad ERC, DRC and schematic/PCB parity** - PASS (5.2 s)
+**KiCad ERC, DRC and schematic/PCB parity** - PASS (4.9 s)
 
 Runs kicad-cli on the real project files.
 
@@ -100,7 +98,7 @@ Runs kicad-cli on the real project files.
 
 ## reset_default_off
 
-**Boot / reset: peripherals default OFF** - PASS (0.1 s)
+**Boot / reset: peripherals default OFF** - PASS (0.0 s)
 
 All GPIOs in RP2350 reset state (input, pull-DOWN 36-113 k). The SE, microSD, display power and backlight switches must stay OFF until firmware turns them on. Swept over pull-down and AO3401A Vth corners.
 
@@ -172,7 +170,7 @@ Battery 3.7 V and 3.4 V, no USB, power switch turned ON at 1 ms.
 
 ## usb_hotplug
 
-**USB-C hot-plug and unplug with battery (load sharing)** - PASS (6.8 s)
+**USB-C hot-plug and unplug with battery (load sharing)** - PASS (6.6 s)
 
 Battery 3.7 V, switch ON, MCU running. A live 5 V charger is hot-plugged through a cable of 1 uH / 0.1 Ohm (worst-case ringing) and later unplugged. Ringing is simulated with a 5 ns step for both ends of the PTC fuse range (0.15 / 0.3 Ohm).
 
@@ -249,7 +247,7 @@ No USB. SW1 OFF: battery must see only charger leakage. SW1 ON with firmware asl
 
 ## charge_cycle
 
-**Full charge cycle (CC -> CV -> complete)** - PASS (0.2 s)
+**Full charge cycle (CC -> CV -> complete)** - PASS (0.1 s)
 
 Battery capacity scaled to 2 mAh so a full CC/CV cycle fits in 40 s of simulated time (currents and voltages are those of the real circuit). Firmware reads GP5 as input.
 
@@ -294,7 +292,7 @@ Firmware: GP7 low at 2 ms (SD on), card writes 60 mA 10-20 ms, GP7 high at 30 ms
 
 ## lcd_power
 
-**Display module power switch (Q5): sleep / wake** - PASS (0.3 s)
+**Display module power switch (Q5): sleep / wake** - PASS (0.2 s)
 
 Firmware: GP18 low at 2 ms (display on), LCD pins driven after 5 ms, pins LOW at 29 ms, GP18 high at 30 ms (sleep). Second run leaves CS/DC high after power-off (firmware mistake).
 
@@ -337,7 +335,7 @@ GP11 low at 1 ms (SE on), RST released at 2 ms; at 20 ms RST low then GP11 high 
 
 ## i2c_timing
 
-**I2C edge rates to the secure element** - PASS (0.5 s)
+**I2C edge rates to the secure element** - PASS (0.4 s)
 
 SE powered, MCU pulls SDA (open-drain) at 400 kHz. Bus = MCU pin 5 pF + SE 10 pF + trace 15 pF (assumed). I2C spec rise time (30->70 %): Fm <= 300 ns, Fm+ <= 120 ns.
 

@@ -205,13 +205,8 @@ for i, (sw, r, c, name) in enumerate([("SW2", "R26", "C10", "UP"), ("SW3", "R27"
     part(r, "R", "10k", R0603, "0603WAF1002T5E", "C25804", True, "buttons", note=f"{name} pull-up")
     part(c, "C", "100nF", C0603, "CC0603KRX7R9BB104", "C14663", True, "buttons", note=f"{name} debounce")
 
-# --- Debug (prototype only; leave unpopulated/covered in production)
-part("J5", "TC2030", "SWD (Tag-Connect)", "Connector:Tag-Connect_TC2030-IDC-NL_2x03_P1.27mm_Vertical",
-     "No part: pogo cable TC2030-IDC-NL", "", True, "debug", dnp=True)
-TP = "TestPoint:TestPoint_Pad_D1.0mm"
-for tp, n in [("TP1", "GND"), ("TP2", "+3V3"), ("TP3", "VSYS"), ("TP4", "VBAT"),
-              ("TP5", "UART_TX"), ("TP6", "UART_RX"), ("TP7", "GP4"), ("TP8", "LCD_PWR_N")]:
-    part(tp, "TESTPOINT", n, TP, "No part (bare pad)", "", True, "debug", dnp=True)
+# No debug connector or test pads (removed to keep the board simple): SWD is reachable on the
+# Pico's own underside pads (D1-D3, through the plated holes from the back of the board).
 
 for h in ["H1", "H2", "H3", "H4"]:
     part(h, "HOLE", "M2", "MountingHole:MountingHole_2.2mm_M2", "No part", "", True, "mech", dnp=True)
@@ -226,19 +221,16 @@ NETS = {
             "J3.6", "J3.10", "J3.SH", "C6.2", "C7.2",
             "J4.1", "C9.2",
             "SW2.2", "SW3.2", "SW4.2", "SW5.2", "C10.2", "C11.2", "C12.2", "C13.2",
-            "J5.5", "TP1.1"],
+            ],
     "+3V3": ["A1.36", "Q2.2", "R12.1", "R13.1", "R14.1", "C14.1", "C15.1",
              "Q3.2", "R21.1", "C8.1", "R20.1", "Q4.2", "R25.1",
-             "R26.1", "R27.1", "R28.1", "R29.1", "J5.1", "TP2.1"],
+             "R26.1", "R27.1", "R28.1", "R29.1", ],
     "VBUS": ["A1.40", "F1.2", "U1.5", "U3.4", "C1.1", "R6.1", "Q1.1", "R9.1"],
     "VBUS_C": ["J1.A4", "J1.A9", "J1.B4", "J1.B9", "F1.1"],
-    "VSYS": ["A1.39", "Q1.2", "C3.1", "TP3.1"],
-    "VBAT": ["U3.3", "C2.1", "J2.1", "SW1.2", "TP4.1"],
+    "VSYS": ["A1.39", "Q1.2", "C3.1"],
+    "VBAT": ["U3.3", "C2.1", "J2.1", "SW1.2"],
     "VBAT_SW": ["SW1.3", "Q1.3", "R10.1"],
     "3V3_EN": ["A1.37", "SW1.5"],
-    "RUN": ["A1.30", "J5.3"],
-    "SWDIO": ["A1.D3", "J5.2"],
-    "SWCLK": ["A1.D1", "J5.4"],
     "USB_CC1": ["J1.A5", "R1.1"],
     "USB_CC2": ["J1.B5", "R2.1"],
     "USB_DP_C": ["J1.A6", "J1.B6", "U1.1", "U1.6", "R3.1"],
@@ -281,10 +273,7 @@ NETS = {
     "BTN_BACK": ["A1.16", "SW4.1", "R28.2", "C12.1"],
     "BTN_CONFIRM": ["A1.17", "SW5.1", "R29.2", "C13.1"],
     # Debug
-    "UART_TX": ["A1.21", "TP5.1"],
-    "UART_RX": ["A1.22", "TP6.1"],
-    "GP4": ["A1.6", "TP7.1"],
-    "LCD_PWR_N": ["A1.24", "R31.1", "TP8.1"],  # GP18: next to GP19 (backlight) with the other display pins
+    "LCD_PWR_N": ["A1.24", "R31.1"],  # GP18: next to GP19 (backlight) with the other display pins
     "LCD_GATE": ["R31.2", "Q5.1", "R30.2", "C17.2"],
     "LCD_VCC": ["Q5.3", "J4.2", "C9.1"],
 }
@@ -292,8 +281,10 @@ NETS = {
 NETS["+3V3"] += ["Q5.2", "R30.1", "C17.1"]
 
 NC = ["A1.35", "A1.TP4", "A1.TP5", "A1.TP6",
+      # RUN has the Pico's own pull-up; SWD stays on the Pico's underside pads; GP4, GP16, GP17 unused
+      "A1.30", "A1.D1", "A1.D3", "A1.6", "A1.21", "A1.22",
       "U2.2", "U2.4", "U2.5", "U2.6", "U2.7", "U2.11",
-      "J1.A8", "J1.B8", "SW1.1", "SW1.6", "J5.6"]
+      "J1.A8", "J1.B8", "SW1.1", "SW1.6"]
 
 GROUP_TITLES = {
     "mcu": "MCU: Raspberry Pi Pico 2 W (RP2350 + CYW43439)",

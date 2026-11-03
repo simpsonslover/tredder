@@ -87,10 +87,9 @@ OFF_BOARD = [
      "Charging and (prototype only) firmware loading. Production can be charge-only (R3/R4 not fitted)."),
 ]
 OPTIONAL = [
-    ("Tag-Connect cable", 1, "TC2030-IDC-NL (pogo, no legs)", "Tag-Connect distributors",
-     "SWD on J5 for debugging the prototype. Not needed for normal use."),
     ("Debug probe", 1, "Raspberry Pi Debug Probe (or any CMSIS-DAP probe)", "Raspberry Pi resellers",
-     "With the cable above: flash and debug over SWD."),
+     "Optional: SWD debugging via the Pico's underside pads D1-D3 (wires soldered through the holes "
+     "from the back). Firmware loads over USB-C without it."),
     ("Enclosure", 1, "tamper-evident case (Phase 4, not designed yet)", "3D print", "Leaves room for the 5.5 mm cell behind the board."),
 ]
 

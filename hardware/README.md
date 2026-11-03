@@ -43,8 +43,7 @@ Everything is generated from **[tools/design.py](tools/design.py)**, which defin
    GP12-15        ──────► Back / Confirm / Up / Down (10k pull-ups + RC debounce)
    GP28 (ADC2)    ◄────── VBAT divider (after power switch, no drain when off)
    GP5            ◄────── charger STAT (5V→3.3V divider)
-   SWD pads D1-D3 ──────► Tag-Connect TC2030 footprint (no connector populated)
-   GP16/17 UART0  ──────► test pads (prototype console)
+   SWD pads D1-D3 ──────► reachable from the back through the plated holes under the Pico (no debug connector)
 ```
 
 ## 2. Pin map
@@ -53,9 +52,9 @@ Everything is generated from **[tools/design.py](tools/design.py)**, which defin
 |---|---|---|---|---|
 | GP0 | SD MISO (SPI0 RX) | | GP14 | BTN UP |
 | GP1 | SD CS (SPI0 CSn) | | GP15 | BTN DOWN |
-| GP2 | SD SCK | | GP16 | UART0 TX (test pad) |
-| GP3 | SD MOSI | | GP17 | UART0 RX (test pad) |
-| GP4 | spare (TP7) | | GP18 | LCD power enable (active low, Q5; TP8) |
+| GP2 | SD SCK | | GP16 | unused |
+| GP3 | SD MOSI | | GP17 | unused |
+| GP4 | unused | | GP18 | LCD power enable (active low, Q5) |
 | GP5 | CHG_STAT | | GP19 | LCD backlight (active low) |
 | GP6 | SD card detect | | GP20 | LCD RST |
 | GP7 | SD power enable (active low) | | GP21 | LCD CS |
@@ -97,9 +96,9 @@ An attacker needs the PIN, **and** must defeat the SE counter, **and** must read
 | Display module power-gated (Q5), and sleep locks the wallet | Sleep current 14 mA → 2.6 mA (≈ 8 days on BT1 instead of 1.5). Waking always needs the PIN, so a device left asleep is locked | Waking takes a button press + PIN; the display re-initialises (~0.3 s) |
 | SD on its own SPI bus, power-gated (Q3) | Untrusted removable media can't share a bus with the display, and is unpowered unless in a backup flow | Need to power-cycle the card in firmware |
 | No test points on SE I2C | Makes passive probing slightly harder (Shielded Connection is the real defence) | Harder to debug the SE link (use a scope on the IC pins) |
-| Tag-Connect SWD footprint, no header | Nothing to remove for production; covered by the case; SWD disabled in OTP anyway | Need a TC2030-IDC-NL cable (~$40) |
+| No debug connector or test pads (removed to keep the board simple) | Less to cover in production; SWD disabled in OTP anyway | Debugging means soldering wires to the Pico's underside SWD pads through the holes; voltages are probed on the parts themselves |
 | External pull-ups on buttons | Immune to RP2350 erratum E9 (input pull-down latch) whatever the chip stepping | 8 passives |
-| All parts on top, display module above them | Single-sided assembly is cheaper | Display must be removed to reach test pads |
+| All parts on top, display module above them | Single-sided assembly is cheaper | Display must be removed to reach the Pico (BOOTSEL, SWD) |
 
 ## 5. Honest physical-security assessment
 
@@ -164,12 +163,12 @@ Test in this order and stop at the first failure.
    - The charger LED is off with no battery.
    - Adding the battery makes the LED light, and VBAT climbs to 4.2 V then the LED goes off.
 3. **Fit the Pico.** Check:
-   - SW1 ON → 3.3 V on the 3V3 test pad.
+   - SW1 ON → 3.3 V on the Pico's 3V3_OUT pin (pin 36) or across C5/C9.
    - SW1 OFF → 0 V, **even with USB connected**.
    - Battery-only operation works.
    - Current draw is in the expected range.
 4. **USB data:** hold BOOTSEL (on the Pico) and plug in. RP2350 should appear as a USB drive through USB-C, which proves TP2/TP3 are soldered.
-5. **SWD:** with the Tag-Connect and a Debug Probe, `openocd -f interface/cmsis-dap.cfg -f target/rp2350.cfg` should halt the core.
+5. **SWD (optional):** solder three thin wires to the Pico's underside pads D1 (SWCLK), D2 (GND), D3 (SWDIO) through the holes from the back, connect a Debug Probe, and `openocd -f interface/cmsis-dap.cfg -f target/rp2350.cfg` should halt the core.
 6. **Peripherals,** using a throwaway test firmware:
    - Buttons: read GPIO 12–15.
    - Display: ST7789 init, colour bars, backlight PWM.

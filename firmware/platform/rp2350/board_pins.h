@@ -6,7 +6,6 @@
 #define PIN_SD_CS        1u  /* SPI0 CSn (driven as GPIO) [SD_CS] */
 #define PIN_SD_SCK       2u  /* SPI0 SCK [SD_SCK] */
 #define PIN_SD_MOSI      3u  /* SPI0 TX [SD_MOSI] */
-#define PIN_SPARE_GP4    4u  /* test pad TP7 [GP4] */
 #define PIN_CHG_STAT     5u  /* input, no pull: low = charging, high = done / no USB [CHG_STAT] */
 #define PIN_SD_DET       6u  /* card detect, low = inserted (verify DM3AT switch polarity) [SD_DET] */
 #define PIN_SD_PWR_N     7u  /* low = SD card powered (Q3) [SD_PWR_N] */
@@ -18,8 +17,6 @@
 #define PIN_BTN_CONFIRM 13u  /* active low, external pull-up + RC debounce [BTN_CONFIRM] */
 #define PIN_BTN_UP      14u  /* active low, external pull-up + RC debounce [BTN_UP] */
 #define PIN_BTN_DOWN    15u  /* active low, external pull-up + RC debounce [BTN_DOWN] */
-#define PIN_UART_TX     16u  /* UART0 TX debug console (disable in production) [UART_TX] */
-#define PIN_UART_RX     17u  /* UART0 RX debug console (disable in production) [UART_RX] */
 #define PIN_LCD_PWR_N   18u  /* low = display module powered (Q5); drive LCD pins LOW before power-off [LCD_PWR_N] */
 #define PIN_LCD_BL_N    19u  /* low = backlight on (Q4), PWM capable [LCD_BL_N] */
 #define PIN_LCD_RST     20u  /* ST7789 reset, active low [LCD_RST] */
@@ -32,7 +29,6 @@
 #define BOARD_SD_SPI   spi0
 #define BOARD_LCD_SPI  spi1
 #define BOARD_SE_I2C   i2c0
-#define BOARD_DBG_UART uart0
 #define BOARD_VBAT_ADC_INPUT 2u
 #define BOARD_VBAT_DIVIDER_NUM 94u
 #define BOARD_VBAT_DIVIDER_DEN 47u

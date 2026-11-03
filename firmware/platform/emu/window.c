@@ -275,24 +275,6 @@ static void board(HDC dc) {
   rect(dc, kx - 1.5, SW1_Y - 0.8, kx + 1.5, SW1_Y + 0.8, powered ? RGB(60, 190, 110) : RGB(120, 122, 128), RGB(20, 20, 20));
   silk(dc, f_silk, SILK, SW1_X, BH - 6.6, "PWR  ON>");
 
-  /* debug: Tag-Connect J5 + test points (cover for production) */
-  const double jx = 52.0, jy = 40.5;
-  for (int i = 0; i < 3; i++) {
-    circle(dc, jx - 1.27 + 1.27 * i, jy - 0.64, 0.4, GOLD, GOLD);
-    circle(dc, jx - 1.27 + 1.27 * i, jy + 0.64, 0.4, GOLD, GOLD);
-  }
-  circle(dc, jx - 2.54, jy, 0.5, DESK, DESK), circle(dc, jx + 2.54, jy - 1.0, 0.5, DESK, DESK), circle(dc, jx + 2.54, jy + 1.0, 0.5, DESK, DESK);
-  silk(dc, f_silk_s, SILK, jx, jy + 2.4, "J5");
-  const double TP[8][2] = {{58.0, 40.5}, {60.5, 40.5}, {63.0, 40.5}, {65.5, 40.5}, {68.0, 40.5}, {70.5, 40.5}, {58.0, 43.0}, {60.5, 43.0}};
-  for (int i = 0; i < 8; i++) {
-    char l[8];
-    circle(dc, TP[i][0], TP[i][1], 0.75, GOLD, RGB(170, 140, 50));
-    snprintf(l, sizeof(l), "TP%d", i + 1);
-    if (i < 6) silk(dc, f_silk_s, SILK, TP[i][0], TP[i][1] - 1.7, l);
-    else silk(dc, f_silk_s, SILK, TP[i][0] + (i == 6 ? -2.6 : 2.6), TP[i][1], l);
-  }
-  silk(dc, f_silk, SILK, 66.0, 44.9, "DEBUG - cover for production");
-
   /* buttons */
   for (int i = 0; i < 4; i++) {
     bool down = powered && (pressed & BTN[i].bit);

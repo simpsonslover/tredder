@@ -207,7 +207,7 @@ For assembly, also upload a BOM (`-bom-pcbway.csv` or `-bom-jlc.csv`) and the pi
   (SLS32AIA010MKUSON10XTMB2, or ...XTMA2, or SLS32AIA010ML...: same V3 chip and package) and solder it:
   solder paste, hot air or a hot plate; the pad underneath is floating (mechanical support only).
 - **Not assembled:** the display module and the battery: they plug in (J4, J2).
-- **Do not fit:** J5 (Tag-Connect footprint), TP1-TP8 (test pads), H1-H4 (holes).
+- **Do not fit:** H1-H4 (screw holes).
 - **Production option:** leave R3/R4 unfitted for a charge-only USB port (no USB data / BOOTSEL attack surface).
 - **Rotations:** `-cpl-jlc.csv` is already corrected for JLCPCB's own footprints (measured per part
   by `tools/jlc_rotation.py`: e.g. SOT-23 +180, SOT-23-5/-6 +270, LED +180, J4 +270 and moved

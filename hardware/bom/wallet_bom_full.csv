@@ -12,7 +12,6 @@ Qty,Designators,Value,MPN,LCSC,Footprint,Populate,Source,VERIFY before ordering,
 1,J2,LiPo 1S,S2B-PH-SM4-TB(LF)(SN),C295747,JST_PH_S2B-PH-SM4-TB_1x02-1MP_P2.00mm_Horizontal,yes,JLCPCB / LCSC,,CHECK battery lead polarity: pin1 = BAT+. Use a cell WITH protection PCM
 1,J3,microSD,DM3AT-SF-PEJM5,C114218,microSD_HC_Hirose_DM3AT-SF-PEJM5,yes,JLCPCB / LCSC,,Not the DM3AT-SF-PEJM5(40) variant (C597971)
 1,J4,LCD 2.0in ST7789,"2.54-1*8P female header, 8.5 mm (BOOMELE)",C27438,PinSocket_1x08_P2.54mm_Vertical,yes,JLCPCB / LCSC,,Pin order must match YOUR module (common: GND VCC SCL SDA RES DC CS BLK)
-1,J5,SWD (Tag-Connect),No part: pogo cable TC2030-IDC-NL,,Tag-Connect_TC2030-IDC-NL_2x03_P1.27mm_Vertical,DNP,none,,
 5,Q1 Q2 Q3 Q4 Q5,AO3401A,AO3401A,C15127,SOT-23,yes,JLCPCB / LCSC,,"Backlight high-side switch; LCD module power switch (sleep mode), active-low on GP18; Load-sharing: battery->VSYS when USB absent (Pico datasheet 4.6); SD power switch (card unpowered unless backing up); SE power switch, active-low"
 2,R1 R2,5.1k,0603WAF5101T5E,C23186,R_0603_1608Metric,yes,JLCPCB / LCSC,,CC1 sink pull-down; CC2 sink pull-down
 2,R3 R4,0R,0603WAF0000T5E,C21189,R_0603_1608Metric,yes,JLCPCB / LCSC,,USB D+ link. DNP = charge-only port (production option); USB D- link. DNP = charge-only port (production option)
@@ -29,14 +28,6 @@ Qty,Designators,Value,MPN,LCSC,Footprint,Populate,Source,VERIFY before ordering,
 1,SW3,DOWN,TS-1187A-B-A-B,C318884,SW_Push_1P1T_XKB_TS-1187A,yes,JLCPCB / LCSC,,
 1,SW4,BACK,TS-1187A-B-A-B,C318884,SW_Push_1P1T_XKB_TS-1187A,yes,JLCPCB / LCSC,,
 1,SW5,CONFIRM,TS-1187A-B-A-B,C318884,SW_Push_1P1T_XKB_TS-1187A,yes,JLCPCB / LCSC,,
-1,TP1,GND,No part (bare pad),,TestPoint_Pad_D1.0mm,DNP,none,,
-1,TP2,+3V3,No part (bare pad),,TestPoint_Pad_D1.0mm,DNP,none,,
-1,TP3,VSYS,No part (bare pad),,TestPoint_Pad_D1.0mm,DNP,none,,
-1,TP4,VBAT,No part (bare pad),,TestPoint_Pad_D1.0mm,DNP,none,,
-1,TP5,UART_TX,No part (bare pad),,TestPoint_Pad_D1.0mm,DNP,none,,
-1,TP6,UART_RX,No part (bare pad),,TestPoint_Pad_D1.0mm,DNP,none,,
-1,TP7,GP4,No part (bare pad),,TestPoint_Pad_D1.0mm,DNP,none,,
-1,TP8,LCD_PWR_N,No part (bare pad),,TestPoint_Pad_D1.0mm,DNP,none,,
 1,U1,USBLC6-2SC6,USBLC6-2SC6,C7519,SOT-23-6,yes,JLCPCB / LCSC,,
 1,U2,OPTIGA Trust M V3,SLS32AIA010MKUSON10XTMB2,,Infineon_PG-USON-10-2_3x3mm_P0.5mm,yes,you: buy from Mouser / Digi-Key and solder,,"You buy and solder this one (JLCPCB cannot source it): Mouser / Digi-Key. Same chip, any of SLS32AIA010MKUSON10XTMB2 (current), ...XTMA2 (older packing), or SLS32AIA010ML... (-40..105 C)"
 1,U3,MCP73831T-2ACI/OT,MCP73831T-2ACI/OT,C424093,SOT-23-5,yes,JLCPCB / LCSC,,

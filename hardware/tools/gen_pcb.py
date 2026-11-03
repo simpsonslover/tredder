@@ -58,9 +58,6 @@ PLACE = {
     "R26": (75.0, 30.5, 90), "C10": (76.6, 30.5, 90), "R27": (78.2, 30.5, 90), "C11": (79.8, 30.5, 90),
     "R28": (52.0, 34.0, 90), "C12": (53.6, 34.0, 90), "R29": (55.2, 34.0, 90), "C13": (56.8, 34.0, 90),
     # Debug (prototype only)
-    "J5": (52.0, 40.5, 0),
-    "TP1": (58.0, 40.5, 0), "TP2": (60.5, 40.5, 0), "TP3": (63.0, 40.5, 0), "TP4": (65.5, 40.5, 0),
-    "TP5": (68.0, 40.5, 0), "TP6": (70.5, 40.5, 0), "TP7": (58.0, 43.0, 0), "TP8": (60.5, 43.0, 0),
     # Mounting holes (M2, low-head screws: H1/H4 sit under the display module)
     "H1": (11.0, 3.2, 0), "H2": (3.2, BH - 3.2, 0), "H3": (BW - 3.0, BH - 3.0, 0), "H4": (31.5, 3.2, 0),
 }
@@ -314,19 +311,6 @@ def build(out):
 
     gnd, v33 = nets["GND"], nets["+3V3"]
     n_vias = fanout(board, {"GND", "+3V3"})
-    # Tag-Connect power pads: its courtyard is a via keep-out (pogo legs), so drop straight down out of it
-    jx, jy, _ = PLACE["J5"]
-    for num, dx in (("1", -1.27), ("5", 1.27)):
-        pad = [p for p in board.FindFootprintByReference("J5").Pads() if p.GetNumber() == num][0]
-        vp = P(jx + dx, jy + 3.0)
-        via = pcbnew.PCB_VIA(board)
-        via.SetPosition(vp); via.SetWidth(mm(0.6)); via.SetDrill(mm(0.3)); via.SetNet(pad.GetNet())
-        board.Add(via)
-        tr = pcbnew.PCB_TRACK(board)
-        tr.SetStart(pad.GetPosition()); tr.SetEnd(vp); tr.SetWidth(mm(0.3)); tr.SetLayer(pcbnew.F_Cu)
-        tr.SetNet(pad.GetNet())
-        board.Add(tr)
-        n_vias += 1
     zone(board, gnd, pcbnew.In1_Cu)
     zone(board, v33, pcbnew.In2_Cu)
     zone(board, gnd, pcbnew.B_Cu)
@@ -341,7 +325,6 @@ def build(out):
     text(board, "BACK", 53.0, BH - 1.6, size=0.9); text(board, "CONFIRM", 65.0, BH - 1.6, size=0.9)
     text(board, "PWR  ON>", 29.0, BH - 6.6, size=0.8)
     text(board, "BAT+ = pin 1", 1.6, 31.3, size=0.8, rot=90)
-    text(board, "DEBUG - cover for production", 66.0, 43.2, pcbnew.F_SilkS, 0.8)
     text(board, "SWD/UART disabled in OTP for production. Seed never stored in plain form.",
          OX * 0 + 42.8, 27.0, pcbnew.B_SilkS, 0.8, 0)
 

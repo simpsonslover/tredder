@@ -32,7 +32,6 @@ REQUIRED = {  # net -> function it needs from the pin it lands on
     "SD_MISO": "SPI0_RX", "SD_SCK": "SPI0_SCK", "SD_MOSI": "SPI0_TX",
     "LCD_SCK": "SPI1_SCK", "LCD_MOSI": "SPI1_TX",
     "SE_SDA": "I2C0_SDA", "SE_SCL": "I2C0_SCL",
-    "UART_TX": "UART0_TX", "UART_RX": "UART0_RX",
     "VBAT_SENSE": "ADC",
 }
 

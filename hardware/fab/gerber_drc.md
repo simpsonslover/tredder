@@ -4,11 +4,11 @@ Checked: the Gerber and drill files the fab receives, rendered at 10 um, plus th
 Limits: JLCPCB multilayer (jlcpcb.com/capabilities/pcb-capabilities, read 2026-11-01).
 Positions are board coordinates in mm (origin at the top-left board corner, as in KiCad).
 
-- holes: 155, netlist points: 396
+- holes: 146, netlist points: 376
 - connectivity: **0 opens** (Fusion: air wires), **0 shorts**
-- errors: **0**, warnings: 0, notes: 55
+- errors: **0**, warnings: 0, notes: 49
 
-## info: silkscreen clipped at pad (55)
+## info: silkscreen clipped at pad (49)
 
 - (8.72, 22.35) top: silkscreen drawn over an exposed pad (removed in the export)
 - (9.3, 22.36) top: silkscreen drawn over an exposed pad (removed in the export)
@@ -50,5 +50,5 @@ Positions are board coordinates in mm (origin at the top-left board corner, as i
 - (51.99, 33.09) top: silkscreen drawn over an exposed pad (removed in the export)
 - (55.12, 33.11) top: silkscreen drawn over an exposed pad (removed in the export)
 - (19.49, 33.67) top: silkscreen drawn over an exposed pad (removed in the export)
-- ... and 15 more
+- ... and 9 more
 
