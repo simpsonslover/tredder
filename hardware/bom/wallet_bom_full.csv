@@ -20,7 +20,7 @@ Qty,Designators,Value,MPN,LCSC,Footprint,Populate,Source,VERIFY before ordering,
 11,R7 R15 R16 R17 R18 R19 R20 R26 R27 R28 R29,10k,0603WAF1002T5E,C25804,R_0603_1608Metric,yes,JLCPCB / LCSC,,BACK pull-up; CONFIRM pull-up; Card-detect pull-up; DOWN pull-up; SD CMD pull-up to SD_VDD; SD CS pull-up to SD_VDD; SD DAT0 pull-up to SD_VDD; SD DAT1 pull-up to SD_VDD; SD DAT2 pull-up to SD_VDD; STAT divider top (5V -> 3.3V); UP pull-up
 1,R8,15k,0603WAF1502T5E,C22809,R_0603_1608Metric,yes,JLCPCB / LCSC,,"STAT divider bottom: 5.5 V VBUS -> 3.30 V, below 3.63 V unpowered-FT limit (sim: switch_off_usb)"
 1,R9,100k,0603WAF1003T5E,C25803,R_0603_1608Metric,yes,JLCPCB / LCSC,,Q1 gate pull-down
-4,R10 R11 R13 R14,4.7k,0603WAF4701T5E,C23162,R_0603_1608Metric,yes,JLCPCB / LCSC,,"I2C SCL pull-up; I2C SDA pull-up; VBAT sense divider; VBAT sense divider: low impedance vs ADC Rin >= 100k (sim: vbat_adc). 0.45 mA, only while SW1 ON"
+4,R10 R11 R13 R14,4.7k,0603WAF4701T5E,C23162,R_0603_1608Metric,yes,JLCPCB / LCSC,,"I2C SCL pull-up to the switched SE supply; I2C SDA pull-up to the switched SE supply: an unpowered SE is never fed through its I/O pins; VBAT sense divider; VBAT sense divider: low impedance vs ADC Rin >= 100k (sim: vbat_adc). 0.45 mA, only while SW1 ON"
 4,R12 R21 R25 R30,2.2k,0603WAF2201T5E,C4190,R_0603_1608Metric,yes,JLCPCB / LCSC,,Backlight gate pull-up: beats RP2350 reset pull-down -> backlight OFF at boot; Q3 gate pull-up: beats RP2350 reset pull-down -> SD OFF at boot (sim: reset_default_off); Q5 gate pull-up: beats RP2350 reset pull-down -> display unpowered at boot (sim: reset_default_off); SE switch gate pull-up: must beat RP2350 reset pull-down (36k min) -> keeps Q2 OFF at boot (sim: reset_default_off)
 2,R23 R31,470,0603WAF4700T5E,C23179,R_0603_1608Metric,yes,JLCPCB / LCSC,,Q3 gate series (soft start with C8); Q5 gate series (soft start with C17)
 1,SW1,Power,JS202011JCQN,C221665,SW_DPDT_CK_JS202011JCQN,yes,JLCPCB / LCSC,,"Pole A disconnects battery, pole B grounds 3V3_EN (kills 3V3 even on USB)"
@@ -29,5 +29,5 @@ Qty,Designators,Value,MPN,LCSC,Footprint,Populate,Source,VERIFY before ordering,
 1,SW4,BACK,TS-1187A-B-A-B,C318884,SW_Push_1P1T_XKB_TS-1187A,yes,JLCPCB / LCSC,,
 1,SW5,CONFIRM,TS-1187A-B-A-B,C318884,SW_Push_1P1T_XKB_TS-1187A,yes,JLCPCB / LCSC,,
 1,U1,USBLC6-2SC6,USBLC6-2SC6,C7519,SOT-23-6,yes,JLCPCB / LCSC,,
-1,U2,OPTIGA Trust M V3,SLS32AIA010MKUSON10XTMB2,,Infineon_PG-USON-10-2_3x3mm_P0.5mm,yes,you: buy from Mouser / Digi-Key and solder,,"You buy and solder this one (JLCPCB cannot source it): Mouser / Digi-Key. Same chip, any of SLS32AIA010MKUSON10XTMB2 (current), ...XTMA2 (older packing), or SLS32AIA010ML... (-40..105 C)"
+1,U2,SE050C2,SE050C2HQ1/Z01SDZ,,NXP_HX2QFN-20-1EP_3x3mm_P0.4mm_EP1.7x1.7mm,yes,you: buy from Mouser / Digi-Key and solder,,"You buy and solder this one: Mouser / Digi-Key / Farnell (NXP authorised). The C2 variant: ECC incl. secp256k1 + RSA, CC EAL6+. LCSC lists it as C2659345 with little stock."
 1,U3,MCP73831T-2ACI/OT,MCP73831T-2ACI/OT,C424093,SOT-23-5,yes,JLCPCB / LCSC,,

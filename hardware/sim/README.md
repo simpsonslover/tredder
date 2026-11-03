@@ -53,7 +53,7 @@ It uses the **ngspice engine that ships with KiCad**, driven through `ngspice.dl
 ## What it does NOT cover (be honest with yourself)
 
 - **RF / antenna, signal integrity of SPI/USB, EMI and ESD events:** these need a field solver or the real board.
-- **The chips' internals:** no RP2350 firmware, no real OPTIGA protocol, no crypto. Those are tested in Phase 2 with host-based unit tests and on hardware.
+- **The chips' internals:** no RP2350 firmware, no real SE050 protocol, no crypto. Those are tested in Phase 2 with host-based unit tests and on hardware.
 - **Exact semiconductor behaviour:** the models are behavioural and level-1. They get levels, timing, and current paths right to within ~10 %, not the last millivolt.
 - **Assumed values** are flagged in `netlist.py`:
   - Pico module capacitances

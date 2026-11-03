@@ -5,7 +5,7 @@ Generate BOMs from design.py.
   bom/wallet_bom_jlc.csv    JLCPCB assembly format (only parts JLC can place)
   bom/PARTS_LIST.md         complete shopping list: board parts + everything off the board
 
-Parts JLC can't source (Pico 2 W, OPTIGA, display, etc.) are kept out of the
+Parts JLC can't source (SE050, display, etc.) are kept out of the
 JLC file and listed as "hand-place" in the full BOM.
 """
 import csv
@@ -15,7 +15,7 @@ from collections import OrderedDict
 import design as D
 
 OUT = os.path.join(os.path.dirname(__file__), "..", "bom")
-HAND = {"U2"}      # you buy and solder these (not on the JLCPCB order): the OPTIGA Trust M
+HAND = {"U2"}      # you buy and solder these (not on the JLCPCB order): the SE050C2
 GLOBAL = set()     # parts JLCPCB would buy by MPN ("global sourcing"): none
 
 
@@ -122,14 +122,14 @@ def write_parts_list(groups):
          f"| Parts you buy and solder (not on the JLCPCB order) | Mouser / Digi-Key | {len(rows_hand)} | {sum(r[0] for r in rows_hand)} |",
          f"| Off-board parts | various | {len(OFF_BOARD)} | {sum(r[1] for r in OFF_BOARD)} |",
          f"| Not fitted (pads, holes) | - | {len(rows_dnp)} | 0 |", "",
-         f"{n_parts} components on the board: JLCPCB assembles all of them **except U2, the OPTIGA Trust M, "
+         f"{n_parts} components on the board: JLCPCB assembles all of them **except U2, the NXP SE050C2 secure element, "
          "which you buy and solder** (section 3). The display module and the battery plug in.", "",
          "## 1. Circuit board", "",
          "| Item | Spec |", "|---|---|",
          "| Size | 85.6 x 54.0 mm (credit card), 3 mm corner radius |",
          "| Layers | 4: F.Cu signals / In1 GND / In2 +3V3 / B.Cu signals + GND |",
          "| Thickness | 1.6 mm FR-4 |",
-         "| Finish | ENIG preferred (flat pads for the castellated Pico 2 W and the 0.5 mm-pitch OPTIGA) |",
+         "| Finish | ENIG preferred (flat pads for the castellated Pico 2 W and the 0.4 mm-pitch SE050) |",
          "| Files | `wallet.kicad_pcb`: export Gerbers + drill from KiCad |",
          "| Assembly | JLCPCB **Standard PCBA**, top side only: SMT + one through-hole part (J4) |", "",
          "## 2. JLCPCB sources and assembles (`wallet_bom_jlc.csv`)", "",
@@ -153,11 +153,10 @@ def write_parts_list(groups):
           "1. Buy the display module first and check its pin order and outline against J4.",
           "2. Check every **VERIFY** LCSC number and its stock.",
           "3. Check the battery lead polarity (pin 1 = BAT+) before plugging it in: a reversed pack destroys the charger.",
-          "4. Order the OPTIGA Trust M (U2) from Mouser or Digi-Key: SLS32AIA010MKUSON10XTMB2 (or ...XTMA2, or the "
-          "-40..105 C SLS32AIA010ML...: same V3 chip and package). Buying it yourself from an authorised "
-          "distributor also means you know where the chip your PIN protection depends on came from. Fitting it: "
-          "3 x 3 mm, 0.5 mm pitch with a pad underneath (floating, for mechanical support): use solder paste and "
-          "hot air or a hot plate (hardware/README.md section 8).",
+          "4. Order the NXP SE050C2 (U2) from Mouser, Digi-Key or Farnell: SE050C2HQ1/Z01SDZ (buy 2-3: it is "
+          "NRND). Buying it yourself from an NXP-authorised distributor also means you know where the chip your "
+          "PIN protection depends on came from. Fitting it: 3 x 3 mm, 0.4 mm pitch, with a centre pad to GND: "
+          "flux, solder paste and hot air or a hot plate, then check every side for bridges.",
           "5. Check JLCPCB's assembly preview (part rotations) before paying.", ""]
     with open(os.path.join(OUT, "PARTS_LIST.md"), "w", encoding="utf8") as fh:
         fh.write("\n".join(L))

@@ -26,7 +26,7 @@ Only the hardware layer under it (`app/include/app/hal.h`, `se.h`) is emulated:
 | Display power (Q5) + sleep | `lcd_model_power`: unpowered = GRAM and settings lost. `hal_sleep`: the MCU waits for a button; the phone link closes (radio off) | SPI traffic to an unpowered module is logged as a driver bug. `--sleep-ms N` (default 60000, 0 = never). |
 | SW1 power switch | Click it on the board: OFF halts the MCU and closes the link; ON restarts the process | RAM is lost and the flash and SE files are kept, so it is a real power cycle. It needs persistent state (not `--ephemeral`). |
 | 4 buttons (GPIO 12–15) | Window buttons, keyboard, robot finger | Raw pin levels. The firmware debounces them itself. |
-| OPTIGA Trust M | `se_model.c`: PIN reference, secret and limit-use counter in `optiga.bin` | The counter is incremented before the comparison, and 10 failures erase the secret. The I2C wire protocol is not modelled. |
+| NXP SE050 | `se_model.c`: PIN key, secret and attempt counter in `se050.bin` | The counter is incremented before the comparison, and 10 failures erase the secret. The I2C wire protocol is not modelled. |
 | QSPI flash | `flash_model.c`, 2 × 4 KiB in `flash.bin` | NOR rules: erase sets bytes to 0xFF, and programming can only clear bits. |
 | TRNG | OS CSPRNG raw bytes | The firmware's health tests still run on them. |
 | BLE GATT | `ws_link.c`, a WebSocket server | Carries the same frames (244 bytes) as BLE. One phone at a time. |
@@ -57,6 +57,6 @@ State is kept in `%LOCALAPPDATA%\tredder-emu` (`--state DIR`). `--ephemeral` kee
 ## What it is NOT
 
 - It does not emulate the instruction set. The C code is compiled for x86-64, not executed as ARM Cortex-M33 code. Timing, the RP2350 boot ROM, secure boot, OTP and glitch resistance can only be tested on the board.
-- It is not secure. `flash.bin` and `optiga.bin` are ordinary files on the PC. Use public test phrases and testnets only.
+- It is not secure. `flash.bin` and `se050.bin` are ordinary files on the PC. Use public test phrases and testnets only.
 - The phone link is not BLE. There is no LESC pairing and no Noise channel yet (M5), so the app only allows this link in development builds.
 - `WL_DEBUGLINK` (screen readout for tests) is compiled into the emulator only. `ui.h` refuses to build it for ARM/RISC-V.

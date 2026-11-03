@@ -52,7 +52,7 @@ In **Materials > Study Materials**, use a Fusion library material where one exis
 | `lipo_503035`: PCM | FR4 2-layer | 10 | 1.9 | |
 | `usb_c_...`, `sw_slide_...` body, `sw_tact_...` body, `j3_sim` | **Steel** | 45 | 7.85 | Stamped-metal shells |
 | switch actuators, plungers, `jst_...` | **Nylon 6/6** | 0.25 | 1.14 | |
-| `u2_sim` (OPTIGA), `u3_sim` (charger) | mold compound | 0.9 | 1.9 | |
+| `u2_sim` (SE050), `u3_sim` (charger) | mold compound | 0.9 | 1.9 | |
 
 ## 3. Thermal loads (Thermal study)
 
@@ -93,5 +93,5 @@ Add each as an **Internal Heat** load on the body:
 
 Fusion simulates heat and force. It cannot run the Pico's firmware or drive the screen. That is covered elsewhere:
 
-- `firmware/platform/emu`: the real firmware with an emulated ST7789 screen, buttons, battery and OPTIGA.
+- `firmware/platform/emu`: the real firmware with an emulated ST7789 screen, buttons, battery and SE050.
 - `hardware/sim`: ngspice circuit simulation of the power paths, switches, charger and sleep current.

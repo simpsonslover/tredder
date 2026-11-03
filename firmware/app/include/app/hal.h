@@ -6,7 +6,7 @@
  * board. Implemented twice:
  *   platform/rp2350/  the real Pico 2 W board (GPIO, SPI1 ST7789, flash, TRNG, BLE)
  *   platform/emu/     the PC emulator (emulated ST7789, GPIO buttons, flash file,
- *                     OPTIGA model, WebSocket instead of BLE)
+ *                     SE050 model, WebSocket instead of BLE)
  * The application code above this line is identical on both.
  */
 

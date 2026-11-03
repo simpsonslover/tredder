@@ -97,6 +97,12 @@ def jst():     # JST S2B-PH-SM4-TB side entry; height 6.0 is a safe envelope (ch
     return s
 
 
+def hx2qfn20():   # NXP SE050, HX2QFN20 / SOT1969-1: 3 x 3 x 0.32 mm (KiCad ships no model for it)
+    s = Step("nxp_hx2qfn20_se050")
+    s.box(-1.5, -1.5, 0, 1.5, 1.5, 0.32, BLACK, "body")
+    return s
+
+
 def pico_sim():
     """Pico 2 W as a few solids for simulation (the library model has hundreds of tiny bodies).
     USB end at footprint -y (model +y), antenna end at model -y. Chip positions are approximate."""
@@ -109,7 +115,7 @@ def pico_sim():
     return s
 
 
-ALL = [lambda: lcd(False), lambda: lcd(True), lipo, usb_c, slide, tact, jst, pico_sim]
+ALL = [lambda: lcd(False), lambda: lcd(True), lipo, usb_c, slide, tact, jst, hx2qfn20, pico_sim]
 
 
 def main():

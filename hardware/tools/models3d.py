@@ -18,6 +18,7 @@ BY_FOOTPRINT = {
     "JST_PH_S2B-PH-SM4-TB_1x02-1MP_P2.00mm_Horizontal": D + "jst_ph_s2b_ph_sm4_tb.step",
     "SW_DPDT_CK_JS202011JCQN": D + "sw_slide_ck_js202011jcqn.step",
     "SW_Push_1P1T_XKB_TS-1187A": D + "sw_tact_xkb_ts1187a.step",
+    "NXP_HX2QFN-20-1EP_3x3mm_P0.4mm_EP1.7x1.7mm": D + "nxp_hx2qfn20_se050.step",
 }
 
 

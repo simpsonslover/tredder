@@ -6,10 +6,12 @@ Build project footprints in hardware/wallet.pretty (run with KiCad's python).
    test points and the 3 SWD pads) get 0.8 mm plated holes, so the module can
    be soldered by hand: solder the castellations from the top, then feed
    solder through each hole from the bottom of the carrier.
-2. Infineon_PG-USON-10-2_3x3mm_P0.5mm
-   OPTIGA Trust M package. Derived from the KiCad USON-10 3x3 P0.5 land
-   pattern with the exposed pad removed (datasheet Table 6 lists no EP).
-   >>> Verify the land pattern against Figure 6 of the OPTIGA datasheet. <<<
+2. NXP_HX2QFN-20-1EP_3x3mm_P0.4mm_EP1.7x1.7mm
+   NXP SE050 package (HX2QFN20, SOT1969-1). KiCad's WQFN-20 3x3 P0.4 land
+   pattern (0.2 x 0.825 mm pads, 1.7 x 1.7 mm centre pad), which matches the
+   EasyEDA land pattern LCSC publishes for the SE050C2 (C2659345). Pin
+   numbering follows SE050 datasheet Figure 4 (pin 1 top-left, counter-
+   clockwise). The centre pad is pad 21 (GND).
 """
 import os
 
@@ -42,26 +44,30 @@ def pico():
          "TP1-TP3 (USB) and D1-D3 (SWD) so the underside pads can be hand-soldered from the back")
 
 
-def uson():
-    fp = pcbnew.FootprintLoad(os.path.join(STOCK, "Package_SON.pretty"),
-                              "Microchip_USON-10-1EP_3x3mm_P0.5mm_EP1.8x2.5mm")
-    # Infineon datasheet rev 3.70 Figure 6: leads 0.25 x 0.4 mm at 0.5 mm pitch, exposed pad
-    # 2.5 x 1.7 mm. Keep the exposed pad (pin 11, floating) at Infineon's size so nothing can
-    # be routed under the chip's bare metal belly; drop the stock footprint's separate paste
-    # openings and give the pad its own, reduced (about 60 % area) paste
+def hx2qfn():
+    fp = pcbnew.FootprintLoad(os.path.join(STOCK, "Package_DFN_QFN.pretty"),
+                              "WQFN-20-1EP_3x3mm_P0.4mm_EP1.7x1.7mm")
+    # drop the stock footprint's separate paste openings (Fusion's import rejects copper-less
+    # pads) and give the centre pad its own, reduced (about 60 % area) paste instead
     pads = list(fp.Pads())          # (removing pads breaks iterating fp.Pads() afterwards)
-    ep = next(p for p in pads if p.GetNumber() == "11")
+    ep = next(p for p in pads if p.GetNumber() == "21")
     for pad in pads:
         if pad.GetNumber() == "":
             fp.Remove(pad)
-    ep.SetSize(pcbnew.F_Cu, pcbnew.VECTOR2I(pcbnew.FromMM(1.7), pcbnew.FromMM(2.5)))
     ep.SetLayerSet(pcbnew.LSET(ep.GetLayerSet()).AddLayer(pcbnew.F_Paste))
     ep.SetLocalSolderPasteMarginRatio(-0.2)
-    save(fp, "Infineon_PG-USON-10-2_3x3mm_P0.5mm",
-         "Infineon PG-USON-10-2/-4 (OPTIGA Trust M), 3x3 mm, 0.5 mm pitch, exposed pad 2.5 x 1.7 mm "
-         "(pin 11, left floating), per datasheet rev 3.70 Figure 6")
+    # GND pins join through tracks (pin 1 to the centre pad on the board), not through the copper
+    # pour: at 0.4 mm pitch a pour could only reach them with a single thermal spoke
+    fp.SetLocalZoneConnection(pcbnew.ZONE_CONNECTION_NONE)
+    for g in fp.GraphicalItems():   # JLCPCB minimum silkscreen line width
+        if g.GetLayer() == pcbnew.F_SilkS and g.GetWidth() < pcbnew.FromMM(0.15):
+            g.SetWidth(pcbnew.FromMM(0.15))
+    fp.Models().clear()             # KiCad has no HX2QFN-20 model: models3d.py attaches ours
+    save(fp, "NXP_HX2QFN-20-1EP_3x3mm_P0.4mm_EP1.7x1.7mm",
+         "NXP HX2QFN20 (SOT1969-1, SE050), 3x3x0.32 mm, 0.4 mm pitch, centre pad 1.7 x 1.7 mm "
+         "(pad 21, GND), per SE050 datasheet rev 3.7 Figure 4")
 
 
 if __name__ == "__main__":
     pico()
-    uson()
+    hx2qfn()

@@ -31,7 +31,7 @@ firmware/
 | | Milestone | Status |
 |---|---|---|
 | **M1** | Wallet core: entropy mixer, BIP39 (generate/import 12–24 words, autocomplete), derivation and addresses for every scheme, memory hygiene, host test harness, on-target self-test image | **done**: 8 347 host checks pass |
-| M2 | Secure storage + PIN: key hierarchy (below), OPTIGA driver (Shielded Connection), attempt counter and wipe, encrypted seed blob, HMAC-DRBG, randomized PIN pad logic | **logic done + emulator-tested** (`app/src/vault.c`, `rng.c`); OPTIGA I2C driver for the board still to do |
+| M2 | Secure storage + PIN: key hierarchy (below), SE050 driver (Platform SCP03), attempt counter and wipe, encrypted seed blob, HMAC-DRBG, randomized PIN pad logic | **logic done + emulator-tested** (`app/src/vault.c`, `rng.c`); SE050 I2C driver for the board still to do |
 | M3 | Drivers + UI: ST7789, buttons, power/charger, screens (PIN pad, word picker, review, confirm), idle lock; PC-side UI simulator | **UI + ST7789 driver done, emulator-tested** (`app/src/ui.c`, `gfx.c`); RP2350 GPIO/SPI/flash HAL + charger still to do |
 | M4 | Signing (testnets first): BTC PSBT (P2WPKH/P2TR/P2SH-P2WPKH/P2PKH), EVM EIP-1559 + clear signing of ERC-20 transfer/approve (unlimited-approval warning, blind signing off), Solana system/SPL transfers | **done, emulator-tested** against the app's own code (`core/src/btc.c`, `evm.c`, `sol.c`) |
 | M5 | BLE: LE Secure Connections numeric comparison, single bonded phone, authenticated + encrypted app channel (Noise, from trezor-crypto), request/approve protocol, auto-lock on disconnect | protocol + approvals + auto-lock done (`app/src/proto.c`); BLE (CYW43) and Noise still to do |
@@ -72,27 +72,29 @@ firmware/
 6. **Trade-off: passphrases are printable ASCII only (max 100 characters).** That's what the buttons can enter, and for ASCII the BIP39 Unicode normalisation is a no-op. So results match every other wallet without shipping a Unicode library. A passphrase created elsewhere with accents or emoji can't be entered on this device. The device says so rather than silently deriving a different wallet.
 7. **Taproot uses libsecp256k1** (Bitcoin Core's library), not hand-written elliptic-curve code.
 
-## Security design for M2 (key hierarchy, to verify against OPTIGA docs and Trezor's implementation)
+## Security design for M2 (key hierarchy, to verify against NXP AN12413 / AN12514 and Nitrokey 3's SE050 code)
 
 ```
 PIN (entered on device, randomized pad)
   └─ stretched = PBKDF2-HMAC-SHA256(PIN, salt = device_salt, many iterations)   (slow down brute force)
 mcu_secret: 32 B random, in RP2350 OTP, page-locked to secure code
-se_secret:  32 B in an OPTIGA data object whose read access requires authentication
-            with a key derived from `stretched`, linked to a monotonic counter (limit 10)
+se_secret:  32 B in an SE050 binary object readable only in a session authenticated
+            with an AES key derived from `stretched` (auth object, MaxAttempts = 10)
+bus:        Platform SCP03 (encrypted + MACed I2C), keys rotated from NXP's defaults,
+            stored in RP2350 OTP
 KEK  = HKDF-SHA256(stretched || se_secret || mcu_secret)
 seed_blob (flash) = ChaCha20-Poly1305(KEK, nonce, seed || passphrase-flag || version)
 ```
 
 - **Counter before check:** the attempt counter is incremented *before* the PIN is checked, and reset only on success. Cutting power mid-attempt still costs an attempt.
-- **Wipe after 10 failures:** the OPTIGA locks the object after 10 failures, so `se_secret`, and with it the seed, is gone for good. Firmware also erases the blob.
+- **Wipe after 10 failures:** the SE050 locks the PIN key after 10 failures, so `se_secret`, and with it the seed, is gone for good. Firmware also erases the blob.
 - **What an attacker would need:** the PIN, *plus* defeating the SE counter, *plus* reading RP2350 OTP. Desoldering the flash yields only ciphertext.
 - **Increasing delays** between attempts are enforced by firmware. The *limit* is enforced by the SE.
 
 ## Rules carried over from the hardware simulation (hardware/README.md §9)
 
 1. Drive SPI0 pins low before switching the SD card off, and wait ≥ 150 ms before re-powering it.
-2. Pull SE RST (GP10) low before switching the SE off.
+2. The SE050 has no reset pin: reset it by switching Q2 off (GP11 high) for at least 40 ms (SE_VCC takes ~35 ms to fall below 0.3 V, hardware sim `se_power`). Leave GP8/GP9 without internal pull-ups and never drive them high (open-drain only): the bus pull-ups go to the switched SE supply, and SDA driven high would back-power an unpowered SE to ~1.5 V.
 3. Calibrate the VBAT ADC gain per device. GP28 must use `adc_gpio_init` (no pulls).
 4. Read CHG_STAT (GP5) as an input with no pull.
 

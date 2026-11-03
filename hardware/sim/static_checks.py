@@ -62,7 +62,7 @@ def t_pin_functions():
 def t_decoupling():
     res = Result("decoupling", "Every supply pin has local decoupling",
                  "Each IC/module supply net must carry at least one capacitor.")
-    supplies = {"U2 OPTIGA VCC": "SE_VCC", "U3 charger VDD": "VBUS", "U3 charger VBAT": "VBAT",
+    supplies = {"U2 SE050 VIN/VCC": "SE_VCC", "U3 charger VDD": "VBUS", "U3 charger VBAT": "VBAT",
                 "J3 microSD VDD": "SD_VDD", "J4 display VCC": "+3V3", "A1 VSYS": "VSYS", "A1 3V3": "+3V3"}
     for what, net in supplies.items():
         caps = [rp.split(".")[0] for rp in D.NETS[net] if D.P[rp.split(".")[0]]["type"] == "C"]
@@ -75,7 +75,7 @@ def t_power_budget():
                  "Worst-case simultaneous loads on the Pico's 3V3 output (Raspberry Pi recommends <= 300 mA), "
                  "and battery life estimates for a 1000 mAh cell.")
     loads = {"RP2350 + flash, both cores busy": 45, "CYW43439 BLE TX peak": 60, "Display logic": 8,
-             "Backlight (full)": 30, "microSD write peak": 100, "OPTIGA active": 10, "Pull-ups, dividers": 2}
+             "Backlight (full)": 30, "microSD write peak": 100, "SE050 active (AES + ECC)": 19, "Pull-ups, dividers": 2}
     total = sum(loads.values())
     for k, v in loads.items():
         res.info(k, v, "mA")

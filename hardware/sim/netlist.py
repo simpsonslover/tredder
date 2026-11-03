@@ -24,8 +24,10 @@ MODEL NOTES (sources / assumptions)
 - LiPo: OCV table, 120 mOhm internal resistance, capacity scalable.
 - AO3401A: level-1 PMOS, Vth corner selectable (-0.5 / -0.9 / -1.3 V per
   AOS datasheet), Rds(on) ~50 mOhm @ -4.5 V, Ciss ~700 pF, body diode.
-- OPTIGA Trust M: ~8 mA active, SDA/SCL fail-safe (no clamp to VCC, Table 7),
-  RST "weak internal pull-up" -> value ASSUMED 50 k.
+- NXP SE050: up to 19 mA (AES + public-key coprocessors together, datasheet
+  Table 12) from VIN/VCC; SDA/SCL open-drain, 10.5 pF, weak internal pull-up
+  70..265 uA to VIN (Table 11, modelled as 18 k); clamp to VSS only (leakage
+  <= 15 uA at 3.6 V, no clamp to VIN is specified -> ASSUMED none).
 - microSD card: 4.7 uF internal VDD capacitance (ASSUMPTION), configurable
   load current, I/O clamp diodes to card VDD.
 - Display module: 8 mA logic load, 10 uF on module (ASSUMPTION), I/O clamps
@@ -150,7 +152,6 @@ def default_config():
         mcu_load=0.06,             # A from 3V3 (RP2350 + flash + CYW43 idle-ish)
         mcu_burst=None,            # PWL of extra A (radio TX bursts)
         card=dict(inserted=True, i=[(0, 0.0005)]),
-        se_rst_pu=50e3,
         adc_rin=None,              # Ohms from GP28 to GND (ADC sampling), None = ideal
         buttons={},                # 'SW5': [(t, 0/1)...]
         lcd_load=0.008,
@@ -198,13 +199,13 @@ def emit_parts(cfg, L):
             pass
         elif t == "PICO2W":
             emit_pico(cfg, L)
-        elif t == "OPTIGA":
-            vcc, rst = n("10"), n("9")
-            L += [f"B{ref}ld {vcc} 0 I=0.008*{s(f'V({vcc})', 1.6, 0.03)}*{s(f'V({rst})', 1.0, 0.05)}",
-                  f"C{ref}in {vcc} 0 100p",
-                  f"R{ref}rst {rst} {vcc} {cfg['se_rst_pu']:g}"]
-            for pin in ("3", "8"):  # SDA, SCL: fail-safe (clamp to GND only)
-                L += [f"C{ref}p{pin} {n(pin)} 0 10p", f"D{ref}g{pin} 0 {n(pin)} DESD"]
+        elif t == "SE050":
+            vin = n("12")                      # VIN, VCC and ENA all on SE_VCC
+            L += [f"B{ref}ld {vin} 0 I=0.019*{s(f'V({vin})', 1.6, 0.03)}",
+                  f"C{ref}in {vin} 0 100p"]
+            for pin in ("9", "10"):  # SDA, SCL: open-drain, weak pull-up to VIN, clamp to VSS only
+                L += [f"C{ref}p{pin} {n(pin)} 0 10.5p", f"D{ref}g{pin} 0 {n(pin)} DESD",
+                      f"R{ref}wpu{pin} {n(pin)} {vin} 18k"]
         elif t == "MCP73831":
             emit_charger(ref, n, L)
         elif t == "USBLC6":

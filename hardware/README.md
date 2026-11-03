@@ -37,7 +37,7 @@ Everything is generated from **[tools/design.py](tools/design.py)**, which defin
                                                     SW1-B: 3V3_EN → GND (hard off, even on USB)
 
  Pico 2 W (RP2350 + CYW43439 BLE)
-   I2C0  GP8/GP9  ──────► U2 OPTIGA Trust M V3   (VCC switched by Q2, RST on GP10)
+   I2C0  GP8/GP9  ──────► U2 NXP SE050C2         (VCC switched by Q2 = its reset; pull-ups on the SE supply)
    SPI0  GP0-3    ──────► J3 microSD            (VDD switched by Q3, soft-start, DET on GP6)
    SPI1  GP26/27  ──────► J4 2.0" ST7789 module (CS GP21, DC GP22, RST GP20, BL via Q4 on GP19,
                           module VCC switched by Q5 on GP18: unpowered in sleep)
@@ -61,29 +61,37 @@ Everything is generated from **[tools/design.py](tools/design.py)**, which defin
 | GP7 | SD power enable (active low) | | GP21 | LCD CS |
 | GP8 | SE SDA (I2C0) | | GP22 | LCD DC |
 | GP9 | SE SCL (I2C0) | | GP26 | LCD SCK (SPI1) |
-| GP10 | SE RST (active low) | | GP27 | LCD MOSI (SPI1) |
+| GP10 | unused | | GP27 | LCD MOSI (SPI1) |
 | GP11 | SE power enable (active low) | | GP28 | VBAT sense (ADC2) |
 | GP12 | BTN BACK | | GP23-25, 29 | used inside the module by the radio |
 | GP13 | BTN CONFIRM | | | |
 
 All five switch controls (Q2 SE, Q3 SD, Q4 backlight, Q5 display power, and SW1) default to **off** when the MCU is in reset or unprogrammed.
 
-## 3. Secure element: OPTIGA Trust M V3 (recommended) vs ATECC608B
+## 3. Secure element: NXP SE050C2 (chosen over the SE050A2)
 
-**Recommendation: Infineon OPTIGA Trust M V3, `SLS32AIA010MKUSON10XTMB2`** (current part number; `...XTMA2` is the older packing, `SLS32AIA010ML...` the -40..105 C grade: same V3 chip and package). JLCPCB cannot source it, so **you buy it from Mouser / Digi-Key and solder it yourself**; it is left out of the JLCPCB BOM and placement file.
+**U2 = NXP SE050C2, `SE050C2HQ1/Z01SDZ`** (HX2QFN20 / SOT1969-1: 3 × 3 × 0.32 mm, 0.4 mm pitch, centre pad to GND). **You buy it from an NXP-authorised distributor (Mouser / Digi-Key / Farnell) and solder it yourself.** It's left out of the JLCPCB BOM and placement file. LCSC lists it as C2659345, but with almost no stock.
 
-| | OPTIGA Trust M V3 | ATECC608B |
+**Why C2 rather than A2.** Both are the same chip, pinout and package, with the same certification (CC EAL6+), bus encryption (SCP03) and 50 kB of secure storage. The suffix is the configuration NXP loads at the factory:
+
+| | **SE050C2** | SE050A2 |
 |---|---|---|
-| Certification | Common Criteria EAL6+ (high), whole chip | No CC certification for the device |
-| MCU↔SE link | **Shielded Connection** (AES-encrypted, authenticated I2C) | Encrypted reads possible, but the bus protocol is mostly plaintext |
-| PIN-attempt counter in the SE | Monotonic counters can gate access to a data object, so the key becomes unreadable after N failures | Possible with monotonic counter + slot config, but it's a fiddlier pattern, and the full datasheet is under NDA |
-| Reference for exactly our use | **Trezor Safe 3/5 use this chip for PIN-gated secrets, and their integration code is open source** | Coldcard Mk3/Mk4 use the ATECC608 family (Mk4 adds a second SE) |
-| Docs | Datasheet and host library (optiga-trust-m on GitHub) are public | Full datasheet NDA; CryptoAuthLib is public |
-| Sourcing | Mouser/Digi-Key/Farnell (not LCSC basic) | LCSC/JLC stock it |
+| Public-key crypto | Full set: ECC (NIST, Brainpool, Ed25519/X25519, **Koblitz incl. secp256k1**) and RSA up to 4096 bit | A subset: ECC only, no RSA (NXP: the A/B variants "come with a subset of keys") |
+| secp256k1, the Bitcoin/Ethereum curve | Users report ECDSA secp256k1 signing works on the C2 dev kit | Not confirmed for A |
+| Dev kit for the breadboard | OM-SE050ARD is the C2 configuration | — |
 
-What you trade off: OPTIGA is harder to source and hand-solder (3 × 3 mm USON-10, 0.5 mm pitch, hot air recommended). Its config model also has a learning curve. We take that for the certification, encrypted bus, and an open reference implementation we can study rather than invent.
+The C2 gives up nothing against the A2, and keeps the option of doing secp256k1 operations inside the SE (for example a device attestation key the app can verify).
 
-**Phase 2 key scheme (design target, following Trezor's pattern):**
+**What changed from the OPTIGA Trust M, and what that trades off:**
+
+- **Bus protection.** The OPTIGA's Shielded Connection is replaced by the SE050's **Platform SCP03** (AES-encrypted and MACed APDUs). **Trade-off:** NXP publishes the default SCP03 keys for its dev kits, so the link is effectively plaintext until provisioning rotates them to device-unique keys stored in RP2350 OTP. Firmware must refuse to store any secret before that rotation.
+- **PIN-gated secret.** On the SE050 this is an AES authentication object with MaxAttempts = 10 guarding a binary object (firmware `app/se.h`). **Trade-off:** Trezor's open-source PIN code was written for the OPTIGA. For the SE050 the references are NXP's AN12413 (APDU spec) and AN12514 (security guidelines), and Nitrokey 3, an open-source security key built on the SE050. The "attempt counted before the result" property must be re-verified on this chip in M2.
+- **Soldering.** **Trade-off:** the pitch is 0.4 mm instead of 0.5 mm, which is harder by hand. Use flux, a fine tip or solder paste, and hot air or a hot plate, then check every side under a magnifier for bridges.
+- **No reset pin.** The SE050 is reset by switching its supply off with Q2 for ≥ 40 ms (GP10 is now unused). ENA is tied high (deep power-down not used), VIN = VCC, VOUT open, and the unused contactless (LA/LB) and ISO7816 RST inputs go to GND, all per datasheet Table 5.
+- **I2C pull-ups** R13/R14 now go to the switched SE supply, not +3V3, so an unpowered SE is never fed through its I/O pins.
+- **Lifecycle.** Distributors list the SE050C2 as NRND (not recommended for new designs), with NXP steering new designs to newer SE05x parts. It is still stocked; **buy 2–3 spares now.**
+
+**Phase 2 key scheme (design target):**
 `seed_key = KDF(PIN-stretched secret, SE-held secret released after PIN check, RP2350 OTP secret)`.
 An attacker needs the PIN, **and** must defeat the SE counter, **and** must read the MCU's OTP. Stealing one chip isn't enough.
 
@@ -96,7 +104,7 @@ An attacker needs the PIN, **and** must defeat the SE counter, **and** must read
 | SE power switched (Q2), default off | Lets firmware hard-reset the SE and keep it unpowered when locked | One more GPIO and some firmware sequencing |
 | Display module power-gated (Q5), and sleep locks the wallet | Sleep current 14 mA → 2.6 mA (≈ 8 days on BT1 instead of 1.5). Waking always needs the PIN, so a device left asleep is locked | Waking takes a button press + PIN; the display re-initialises (~0.3 s) |
 | SD on its own SPI bus, power-gated (Q3) | Untrusted removable media can't share a bus with the display, and is unpowered unless in a backup flow | Need to power-cycle the card in firmware |
-| No test points on SE I2C | Makes passive probing slightly harder (Shielded Connection is the real defence) | Harder to debug the SE link (use a scope on the IC pins) |
+| No test points on SE I2C | Makes passive probing slightly harder (Platform SCP03 is the real defence) | Harder to debug the SE link (use a scope on the IC pins) |
 | No debug connector or test pads (removed to keep the board simple) | Less to cover in production; SWD disabled in OTP anyway | Debugging means soldering wires to the Pico's underside SWD pads through the holes; voltages are probed on the parts themselves |
 | External pull-ups on buttons | Immune to RP2350 erratum E9 (input pull-down latch) whatever the chip stepping | 8 passives |
 | All parts on top, display module above them | Single-sided assembly is cheaper | Display must be removed to reach the Pico (BOOTSEL, SWD) |
@@ -108,7 +116,7 @@ An attacker needs the PIN, **and** must defeat the SE counter, **and** must read
 - **Reading the flash chip** (desoldering the W25Q on the Pico module): gets ciphertext only. This is exactly why the seed must never be in flash in plain form.
 - **Firmware replacement:** secure boot rejects unsigned images, and anti-rollback rejects old ones.
 - **SWD debugging:** disabled permanently in OTP.
-- **Sniffing the MCU↔SE bus:** defeated by Shielded Connection.
+- **Sniffing the MCU↔SE bus:** defeated by Platform SCP03, once provisioning has replaced NXP's published default keys.
 
 **What it does not fully resist (be aware)**
 - **Fault injection on the RP2350 (voltage/EM/laser glitching).** In Raspberry Pi's 2024–25 RP2350 hacking challenge, researchers broke the A2 stepping with glitching, and one team extracted OTP secrets. The A4 stepping fixed several of these, and the glitch detectors help, but a well-equipped lab attacker with your device for days is **not** stopped by the RP2350 alone. That's why the SE secret is part of the key derivation: glitching the MCU alone then shouldn't be enough.
@@ -120,7 +128,7 @@ An attacker needs the PIN, **and** must defeat the SE counter, **and** must read
 
 ## 6. Check these before ordering ⚠
 
-1. **OPTIGA footprint:** I built `Infineon_PG-USON-10-2_3x3mm_P0.5mm` from KiCad's USON-10 3×3 land pattern **without an exposed pad**. The pinout comes from datasheet rev 3.70 Table 6 (1 GND, 3 SDA, 8 SCL, 9 RST, 10 VCC, others NC), but I couldn't read the package drawing (Figure 6). **Compare the pads with Figure 6 and check whether there's a thermal/exposed pad.**
+1. **SE050 footprint:** `NXP_HX2QFN-20-1EP_3x3mm_P0.4mm_EP1.7x1.7mm` is KiCad's WQFN-20 3×3 P0.4 land pattern (0.2 × 0.825 mm pads, 1.7 × 1.7 mm centre pad). It matches the EasyEDA footprint LCSC publishes for C2659345, and the pinout is datasheet rev 3.7 Figure 4 / Table 5. NXP's site blocks automated downloads, so I couldn't read the SOT1969-1 package drawing itself. **Compare the pads with NXP's SOT1969-1 "reflow soldering footprint" before ordering.**
 2. **Display module pinout and outline:** J4 assumes the common 2.0" 240×320 ST7789V module order **GND, VCC, SCL, SDA, RES, DC, CS, BLK** and a ~60 × 36 mm outline (F.Fab rectangle). Waveshare and others use different orders. Buy the module first, then edit `NETS` in `design.py` to match. The firmware drives the panel landscape (`MADCTL 0x60` in `firmware/app/src/gfx.c`), assuming the module's native top edge points away from J4. If the picture is upside down on your module, use `0xA0`.
 3. **LiPo connector polarity:** pin 1 = BAT+. Many cheap packs are wired reversed for JST-PH. A reversed pack destroys the charger. Use a cell **with a protection circuit (PCM)**, ≤ 50 × 34 × 6 mm to sit behind the board, ≥ 500 mAh (charge current is set to 500 mA by R5 = 2 kΩ). The design uses **BT1 = 1S LiPo "503035" (5.0 × 30 × 35 mm, 500 mAh, PCM, JST-PH 2.0 lead)**: not a board part: it is drawn as an outline on B.Fab, and its STEP model rides on J2, the connector it plugs into (`tools/add_battery.py`). This keeps every board part matched to a schematic symbol, which Fusion's import requires, stuck behind the left half with 0.5 mm foam tape, clear of the J4 header pins and the antenna. It is not in the JLC BOM: buy it separately and **check the lead polarity before plugging in**.
 4. **LCSC numbers:** all checked against their LCSC product pages on 2026-11-02 (MPN, maker, value and package match for C1779, C19666, C22809, C4190, C23179, C424093). Stock was not visible there: JLCPCB's BOM step shows it for every line. Check it before paying.
@@ -174,7 +182,7 @@ Test in this order and stop at the first failure.
    - Buttons: read GPIO 12–15.
    - Display: ST7789 init, colour bars, backlight PWM.
    - SD: power on, card detect, read/write a test file, power off and check SD_VDD = 0 V.
-   - SE: power on, read the OPTIGA UID (`optiga_util_read_data` on object 0xE0C2), power off.
+   - SE: power on, read the SE050's unique ID with NXP's Plug & Trust middleware (I2C address 0x48), power off.
    - Battery ADC reads ~VBAT/2.
    - Charge status reads correctly.
    - BLE: advertise and connect from a phone (nRF Connect).
@@ -183,7 +191,7 @@ Test in this order and stop at the first failure.
 
 ## 9. Simulation results (sim/)
 
-`& "C:\Program Files\KiCad\10.0\bin\python.exe" hardware\sim\run_all.py` runs the whole suite. It takes about 15 s and writes [sim/report.md](sim/report.md). **Current status: 18/18 pass.**
+`& "C:\Program Files\KiCad\10.0\bin\python.exe" hardware\sim\run_all.py` runs the whole suite. It takes about 15 s and writes [sim/report.md](sim/report.md). **Current status: 19/19 pass.**
 
 ### Bugs the simulation found (fixed, values only: footprints and routing unchanged)
 
@@ -202,7 +210,7 @@ The simulation showed each of these failure modes when the rule is broken.
 
 1. **Before powering the SD card off (GP7 high), drive GP0–GP3 low or set them as inputs.** Leaving CS high back-powers the card to 2.6 V through its I/O pins.
 2. **After SD power-off, wait ≥ 150 ms before powering it back on.** SD_VDD needs about 132 ms to fall below 0.5 V, and the card only resets below that.
-3. **Before powering the SE off (GP11 high), pull RST (GP10) low.** Otherwise the SE's internal RST pull-up feeds about 1.5 V into SE_VCC, a half-powered state (pull-up value assumed). SE_VCC takes about 130 ms to reach 0.3 V.
+3. **SE050 reset = power cycle:** GP11 high for **≥ 40 ms** (SE_VCC takes about 35 ms to fall below 0.3 V). Keep GP8/GP9 open-drain with no internal pull-ups: driving SDA high while the SE is off back-powers it to about 1.5 V through the pull-up and its weak internal pull-up.
 4. **GP28 (battery ADC):** use `adc_gpio_init` (pulls and digital input off), and store a **one-point gain calibration** per device to remove the ±2.3 % ADC-impedance error.
 5. **GP5 (CHG_STAT):** read as an input with no internal pull. Low = charging, high = complete or no USB (use VBUS sense to tell those apart).
 6. **Buttons:** the hardware RC already gives exactly one edge per press. Firmware still needs the hold-to-confirm logic.

@@ -19,7 +19,7 @@ PICO = dict(D.TYPES["PICO2W"]["left"] + D.TYPES["PICO2W"]["right"])     # pin nu
 
 # ------------------------------------------------------------------ what connects to what
 # (pico pin, module, module pin, colour, what it is). Pins must match board_pins.h / design.py.
-SD, SE, LCD, CHG = "microSD breakout", "Trust M breakout", "Display", "Charger"
+SD, SE, LCD, CHG = "microSD breakout", "SE050 kit", "Display", "Charger"
 WIRES = [
     ("1", SD, "DO", "orange", "SD_MISO (SPI0 RX)"),
     ("2", SD, "CS", "orange", "SD_CS"),
@@ -28,7 +28,6 @@ WIRES = [
     ("9", SD, "CD", "white", "SD_DET (card detect)"),
     ("11", SE, "SDA", "blue", "SE_SDA (I2C0 SDA)"),
     ("12", SE, "SCL", "yellow", "SE_SCL (I2C0 SCL)"),
-    ("14", SE, "RST", "white", "SE_RST_N (only if the breakout has an RST pin)"),
     ("31", LCD, "SCL", "purple", "LCD_SCK (SPI1 SCK)"),
     ("32", LCD, "SDA", "purple", "LCD_MOSI (SPI1 TX)"),
     ("26", LCD, "RES", "purple", "LCD_RST"),
@@ -38,7 +37,7 @@ WIRES = [
 ]
 BUTTONS = [("16", "BACK"), ("17", "CONFIRM"), ("19", "UP"), ("20", "DOWN")]   # GP12, GP13, GP14, GP15
 POWER = [  # module pin -> rail
-    (SD, "3V", "3V3"), (SD, "GND", "GND"), (SE, "VIN", "3V3"), (SE, "GND", "GND"),
+    (SD, "3V", "3V3"), (SD, "GND", "GND"), (SE, "3.3V", "3V3"), (SE, "GND", "GND"),
     (LCD, "VCC", "3V3"), (LCD, "GND", "GND"), (LCD, "BLK", "3V3"), (CHG, "GND", "GND"),
 ]
 
@@ -188,8 +187,8 @@ def draw():
     mods = {
         SD: Module(SD, "microSD breakout (3.3 V)", BX + 30, 150, ["3V", "GND", "CLK", "DO", "DI", "CS", "CD"], "bottom",
                    (60, 90, 140), note="e.g. Adafruit #254"),
-        SE: Module(SE, "Infineon Trust M breakout", BX + 640, 150, ["VIN", "GND", "SCL", "SDA", "RST"], "bottom",
-                   (110, 60, 140), note="Adafruit #4351 (OPTIGA Trust M)"),
+        SE: Module(SE, "NXP SE050 kit (OM-SE050ARD)", BX + 640, 150, ["3.3V", "GND", "SCL", "SDA"], "bottom",
+                   (110, 60, 140), note="Arduino-header pins, jumper wires"),
         LCD: Module(LCD, "2.0in ST7789 display (ZJY200S10Z0TG01)", BX + 520, 1490,
                     ["GND", "VCC", "SCL", "SDA", "RES", "DC", "CS", "BLK"], "top", (40, 40, 60), w=760,
                     note="pin order as printed on the module"),
@@ -291,7 +290,7 @@ def markdown():
          "| 1 | Raspberry Pi Pico 2 W **with headers** (\"Pico 2 WH\") | Same module as on the PCB |",
          "| 1-2 | Full-size breadboard (830 holes) + jumper wires | |",
          "| 1 | 2.0in 240x320 IPS display, ST7789V, 8-pin **GND VCC SCL SDA RES DC CS BLK** (e.g. ZJY200S10Z0TG01) | The same module the PCB uses |",
-         "| 1 | Infineon OPTIGA Trust M breakout with 0.1in pins (Adafruit #4351) | The PCB's U2 is the bare chip; check which Trust M version the breakout carries (the PCB uses V3) |",
+         "| 1 | NXP SE050 development kit **OM-SE050ARD** (Arduino-shield format, SE050C2 configuration) | The PCB's U2 is the bare SE050C2 chip. Wire it with male-female jumpers from its Arduino header (SDA, SCL, 3.3V, GND); set its jumpers for 3.3 V I2C per NXP AN12395. It has its own I2C pull-ups, so add none |",
          "| 1 | microSD breakout that works at 3.3 V (e.g. Adafruit #254) | |",
          "| 4 | 6 mm tactile push buttons | BACK, CONFIRM, UP, DOWN |",
          "| 4 | 10 k resistors | Button pull-ups (as on the PCB) |",
@@ -318,7 +317,8 @@ def markdown():
           "battery, the radio, and all of the firmware.", "",
           "**Does not test** (PCB only):", "",
           "- The power switches Q1-Q5. Here the display, security chip and SD card are always powered and the "
-          "backlight is always on, so GP7, GP11, GP18 and GP19 switch nothing, and sleep current is higher.",
+          "backlight is always on, so GP7, GP11, GP18 and GP19 switch nothing, and sleep current is higher. "
+          "The SE050 has no reset pin (the PCB resets it by switching its power), so to reset it here, pull its 3.3V wire.",
           "- The battery/USB switch Q1: the diode does the same job, with a 0.3 V drop.",
           "- The PCB's USB-C port, fuse and USB protection (here the Pico's own micro-USB is used).",
           "- The charge-status pin GP5 (most charger breakouts only drive an LED).", "",
@@ -340,7 +340,7 @@ def check():
             if c.startswith("A1."):
                 pin_of[net] = c[3:]
     expect = {"SD_MISO": "1", "SD_CS": "2", "SD_SCK": "4", "SD_MOSI": "5", "SD_DET": "9", "SE_SDA": "11",
-              "SE_SCL": "12", "SE_RST_N": "14", "LCD_SCK": "31", "LCD_MOSI": "32", "LCD_RST": "26", "LCD_DC": "29",
+              "SE_SCL": "12", "LCD_SCK": "31", "LCD_MOSI": "32", "LCD_RST": "26", "LCD_DC": "29",
               "LCD_CS": "27", "BTN_BACK": "16", "BTN_CONFIRM": "17", "BTN_UP": "19", "BTN_DOWN": "20",
               "VSYS": "39", "VBAT_SENSE": "34", "VBUS": "40"}
     for net, pin in expect.items():

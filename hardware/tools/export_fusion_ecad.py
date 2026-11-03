@@ -90,7 +90,7 @@ def downgrade(text):
 
 def unique_pin_names(text):
     """Fusion (EAGLE) needs unique pin names in a symbol, and drops every connection of a
-    symbol that repeats one ("GND" x8 on the Pico, "NC" x5 on the OPTIGA...). Rename repeats
+    symbol that repeats one ("GND" x8 on the Pico, "NC" x7 on the SE050...). Rename repeats
     the EAGLE way, NAME@1, NAME@2, ..., which Fusion still displays as NAME. Pins connect
     by number, so the netlist does not change."""
     edits = []

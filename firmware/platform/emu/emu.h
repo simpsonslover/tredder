@@ -6,7 +6,7 @@
  * unmodified) on the PC against emulated peripherals:
  *   ST7789 panel    st7789_model.c  decodes the SPI command stream into GRAM
  *   buttons         GPIO levels set by the window / keyboard / robot
- *   OPTIGA Trust M  se_model.c      PIN counter, secret erase after 10 failures
+ *   NXP SE050       se_model.c      PIN counter, secret erase after 10 failures
  *   QSPI flash      flash_model.c   NOR semantics (erase to 0xFF, program clears bits)
  *   TRNG            OS CSPRNG raw bytes (health tests still run in firmware)
  *   BLE GATT        ws_link.c       WebSocket server carrying the same frames
@@ -96,7 +96,7 @@ void emu_log_lines(char out[LOG_LINES][160], int *n);
 void emu_logf(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 
 /* SW1 power switch. OFF halts the MCU and drops the link; ON again restarts the
-   process: RAM is lost, flash.bin and optiga.bin keep their contents (a real power cycle). */
+   process: RAM is lost, flash.bin and se050.bin keep their contents (a real power cycle). */
 bool emu_powered(void);
 void emu_power_switch(void);
 

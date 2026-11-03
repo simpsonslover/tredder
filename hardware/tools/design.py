@@ -50,14 +50,16 @@ TYPES = {
                ("TP1", "USB_GND"), ("TP2", "USB_DM"), ("TP3", "USB_DP"),
                ("TP4", "TP4_WL"), ("TP5", "TP5_WL"), ("TP6", "~{BOOTSEL}")]),
 
-    # Infineon OPTIGA Trust M (datasheet rev 3.70, Table 6).
-    "OPTIGA": dict(
-        prefix="U", w=8, show_pin_names=True,
-        left=[("10", "VCC"), ("9", "~{RST}"), ("3", "SDA"), ("8", "SCL"), ("1", "GND")],
-        right=[("2", "NC"), ("4", "NC"), ("5", "NC"), ("6", "NC"), ("7", "NC"),
-               # exposed pad (2.5 x 1.7 mm, datasheet Figure 6). The datasheet gives it no
-               # function, so it is soldered for mechanical support only and left floating.
-               ("11", "EP")]),
+    # NXP SE050 in HX2QFN20 / SOT1969-1 (datasheet rev 3.7, Figure 4 + Table 5).
+    "SE050": dict(
+        prefix="U", w=10, show_pin_names=True,
+        left=[("12", "VIN"), ("18", "VCC"), ("11", "ENA"), ("9", "I2C_SDA"), ("10", "I2C_SCL"),
+              ("19", "VSS"),
+              # centre pad: not connected inside the chip, NXP recommends GND (thermal)
+              ("21", "EP")],
+        right=[("1", "LB"), ("17", "LA"), ("14", "~{RST_7816}"), ("3", "IO1"), ("13", "CLK"),
+               ("16", "IO2"), ("15", "VOUT"), ("2", "NC"), ("4", "NC"), ("5", "NC"), ("6", "NC"),
+               ("7", "NC"), ("8", "NC"), ("20", "NC")]),
 
     "MCP73831": dict(
         prefix="U", w=8, show_pin_names=True,
@@ -114,15 +116,17 @@ part("A1", "PICO2W", "Raspberry Pi Pico 2 W", "wallet:RaspberryPi_Pico_2_W_SMD_S
      note="JLCPCB SMT-assembles the module (extended part); check RP2350 stepping (A4 or later) on arrival")
 
 # --- Secure element
-part("U2", "OPTIGA", "OPTIGA Trust M V3", "wallet:Infineon_PG-USON-10-2_3x3mm_P0.5mm",
-     "SLS32AIA010MKUSON10XTMB2", "", True, "se",
-     note="You buy and solder this one (JLCPCB cannot source it): Mouser / Digi-Key. Same chip, any of "
-          "SLS32AIA010MKUSON10XTMB2 (current), ...XTMA2 (older packing), or SLS32AIA010ML... (-40..105 C)")
+part("U2", "SE050", "SE050C2", "wallet:NXP_HX2QFN-20-1EP_3x3mm_P0.4mm_EP1.7x1.7mm",
+     "SE050C2HQ1/Z01SDZ", "", True, "se",
+     note="You buy and solder this one: Mouser / Digi-Key / Farnell (NXP authorised). The C2 variant: "
+          "ECC incl. secp256k1 + RSA, CC EAL6+. LCSC lists it as C2659345 with little stock.")
 part("Q2", "PMOS", "AO3401A", SOT23, "AO3401A", "C15127", True, "se", note="SE power switch, active-low")
 part("R12", "R", "2.2k", R0603, "0603WAF2201T5E", "C4190", True, "se",
      note="SE switch gate pull-up: must beat RP2350 reset pull-down (36k min) -> keeps Q2 OFF at boot (sim: reset_default_off)")
-part("R13", "R", "4.7k", R0603, "0603WAF4701T5E", "C23162", True, "se", note="I2C SDA pull-up")
-part("R14", "R", "4.7k", R0603, "0603WAF4701T5E", "C23162", True, "se", note="I2C SCL pull-up")
+part("R13", "R", "4.7k", R0603, "0603WAF4701T5E", "C23162", True, "se",
+     note="I2C SDA pull-up to the switched SE supply: an unpowered SE is never fed through its I/O pins")
+part("R14", "R", "4.7k", R0603, "0603WAF4701T5E", "C23162", True, "se",
+     note="I2C SCL pull-up to the switched SE supply")
 part("C4", "C", "100nF", C0603, "CC0603KRX7R9BB104", "C14663", True, "se")
 part("C5", "C", "1uF", C0603, "CL10A105KB8NNNC", "C15849", True, "se")
 
@@ -214,7 +218,9 @@ for h in ["H1", "H2", "H3", "H4"]:
 # ---------------------------------------------------------------- nets
 NETS = {
     "GND": ["A1.3", "A1.8", "A1.13", "A1.18", "A1.23", "A1.28", "A1.33", "A1.38", "A1.D2", "A1.TP1",
-            "U2.1", "C4.2", "C5.2",
+            # SE050: VSS, centre pad, and the unused LA/LB antenna and ISO7816 reset inputs
+            # (Table 5: "if not used connect to VSS")
+            "U2.19", "U2.21", "U2.1", "U2.17", "U2.14", "C4.2", "C5.2",
             "J1.A1", "J1.A12", "J1.B1", "J1.B12", "J1.SH", "R1.2", "R2.2", "U1.2",
             "U3.2", "C1.2", "C2.2", "R5.2", "R8.2", "J2.2", "SW1.4", "R9.2", "C3.2",
             "R11.2", "C16.2", "C14.2", "C15.2",
@@ -222,7 +228,7 @@ NETS = {
             "J4.1", "C9.2",
             "SW2.2", "SW3.2", "SW4.2", "SW5.2", "C10.2", "C11.2", "C12.2", "C13.2",
             ],
-    "+3V3": ["A1.36", "Q2.2", "R12.1", "R13.1", "R14.1", "C14.1", "C15.1",
+    "+3V3": ["A1.36", "Q2.2", "R12.1", "C14.1", "C15.1",
              "Q3.2", "R21.1", "C8.1", "R20.1", "Q4.2", "R25.1",
              "R26.1", "R27.1", "R28.1", "R29.1", ],
     "VBUS": ["A1.40", "F1.2", "U1.5", "U3.4", "C1.1", "R6.1", "Q1.1", "R9.1"],
@@ -243,11 +249,11 @@ NETS = {
     "CHG_PROG": ["U3.5", "R5.1"],
     "VBAT_SENSE": ["R10.2", "R11.1", "C16.1", "A1.34"],
     # Secure element
-    "SE_VCC": ["Q2.3", "U2.10", "C4.1", "C5.1"],
+    # SE050: no deep power-down (ENA tied high, VCC = VIN, VOUT open); reset = power cycle via Q2
+    "SE_VCC": ["Q2.3", "U2.12", "U2.18", "U2.11", "C4.1", "C5.1", "R13.1", "R14.1"],
     "SE_PWR_N": ["A1.15", "Q2.1", "R12.2"],
-    "SE_RST_N": ["A1.14", "U2.9"],
-    "SE_SDA": ["A1.11", "U2.3", "R13.2"],
-    "SE_SCL": ["A1.12", "U2.8", "R14.2"],
+    "SE_SDA": ["A1.11", "U2.9", "R13.2"],
+    "SE_SCL": ["A1.12", "U2.10", "R14.2"],
     # microSD (SPI1)
     "SD_VDD": ["Q3.3", "J3.4", "C6.1", "C7.1", "R15.1", "R16.1", "R17.1", "R18.1", "R19.1"],
     "SD_PWR_N": ["A1.10", "R23.1"],
@@ -281,14 +287,15 @@ NETS = {
 NETS["+3V3"] += ["Q5.2", "R30.1", "C17.1"]
 
 NC = ["A1.35", "A1.TP4", "A1.TP5", "A1.TP6",
-      # RUN has the Pico's own pull-up; SWD stays on the Pico's underside pads; GP4, GP16, GP17 unused
-      "A1.30", "A1.D1", "A1.D3", "A1.6", "A1.21", "A1.22",
-      "U2.2", "U2.4", "U2.5", "U2.6", "U2.7", "U2.11",
+      # RUN has the Pico's own pull-up; SWD stays on the Pico's underside pads; GP4, GP10, GP16, GP17 unused
+      "A1.30", "A1.D1", "A1.D3", "A1.6", "A1.14", "A1.21", "A1.22",
+      # SE050: ISO7816 IO1/CLK/IO2 "n.c. (recommended)", VOUT n.c. without deep power-down
+      "U2.2", "U2.3", "U2.4", "U2.5", "U2.6", "U2.7", "U2.8", "U2.13", "U2.15", "U2.16", "U2.20",
       "J1.A8", "J1.B8", "SW1.1", "SW1.6"]
 
 GROUP_TITLES = {
     "mcu": "MCU: Raspberry Pi Pico 2 W (RP2350 + CYW43439)",
-    "se": "Secure element: Infineon OPTIGA Trust M V3 (I2C0 GP8/9, switchable VCC)",
+    "se": "Secure element: NXP SE050C2 (I2C0 GP8/9, switchable VCC)",
     "usb": "USB-C: power + data (R3/R4 DNP = charge-only)",
     "power": "Battery, charger, load-sharing, hard power switch",
     "sd": "microSD (SPI0 GP0-3), power-gated",

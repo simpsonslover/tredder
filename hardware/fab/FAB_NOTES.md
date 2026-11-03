@@ -16,7 +16,7 @@ For assembly, also upload a BOM (`-bom-pcbway.csv` or `-bom-jlc.csv`) and the pi
 | Min track / spacing | 0.15 mm / 0.15 mm (6/6 mil); design rule floor 0.127 mm |
 | Min hole | 0.3 mm (vias 0.6/0.3 mm, power vias 0.8/0.4 mm) |
 | Via process | **Plugged** (JLCPCB's name for ink-plugged, mask-covered vias; was "tented"). Not "Untented"; filled & capped is not needed (no via-in-pad) |
-| Surface finish | **ENIG** (flat pads for the castellated Pico 2 W and the 0.5 mm-pitch OPTIGA) |
+| Surface finish | **ENIG** (flat pads for the castellated Pico 2 W and the 0.4 mm-pitch SE050) |
 | Copper | 1 oz outer, 0.5 oz inner |
 | Solder mask / silk | any colour (green / white is cheapest) |
 | Castellated holes | **no** (the Pico 2 W is the castellated part, the board has plain pads) |
@@ -38,17 +38,16 @@ For assembly, also upload a BOM (`-bom-pcbway.csv` or `-bom-jlc.csv`) and the pi
 - **Top side only.** Nothing is placed on the bottom (the battery is stuck on later).
 - **JLCPCB assembles everything except U2.** Choose **Standard PCBA** (J4 is a through-hole socket; the
   Pico 2 W C42394205 is an extended part). Upload `-bom-jlc.csv` + `-cpl-jlc.csv`.
-- **U2 (OPTIGA Trust M) is not on the JLCPCB order** (JLCPCB cannot source it): it is left out of the
-  JLC BOM and placement file, so its pads arrive bare. Buy it from Mouser / Digi-Key
-  (SLS32AIA010MKUSON10XTMB2, or ...XTMA2, or SLS32AIA010ML...: same V3 chip and package) and solder it:
-  solder paste, hot air or a hot plate; the pad underneath is floating (mechanical support only).
+- **U2 (NXP SE050C2) is not on the JLCPCB order:** it is left out of the JLC BOM and placement
+  file, so its pads arrive bare. Buy SE050C2HQ1/Z01SDZ from Mouser / Digi-Key / Farnell (NXP-authorised)
+  and solder it: 0.4 mm pitch, centre pad to GND; flux, solder paste, hot air or a hot plate.
 - **Not assembled:** the display module and the battery: they plug in (J4, J2).
 - **Do not fit:** H1-H4 (screw holes).
 - **Production option:** leave R3/R4 unfitted for a charge-only USB port (no USB data / BOOTSEL attack surface).
 - **Rotations:** `-cpl-jlc.csv` is already corrected for JLCPCB's own footprints (measured per part
   by `tools/jlc_rotation.py`: e.g. SOT-23 +180, SOT-23-5/-6 +270, LED +180, J4 +270 and moved
   8.89 mm). The plain `-cpl.csv` keeps KiCad's values for other assemblers. Still look at the
-  preview, especially pin 1 of U2, U1, U3, Q1-Q5 and the LED's polarity mark.
+  preview, especially pin 1 of U1, U3, Q1-Q5 and the LED's polarity mark.
 
 ## Before ordering
 

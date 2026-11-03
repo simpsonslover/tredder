@@ -9,10 +9,9 @@
 #define PIN_CHG_STAT     5u  /* input, no pull: low = charging, high = done / no USB [CHG_STAT] */
 #define PIN_SD_DET       6u  /* card detect, low = inserted (verify DM3AT switch polarity) [SD_DET] */
 #define PIN_SD_PWR_N     7u  /* low = SD card powered (Q3) [SD_PWR_N] */
-#define PIN_SE_SDA       8u  /* I2C0 SDA (4.7k pull-up) [SE_SDA] */
-#define PIN_SE_SCL       9u  /* I2C0 SCL (4.7k pull-up) [SE_SCL] */
-#define PIN_SE_RST_N    10u  /* OPTIGA reset, active low: drive LOW before SE power-off [SE_RST_N] */
-#define PIN_SE_PWR_N    11u  /* low = secure element powered (Q2) [SE_PWR_N] */
+#define PIN_SE_SDA       8u  /* I2C0 SDA (4.7k pull-up to the switched SE supply; no internal pulls) [SE_SDA] */
+#define PIN_SE_SCL       9u  /* I2C0 SCL (4.7k pull-up to the switched SE supply; no internal pulls) [SE_SCL] */
+#define PIN_SE_PWR_N    11u  /* low = SE050 powered (Q2); the SE050 has no reset pin: reset = power cycle [SE_PWR_N] */
 #define PIN_BTN_BACK    12u  /* active low, external pull-up + RC debounce [BTN_BACK] */
 #define PIN_BTN_CONFIRM 13u  /* active low, external pull-up + RC debounce [BTN_CONFIRM] */
 #define PIN_BTN_UP      14u  /* active low, external pull-up + RC debounce [BTN_UP] */

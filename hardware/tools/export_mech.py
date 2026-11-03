@@ -31,7 +31,7 @@ M3D = os.path.join(HW, "3d").replace("\\", "/") + "/"
 SIM_MODELS = {"A1": "pico2w_sim.step", "J4": "lcd_2in0_st7789_module_sim.step"}
 # parts with detailed library models: replaced by one box (height mm, colour, footprint rect or None = Fab outline)
 SIM_BOXES = {"J3": (2.0, (0.75, 0.75, 0.78), (-6.92, -7.83, 6.92, 8.12)),  # Hirose DM3AT body (Fab also draws the card)
-             "U2": (0.6, (0.1, 0.1, 0.1), None),      # OPTIGA, USON-10
+             "U2": (0.32, (0.1, 0.1, 0.1), None),     # SE050, HX2QFN-20
              "U3": (1.1, (0.1, 0.1, 0.1), None)}      # MCP73831 charger, SOT-23-5 (heat source while charging)
 SIM_REFS = ["A1", "J1", "J2", "J3", "J4", "SW1", "SW2", "SW3", "SW4", "SW5", "U2", "U3"]   # J2 also carries the battery model
 
@@ -131,7 +131,7 @@ BODIES = {
     ("sw_tact_xkb_ts1187a", "plunger"): ("nylon", "Button plunger (SW2-SW5)"),
     ("jst_ph_s2b_ph_sm4_tb", "housing"): ("nylon", "Battery connector J2"),
     ("J3", None): ("steel", "microSD socket J3"),
-    ("U2", None): ("mold", "OPTIGA U2"),
+    ("U2", None): ("mold", "SE050 U2"),
     ("U3", None): ("mold", "Charger U3 - heat 0.65 W when charging"),
 }
 FUSION_DIR = os.path.join(OUT, "fusion", "TredderSim")

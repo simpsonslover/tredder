@@ -330,7 +330,7 @@ static void paint(HDC dc, RECT *client) {
     text(dc, f_text, RGB(150, 170, 255), x, y, "ASLEEP: display off, radio off. Press any button to wake.");
     y += 22;
   }
-  snprintf(l, sizeof(l), "OPTIGA Trust M (U2):  PIN tries left %u/10", se_model_tries_left());
+  snprintf(l, sizeof(l), "SE050 (U2):  PIN tries left %u/10", se_model_tries_left());
   text(dc, f_text, PANEL_TXT, x, y, l);
   y += 22;
   snprintf(l, sizeof(l), "Flash + SE state:  %s", emu_opts.ephemeral ? "in memory (ephemeral)" : emu_opts.state_dir);

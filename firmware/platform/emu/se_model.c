@@ -1,13 +1,13 @@
 /*
- * Behavioural model of the OPTIGA Trust M as the firmware uses it (app/se.h):
- *   - data object holding a 32-byte secret, readable only after the PIN
- *     reference matches (Auto access condition)
- *   - limit-use counter: incremented and persisted BEFORE comparing, reset on
- *     success; at 10 the secret and reference are erased for good
+ * Behavioural model of the NXP SE050 as the firmware uses it (app/se.h):
+ *   - binary object holding a 32-byte secret, readable only in a session
+ *     authenticated with the PIN key
+ *   - attempt counter (the PIN key's MaxAttempts): spent and persisted BEFORE
+ *     comparing, reset on success; at 10 the secret and key are gone for good
  *   - TRNG output
- * Persisted to optiga.bin in the state directory, separately from flash.bin,
+ * Persisted to se050.bin in the state directory, separately from flash.bin,
  * the way the real chip is separate from the MCU's flash.
- * Not modelled: the I2C (IFX I2C / shielded connection) wire protocol.
+ * Not modelled: the I2C wire protocol (T=1 over I2C, Platform SCP03).
  */
 #include <string.h>
 
@@ -15,7 +15,7 @@
 #include "emu.h"
 #include "wallet/secure.h"
 
-#define SE_FILE "optiga.bin"
+#define SE_FILE "se050.bin"
 
 static struct {
   uint8_t magic[4];
@@ -31,9 +31,9 @@ static void save(void) {
 
 void se_model_load(void) {
   memset(&S, 0, sizeof(S));
-  if (!emu_opts.ephemeral && emu_read_file(SE_FILE, &S, sizeof(S)) && !memcmp(S.magic, "OPTM", 4)) return;
+  if (!emu_opts.ephemeral && emu_read_file(SE_FILE, &S, sizeof(S)) && !memcmp(S.magic, "SE05", 4)) return;
   memset(&S, 0, sizeof(S));
-  memcpy(S.magic, "OPTM", 4);
+  memcpy(S.magic, "SE05", 4);
 }
 
 se_status_t se_init(void) { return SE_OK; }
@@ -73,7 +73,7 @@ se_status_t se_pin_unlock(const uint8_t pin_ref[32], uint8_t secret[32], uint8_t
     wl_wipe(S.pin_ref, sizeof(S.pin_ref));
     S.provisioned = 0;
     save();
-    emu_logf("[optiga] limit-use counter reached %u: secret erased", SE_PIN_MAX_TRIES);
+    emu_logf("[se050] attempt counter reached %u: secret erased", SE_PIN_MAX_TRIES);
     return SE_BLOCKED;
   }
   return SE_WRONG_PIN;

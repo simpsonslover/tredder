@@ -126,7 +126,7 @@ def build():
          f'(uuid {q(ROOT_UUID)})', '(paper "A2")',
          '(title_block (title "Hardware wallet - Phase 1 main board") (date "2026-10-31") (rev "A")'
          ' (comment 1 "Generated from hardware/tools/design.py - edit there, not here")'
-         ' (comment 2 "RP2350 (Pico 2 W) + OPTIGA Trust M V3 + ST7789 + microSD + LiPo"))',
+         ' (comment 2 "RP2350 (Pico 2 W) + NXP SE050C2 + ST7789 + microSD + LiPo"))',
          "(lib_symbols"]
     s += [lib_symbol(t, True) for t in used_types]
     s.append(")")
@@ -138,8 +138,8 @@ def build():
     notes = [
         "SECURITY NOTES",
         "1. Seed is never stored in plain form: Pico flash (W25Q) is external and readable by desoldering.",
-        "2. SE VCC switched by Q2 (default off). Use OPTIGA Shielded Connection (encrypted I2C) - pairing secret in RP2350 OTP.",
-        "3. No test points on SE_SDA/SE_SCL on purpose. SWD: Tag-Connect footprint only, disabled via OTP in production.",
+        "2. SE VCC switched by Q2 (default off; reset = power cycle). Use SE050 Platform SCP03 (encrypted I2C) - own keys, rotated from NXP defaults.",
+        "3. No test points on SE_SDA/SE_SCL on purpose. SWD: Pico underside pads only, disabled via OTP in production.",
         "4. R3/R4 DNP = charge-only USB (removes USB attack surface; updates via signed image on microSD).",
         "5. microSD is untrusted input: separate SPI bus (SPI0; display on SPI1), power-gated by Q3, unpowered unless needed.",
         "6. SW1 pole B grounds 3V3_EN: device is fully off even with USB attached; charging still works.",

@@ -26,7 +26,7 @@ RP_VIH, RP_VIL = 2.0, 0.8
 RP_FT_POWERED, RP_FT_UNPOWERED = 5.5, 3.63
 VBUS_ABS = 6.0           # Pico VSYS / RT6154 input: keep below 6 V (datasheet VSYS max 5.5 V recommended)
 MCP_VDD_ABS = 7.0
-SE_VCC_MAX = 5.5
+SE_VCC_MAX = 3.6       # SE050 VIN/VCC operating maximum (datasheet Table 9; abs max 6 V)
 SD_VDD_MAX = 3.6
 
 
@@ -132,7 +132,7 @@ def invariants(res, r, c):
     res.le(f"[abs max] RP2350 FT pin margin vs 5.5 V powered / 3.63 V unpowered (worst: {worst_ft[0]} "
            f"{N.net_of_gpio(worst_ft[0])})", worst_ft[1], 0.0)
     res.le(f"[abs max] RP2350 ADC pin above IOVDD+0.5 (worst: {worst_adc[0]})", worst_adc[1], 0.0)
-    res.le("[abs max] OPTIGA VCC", float(V(r, "SE_VCC").max()), SE_VCC_MAX)
+    res.le("[max operating] SE050 VIN/VCC", float(V(r, "SE_VCC").max()), SE_VCC_MAX)
     res.le("[abs max] microSD VDD", float(V(r, "SD_VDD").max()), SD_VDD_MAX)
     res.le("[abs max] MCP73831 VDD (VBUS)", float(V(r, "VBUS").max()), MCP_VDD_ABS)
 
@@ -362,11 +362,10 @@ def t_sd_power():
 
 def t_se_power():
     res = Result("se_power", "Secure element power-up / hibernate",
-                 "GP11 low at 1 ms (SE on), RST released at 2 ms; at 20 ms RST low then GP11 high (off). "
-                 "Second run: firmware forgets to pull RST low before power-off.")
+                 "GP11 low at 1 ms (SE on), high at 21 ms (off: the SE050 has no reset pin, so this "
+                 "power cycle is its reset). Second run: firmware drives SDA (GP8) push-pull high while the SE is off.")
     on = [(0, 3.3), (1e-3, 3.3), (1.0001e-3, 0), (21e-3, 0), (21.0001e-3, 3.3)]
-    rst = [(0, 0), (2e-3, 0), (2.0001e-3, 3.3), (20e-3, 3.3), (20.0001e-3, 0)]
-    c = cfg(battery=dict(v=3.7), gpio={"GP11": ("pwl", on), "GP10": ("pwl", rst)}, analysis=".tran 2u 300m 0 50u")
+    c = cfg(battery=dict(v=3.7), gpio={"GP11": ("pwl", on)}, analysis=".tran 2u 300m 0 50u")
     r = sim(c)
     t, se, v3 = r["time"], V(r, "SE_VCC"), V(r, "+3V3")
     tup = cross(t, se, 3.2, after=1e-3)
@@ -376,12 +375,13 @@ def t_se_power():
     toff = cross(t, se, 0.3, rising=False, after=21e-3)
     res.info("SE_VCC below 0.3 V after power-off (hibernate)", (toff - 21e-3) * 1e3 if toff else 999, "ms", kind="RULE")
     invariants(res, r, c)
-    save_plot(res, r, [dict(ylabel="V", series=[("SE_VCC", se), ("SE_RST_N", V(r, "SE_RST_N")),
+    save_plot(res, r, [dict(ylabel="V", series=[("SE_VCC", se), ("SE_SDA", V(r, "SE_SDA")),
                                                ("SE_PWR_N (GP11)", V(r, "SE_PWR_N"))])], xscale=1e3, xlabel="time (ms)")
-    r2 = sim(cfg(battery=dict(v=3.7), gpio={"GP11": ("pwl", on), "GP10": ("pwl", [(0, 0), (2e-3, 0), (2.0001e-3, 3.3)])},
-                 analysis=".tran 2u 300m 0 50u"))
-    res.info("FIRMWARE MISTAKE: SE_VCC 'off' with RST left high (fed through internal pull-up, assumed 50 k)",
-             float(V(r2, "SE_VCC")[-1]), "V", kind="RULE")
+    res.le("SE_SDA idle level with the SE off (pull-ups follow the SE supply)",
+           float(V(r, "SE_SDA")[-1]), 0.3)
+    r2 = sim(cfg(battery=dict(v=3.7), gpio={"GP11": ("pwl", on), "GP8": "high"}, analysis=".tran 2u 300m 0 50u"))
+    res.info("FIRMWARE MISTAKE: SE_VCC 'off' with SDA driven high (fed through the 4.7k pull-up and the "
+             "SE's weak pull-up)", float(V(r2, "SE_VCC")[-1]), "V", kind="RULE")
     return res
 
 
@@ -393,7 +393,7 @@ def t_i2c():
     while t < 12e-6:
         pts += [(t, 0), (t + 5e-9, 1), (t + half, 1), (t + half + 5e-9, 0)]
         t += 2 * half
-    c = cfg(battery=dict(v=3.7), gpio={"GP11": "low", "GP10": "high", "GP8": ("od", pts), "GP9": "z"},
+    c = cfg(battery=dict(v=3.7), gpio={"GP11": "low", "GP8": ("od", pts), "GP9": "z"},
             extra=[f"Ctrace {N.node('SE_SDA')} 0 15p"], analysis=".tran 1n 12u")
     r = sim(c)
     tt, sda = r["time"], V(r, "SE_SDA")
@@ -511,7 +511,7 @@ def t_worst_load():
         burst += [(t, 0), (t + 10e-6, 0.06), (t + 1e-3, 0.06), (t + 1.01e-3, 0)]
         t += 4e-3
     c = cfg(battery=dict(v=3.4), mcu_load=0.08, mcu_burst=burst, card=dict(inserted=True, i=[(0, 0.1)]),
-            gpio={"GP7": "low", "GP11": "low", "GP10": "high", "GP19": "low"}, analysis=".tran 5u 20m")
+            gpio={"GP7": "low", "GP11": "low", "GP19": "low"}, analysis=".tran 5u 20m")
     r = sim(c)
     v3, vsys, i3 = V(r, "+3V3"), V(r, "VSYS"), r["i(va1im)"]
     res.ge("3V3 minimum", float(window(r, v3, 1e-3, 20e-3).min()), 3.15)
