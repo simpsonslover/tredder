@@ -78,6 +78,7 @@ static struct {
   char prefix[9];
   int picked;
   bool dirty;
+  uint8_t layout; /* L_*: welcome / locked / home drawn as screens, else a list */
 } S;
 
 static struct {
@@ -117,9 +118,44 @@ static void shuffle_u8(uint8_t *a, size_t n) {
 }
 
 static int line_h(const char *l);
+static wl_review_t local_rv; /* pages built by flows (not protocol prompts) */
 
 /* ---------------------------------------------------------------- drawing */
+/* Icons: Ionicons glyphs U+E000 + index (tools/gen_font.py ICONS, same order). */
+enum {
+  IC_LOCK, IC_UNLOCK, IC_ADD, IC_DOWNLOAD, IC_SAVE, IC_SHIELD, IC_TRASH, IC_KEY, IC_BLUETOOTH, IC_EYE_OFF,
+  IC_WALLET, IC_PHONE, IC_CHECK, IC_WARNING, IC_CLOSE, IC_INFO, IC_HOURGLASS, IC_REFRESH, IC_UNDO, IC_SWAP,
+  IC_DOC, IC_ALERT, IC_NONE = 255
+};
+
+static void icon(int x, int y, uint8_t ic, const wl_font_t *f, uint16_t color) {
+  if (ic == IC_NONE) return;
+  unsigned cp = 0xE000u + ic;
+  char s[4] = {(char)(0xE0 | (cp >> 12)), (char)(0x80 | ((cp >> 6) & 0x3F)), (char)(0x80 | (cp & 0x3F)), 0};
+  gfx_text(x, y, s, f, color);
+}
+
+/* Filled circle (rounded square with radius = half the size). */
+static void disc(int cx, int cy, int r, uint16_t color) { gfx_round_rect(cx - r, cy - r, 2 * r, 2 * r, r, color); }
+
 static uint16_t tone_color(uint8_t t) { return t == WL_TONE_DANGER ? C_DANGER : t == WL_TONE_WARN ? C_WARN : C_FG; }
+
+/* Icon for a menu entry, by its text (the texts are the firmware's own, see the flows below). */
+static uint8_t item_icon(const char *s) {
+  static const struct {
+    const char *prefix;
+    uint8_t ic;
+  } MAP[] = {
+      {"Create new wallet", IC_ADD}, {"Import seed", IC_DOWNLOAD}, {"Restore microSD", IC_SAVE}, {"Unlock", IC_UNLOCK},
+      {"Lock", IC_LOCK},           {"Blind signing", IC_EYE_OFF}, {"Back up", IC_SAVE},          {"Wipe", IC_TRASH},
+      {"Cancel", IC_UNDO},         {"Enter it again", IC_REFRESH}, {"Import & sweep", IC_SWAP},  {"Import as-is", IC_DOWNLOAD},
+      {"tredder-", IC_DOC},        {"✓ ", IC_CHECK},
+  };
+  for (unsigned i = 0; i < sizeof(MAP) / sizeof(MAP[0]); i++)
+    if (!strncmp(s, MAP[i].prefix, strlen(MAP[i].prefix))) return MAP[i].ic;
+  if (strstr(s, " words")) return IC_KEY;
+  return IC_NONE;
+}
 
 /* "12. word" style lines: the number in accent, the rest in white. */
 static int numbered_prefix(const char *l) {
@@ -130,53 +166,72 @@ static int numbered_prefix(const char *l) {
   return i > d && l[i] == '.' && l[i + 1] == ' ' ? i + 1 : 0;
 }
 
+static void chevron(int cx, int cy, uint16_t c) { /* the fonts have no U+203A: drawn */
+  for (int d = 0; d < 5; d++) {
+    gfx_fill(cx + d, cy - 4 + d, 2, 1, c);
+    gfx_fill(cx + d, cy + 4 - d, 2, 1, c);
+  }
+}
+
+/* List rows: icon, text, chevron on the selected one (a rounded "pill" with an accent edge). */
+static void draw_rows(int y, int row_h) {
+  int rows = (FOOT_Y - 2 - y) / row_h;
+  if (rows < 1) rows = 1;
+  if (S.cursor < S.scroll) S.scroll = S.cursor;
+  if (S.cursor >= S.scroll + rows) S.scroll = (uint8_t)(S.cursor - rows + 1);
+  for (int i = S.scroll; i < S.nitems && i < S.scroll + rows; i++) {
+    int ry = y + (i - S.scroll) * row_h;
+    bool sel = i == S.cursor;
+    const char *txt = S.items[i];
+    uint8_t ic = item_icon(txt);
+    bool danger = !strncmp(txt, "Wipe", 4);
+    if (!strncmp(txt, "✓ ", 4)) txt += 4; /* the icon says it */
+    if (sel) {
+      gfx_round_rect(4, ry + 1, GFX_W - 8, row_h - 2, 8, C_SEL);
+      gfx_fill(4, ry + 6, 3, row_h - 12, danger ? C_DANGER : C_ACCENT);
+    } else if (i > S.scroll) {
+      gfx_fill(ic == IC_NONE ? 12 : 40, ry, GFX_W - (ic == IC_NONE ? 24 : 52), 1, C_DARK); /* separator */
+    }
+    uint16_t fg = danger ? C_DANGER : sel ? C_ACCENT : C_FG;
+    int tx = 16;
+    if (ic != IC_NONE) {
+      icon(14, ry + (row_h - wl_icons.height) / 2, ic, &wl_icons, danger ? C_DANGER : sel ? C_ACCENT : C_DIM);
+      tx = 42;
+    }
+    gfx_text(tx, ry + (row_h - wl_font_body.height) / 2, txt, sel ? &wl_font_bold : &wl_font_body, fg);
+    if (sel) chevron(GFX_W - 20, ry + row_h / 2, danger ? C_DANGER : C_ACCENT);
+  }
+  if (S.scroll > 0) gfx_text(GFX_W - 18, y - 2, "▲", &wl_font_body, C_DIM);
+  if (S.scroll + rows < S.nitems) gfx_text(GFX_W - 18, FOOT_Y - 17, "▼", &wl_font_body, C_DIM);
+}
+
 static void draw_items(int y) {
   if (!S.nitems) return;
   if (S.cols == 1) {
-    int rows = (FOOT_Y - 2 - y) / ROW_H;
-    if (rows < 1) rows = 1;
-    if (S.cursor < S.scroll) S.scroll = S.cursor;
-    if (S.cursor >= S.scroll + rows) S.scroll = (uint8_t)(S.cursor - rows + 1);
-    for (int i = S.scroll; i < S.nitems && i < S.scroll + rows; i++) {
-      int ry = y + (i - S.scroll) * ROW_H;
-      bool sel = i == S.cursor;
-      if (i > S.scroll) gfx_fill(8, ry, GFX_W - 16, 1, C_DARK); /* separator */
-      if (sel) {
-        gfx_round_rect(4, ry + 2, GFX_W - 8, ROW_H - 3, 6, C_SEL);
-        gfx_fill(4, ry + 5, 3, ROW_H - 9, C_ACCENT);
-      }
-      gfx_text(16, ry + (ROW_H - wl_font_body.height) / 2, S.items[i], sel ? &wl_font_bold : &wl_font_body, sel ? C_ACCENT : C_FG);
-      if (sel) { /* chevron, drawn (the fonts have no U+203A) */
-        int cx = GFX_W - 20, cy = ry + ROW_H / 2;
-        for (int d = 0; d < 5; d++) {
-          gfx_fill(cx + d, cy - 4 + d, 2, 1, C_ACCENT);
-          gfx_fill(cx + d, cy + 4 - d, 2, 1, C_ACCENT);
-        }
-      }
-    }
-    if (S.scroll > 0) gfx_text(GFX_W / 2 - 5, y - 15, "▲", &wl_font_body, C_DIM);
-    if (S.scroll + rows < S.nitems) gfx_text(GFX_W / 2 - 5, FOOT_Y - 16, "▼", &wl_font_body, C_DIM);
+    draw_rows(y, ROW_H);
     return;
   }
   /* grid: PIN pad (digits, ←, ✓) and the word picker's letters */
   int first = 0;
   if (S.wide_first) {
     bool sel = S.cursor == 0;
-    gfx_round_rect(6, y, GFX_W - 12, 28, 6, sel ? C_OK : C_PANE);
-    gfx_text(16, y + (28 - wl_font_bold.height) / 2, S.items[0], &wl_font_bold, sel ? C_ON_ACCENT : C_OK);
+    gfx_round_rect(6, y, GFX_W - 12, 28, 8, sel ? C_OK : C_PANE);
+    icon(14, y + 5, IC_CHECK, &wl_icons, sel ? C_ON_ACCENT : C_OK);
+    gfx_text(38, y + (28 - wl_font_bold.height) / 2, S.items[0] + 4, &wl_font_bold, sel ? C_ON_ACCENT : C_OK);
     y += 32;
     first = 1;
   }
   bool pin = S.kind == K_PIN;
-  int cw = (GFX_W - 12) / S.cols, ch = pin ? 42 : 28;
+  int cw = (GFX_W - 12) / S.cols, ch = pin ? 44 : 28;
   const wl_font_t *f = pin ? &wl_font_title : &wl_font_bold;
   for (int i = first; i < S.nitems; i++) {
     int k = i - first, cx = 6 + (k % S.cols) * cw, cy = y + (k / S.cols) * ch;
     bool sel = i == S.cursor;
     bool enter = pin && !strcmp(S.items[i], "✓"), del = pin && !strcmp(S.items[i], "←");
-    uint16_t bg = sel ? C_ACCENT : C_PANE;
+    uint16_t bg = sel ? (enter ? C_OK : del ? C_DANGER : C_ACCENT) : C_PANE;
     uint16_t fg = sel ? C_ON_ACCENT : enter ? C_OK : del ? C_DANGER : C_FG;
-    gfx_round_rect(cx + 2, cy + 2, cw - 4, ch - 4, pin ? 8 : 5, bg);
+    gfx_round_rect(cx + 2, cy + 2, cw - 4, ch - 4, pin ? 10 : 6, bg);
+    if (pin && !sel) gfx_fill(cx + 8, cy + ch - 4, cw - 16, 1, C_DARK); /* key "depth" */
     int tw = gfx_text_width(S.items[i], f);
     gfx_text(cx + (cw - tw) / 2, cy + (ch - f->height) / 2, S.items[i], f, fg);
   }
@@ -187,27 +242,24 @@ static void draw_battery(int x, int y) {
   if (D.battery < 0) return;
   const int w = 22, h = 12;
   uint16_t c = D.charging ? C_OK : D.battery <= 15 ? C_DANGER : C_FG;
-  gfx_fill(x, y, w, 1, C_DIM);
-  gfx_fill(x, y + h - 1, w, 1, C_DIM);
-  gfx_fill(x, y, 1, h, C_DIM);
-  gfx_fill(x + w - 1, y, 1, h, C_DIM);
+  gfx_round_rect(x, y, w, h, 3, C_DIM);
+  gfx_round_rect(x + 1, y + 1, w - 2, h - 2, 2, C_BAR);
   gfx_fill(x + w, y + 3, 2, h - 6, C_DIM);
   int fw = (w - 4) * (D.battery > 100 ? 100 : D.battery) / 100;
   if (fw < 1 && D.battery > 0) fw = 1;
   gfx_fill(x + 2, y + 2, fw, h - 4, c);
 }
 
-/* Phone-link marker: ring, filled green when the paired app is connected. */
+/* Phone link: Bluetooth mark, green = paired app connected, yellow = unpaired app, grey = none. */
 static void draw_link(int x, int y) {
-  uint16_t c = D.app_connected ? (D.paired ? C_OK : C_WARN) : C_DIM;
-  gfx_round_rect(x, y, 10, 10, 5, c);
-  if (!D.app_connected) gfx_round_rect(x + 2, y + 2, 6, 6, 3, C_BAR);
+  icon(x, y, IC_BLUETOOTH, &wl_icons, D.app_connected ? (D.paired ? C_OK : C_WARN) : C_DIM);
 }
 
-/* Bottom legend bar: segments of the hint (split at double spaces) between thin separators. */
+/* Bottom bar: "key caps" for the buttons (▲▼ ✓ ✗) with their meaning. */
 static void draw_legend(void) {
   if (!S.hint[0]) return;
-  gfx_fill(0, FOOT_Y, GFX_W, GFX_H - FOOT_Y, C_PANE);
+  gfx_fill(0, FOOT_Y, GFX_W, GFX_H - FOOT_Y, C_BAR);
+  gfx_fill(0, FOOT_Y, GFX_W, 1, C_SHADOW);
   char seg[3][24];
   int n = 0;
   const char *p = S.hint;
@@ -221,12 +273,122 @@ static void draw_legend(void) {
     p = e;
     while (*p == ' ') p++;
   }
-  int sw = GFX_W / n;
+  int sw = GFX_W / n, fy = FOOT_Y + (GFX_H - FOOT_Y - wl_font_body.height) / 2 + 1;
   for (int i = 0; i < n; i++) {
-    if (i) gfx_fill(i * sw, FOOT_Y + 5, 2, GFX_H - FOOT_Y - 10, C_DARK);
-    int w = gfx_text_width(seg[i], &wl_font_body);
-    gfx_text(i * sw + (sw - w) / 2, FOOT_Y + (GFX_H - FOOT_Y - wl_font_body.height) / 2, seg[i], &wl_font_body, C_FG);
+    char *label = strchr(seg[i], ' ');
+    const char *key = seg[i];
+    if (label) *label++ = 0;
+    bool symbol = (unsigned char)key[0] >= 0xE2; /* ▲ ▼ ✓ ✗: a key cap */
+    int kw = symbol ? gfx_text_width(key, &wl_font_bold) + 10 : 0;
+    int lw = gfx_text_width(label && symbol ? label : seg[i], &wl_font_body);
+    int x = i * sw + (sw - kw - (symbol ? 6 : 0) - lw) / 2;
+    if (symbol) {
+      gfx_round_rect(x, FOOT_Y + 3, kw, GFX_H - FOOT_Y - 6, 4, C_DARK);
+      uint16_t kc = !strcmp(key, "✓") ? C_OK : !strcmp(key, "✗") ? C_DANGER : C_ACCENT;
+      gfx_text(x + 5, fy, key, &wl_font_bold, kc);
+      x += kw + 6;
+    }
+    gfx_text(x, fy, label && symbol ? label : seg[i], &wl_font_body, C_FG);
   }
+}
+
+/* The tredder mark (the app icon): two corner brackets around a T. */
+static void draw_logo(int x, int y, int s, uint16_t c) {
+  int t = s / 9 > 2 ? s / 9 : 2;
+  gfx_fill(x, y, s * 4 / 10, t, c);
+  gfx_fill(x, y, t, s * 4 / 10, c);
+  gfx_fill(x + s - s * 4 / 10, y + s - t, s * 4 / 10, t, c);
+  gfx_fill(x + s - t, y + s - s * 4 / 10, t, s * 4 / 10, c);
+  gfx_fill(x + s * 3 / 10, y + s * 3 / 10, s * 4 / 10, t, c);
+  gfx_fill(x + s / 2 - t / 2, y + s * 3 / 10, t, s * 4 / 10, c);
+}
+
+static void toolbar(const char *title, uint8_t tone, const char *suffix) {
+  gfx_fill(0, 0, GFX_W, TITLE_H, C_BAR);
+  gfx_fill(0, TITLE_H, GFX_W, 2, C_SHADOW);
+  int tx = 10;
+  if (tone != WL_TONE_NORMAL) {
+    gfx_fill(0, 0, 4, TITLE_H, tone_color(tone));
+    icon(10, (TITLE_H - wl_icons.height) / 2, tone == WL_TONE_DANGER ? IC_ALERT : IC_WARNING, &wl_icons, tone_color(tone));
+    tx = 34;
+  }
+  tx = gfx_text(tx, (TITLE_H - wl_font_title.height) / 2 + 1, title, &wl_font_title, tone_color(tone));
+  if (suffix) gfx_text(tx + 8, (TITLE_H - wl_font_body.height) / 2 + 1, suffix, &wl_font_body, C_ACCENT);
+  draw_battery(GFX_W - 54, 9);
+  draw_link(GFX_W - 24, 6);
+}
+
+/* Page dots under the title bar (multi-page reviews, word lists). */
+static void page_dots(void) {
+  if (S.nviews < 2 || S.nviews > 12) return;
+  int gap = 12, x = GFX_W / 2 - (S.nviews - 1) * gap / 2;
+  for (int i = 0; i < S.nviews; i++) disc(x + i * gap, FOOT_Y - 7, i == S.page ? 4 : 3, i == S.page ? C_ACCENT : C_DARK);
+}
+
+/* ---- special layouts (same screen data, drawn as a proper screen instead of a list) */
+enum { L_LIST = 0, L_WELCOME, L_LOCKED, L_HOME };
+
+static void draw_welcome(void) {
+  draw_logo(18, 44, 44, C_FG);
+  gfx_text(76, 46, "tredder", &wl_font_big, C_FG);
+  gfx_text(78, 80, "hardware wallet", &wl_font_body, C_DIM);
+  int y = 102;
+  for (uint8_t i = 0; i < S.nlines; i++, y += LINE_H) {
+    bool demo = !strncmp(S.lines[i], "DEMO", 4) || strstr(S.lines[i], "Nothing is saved");
+    if (demo && i == 0) icon(12, y, IC_WARNING, &wl_icons, C_WARN);
+    gfx_text(demo ? 34 : 12, y, S.lines[i], &wl_font_body, demo ? C_WARN : C_DIM);
+  }
+  draw_rows(y + 4, 28);
+}
+
+static void draw_locked(void) {
+  disc(GFX_W / 2, 82, 38, C_PANE);
+  icon(GFX_W / 2 - 24, 58, IC_LOCK, &wl_icons_big, C_ACCENT);
+  const char *t = "Locked";
+  gfx_text((GFX_W - gfx_text_width(t, &wl_font_title)) / 2, 126, t, &wl_font_title, C_FG);
+  int y = 152;
+  for (uint8_t i = 1; i < S.nlines && y < 186; i++, y += LINE_H) { /* line 0 is "Locked" */
+    uint16_t c = strstr(S.lines[i], "wrong") ? C_DANGER : C_WARN;
+    gfx_text((GFX_W - gfx_text_width(S.lines[i], &wl_font_body)) / 2, y, S.lines[i], &wl_font_body, c);
+  }
+  /* the one action as a big button */
+  int bw = 180, bx = (GFX_W - bw) / 2, by = 188;
+  gfx_round_rect(bx, by, bw, 26, 13, C_ACCENT);
+  int w = gfx_text_width("Unlock", &wl_font_bold) + 26;
+  icon(bx + (bw - w) / 2, by + 4, IC_UNLOCK, &wl_icons, C_ON_ACCENT);
+  gfx_text(bx + (bw - w) / 2 + 26, by + (26 - wl_font_bold.height) / 2, "Unlock", &wl_font_bold, C_ON_ACCENT);
+}
+
+static void draw_home(void) {
+  /* status card: unlocked + phone link (+ pending sweep) */
+  int extra = S.nlines > 2 ? (S.nlines - 2) * LINE_H : 0;
+  gfx_round_rect(4, BODY_Y - 2, GFX_W - 8, 46 + extra, 8, C_PANE);
+  disc(26, BODY_Y + 21, 15, C_OK);
+  icon(17, BODY_Y + 12, IC_UNLOCK, &wl_icons, C_ON_ACCENT);
+  gfx_text(50, BODY_Y + 2, S.nlines ? S.lines[0] : "", &wl_font_bold, C_OK);
+  if (S.nlines > 1) {
+    uint16_t c = D.app_connected ? (D.paired ? C_OK : C_WARN) : C_DIM;
+    icon(48, BODY_Y + 21, IC_BLUETOOTH, &wl_icons, c);
+    gfx_text(68, BODY_Y + 21, S.lines[1], &wl_font_body, C_FG);
+  }
+  for (uint8_t i = 2; i < S.nlines; i++) gfx_text(50, BODY_Y + 21 + (i - 1) * LINE_H, S.lines[i], &wl_font_body, C_WARN);
+  draw_rows(BODY_Y + 50 + extra, 25);
+}
+
+/* Big icon on single result / info screens. */
+static uint8_t info_icon(const wl_page_t *pg) {
+  if (pg->tone == WL_TONE_DANGER) return IC_CLOSE;
+  if (pg->tone == WL_TONE_WARN) return IC_WARNING;
+  if (!strcmp(S.hint, "please wait...")) return IC_HOURGLASS;
+  static const char *const OK[] = {"saved", "Ready", "Restored", "Wiped", "OK", "Imported", "paired", "sweep"};
+  for (unsigned i = 0; i < sizeof(OK) / sizeof(OK[0]); i++)
+    if (strstr(pg->title, OK[i])) return IC_CHECK;
+  if (strstr(pg->title, "microSD") || strstr(pg->title, "Backup") || strstr(pg->title, "backup")) return IC_SAVE;
+  return IC_INFO;
+}
+
+static uint16_t info_icon_color(uint8_t ic) {
+  return ic == IC_CLOSE ? C_DANGER : ic == IC_WARNING ? C_WARN : ic == IC_CHECK ? C_OK : C_ACCENT;
 }
 
 static void draw(void) {
@@ -237,51 +399,78 @@ static void draw(void) {
     pg = &S.rv->pages[S.vpage[S.page]];
     tone = pg->tone;
   }
-  /* toolbar */
-  gfx_fill(0, 0, GFX_W, TITLE_H, C_BAR);
-  gfx_fill(0, TITLE_H, GFX_W, 2, C_SHADOW);
-  if (tone != WL_TONE_NORMAL) gfx_fill(0, 0, 4, TITLE_H, tone_color(tone));
-  int tx = tone != WL_TONE_NORMAL ? 12 : 10;
-  if (tone != WL_TONE_NORMAL) tx = gfx_text(tx, (TITLE_H - wl_font_title.height) / 2 + 1, "! ", &wl_font_title, tone_color(tone));
-  tx = gfx_text(tx, (TITLE_H - wl_font_title.height) / 2 + 1, pg ? pg->title : S.title, &wl_font_title, tone_color(tone));
-  if (pg && S.nviews > 1) {
-    char pn[12];
-    snprintf(pn, sizeof(pn), "%u/%u", S.page + 1u, S.nviews);
-    gfx_text(tx + 8, (TITLE_H - wl_font_body.height) / 2 + 1, pn, &wl_font_body, C_ACCENT);
-  }
-  draw_battery(GFX_W - 52, 9);
-  draw_link(GFX_W - 18, 10);
+  toolbar(pg ? pg->title : S.title, tone, NULL);
 
-  int y = BODY_Y;
-  uint8_t first = pg ? S.vfirst[S.page] : 0, n = pg ? S.vcount[S.page] : S.nlines;
-  if (pg && n) { /* review pages sit on a highlight pane */
-    int h = 0;
-    for (uint8_t i = 0; i < n; i++) h += line_h(pg->lines[first + i]);
-    gfx_round_rect(4, BODY_Y - 4, GFX_W - 8, h + 8 > FOOT_Y - BODY_Y ? FOOT_Y - BODY_Y : h + 8, 8, C_PANE);
-  }
-  for (uint8_t i = 0; i < n; i++) {
-    const char *l = pg ? pg->lines[first + i] : S.lines[i];
-    if (l[0] == '\x01') { /* big line (codes, PIN dots, typed prefix): inset box, accent */
-      int w = gfx_text_width(l + 1, &wl_font_big), bw = w + 32 < 160 ? 160 : w + 32;
-      gfx_round_rect((GFX_W - bw) / 2, y - 1, bw, wl_font_big.height + 2, 8, C_DARK);
-      gfx_text((GFX_W - w) / 2, y, l + 1, &wl_font_big, C_ACCENT);
-      y += wl_font_big.height + 2;
-    } else {
-      int k = numbered_prefix(l);
-      int x = 12;
-      if (k) {
-        char num[8];
-        snprintf(num, sizeof(num), "%.*s", k, l);
-        gfx_text(x, y, num, &wl_font_body, C_ACCENT);
-        x += gfx_text_width("00. ", &wl_font_body);
-        gfx_text(x, y, l + k + 1, &wl_font_bold, C_FG);
-      } else {
-        gfx_text(x, y, l, &wl_font_body, pg ? C_FG : (i == 0 && S.kind == K_MENU ? C_DIM : C_FG));
+  if (S.kind == K_MENU && S.layout == L_WELCOME) draw_welcome();
+  else if (S.kind == K_MENU && S.layout == L_LOCKED) draw_locked();
+  else if (S.kind == K_MENU && S.layout == L_HOME) draw_home();
+  else {
+    int y = BODY_Y;
+    uint8_t first = pg ? S.vfirst[S.page] : 0, n = pg ? S.vcount[S.page] : S.nlines;
+    bool words = pg && n > 0;
+    for (uint8_t i = 0; words && i < n; i++) words = numbered_prefix(pg->lines[first + i]) > 0;
+    /* one-screen info / result pages from the device's own flows get a big icon */
+    bool hero = pg && !words && S.nviews == 1 && S.rv == &local_rv && n <= 7;
+    if (words) { /* seed words / backup password: one card per word, large */
+      for (uint8_t i = 0; i < n; i++, y += 42) {
+        const char *l = pg->lines[first + i];
+        int k = numbered_prefix(l);
+        char num[6];
+        snprintf(num, sizeof(num), "%.*s", k - 1, l);
+        const char *num_s = num;
+        while (*num_s == ' ') num_s++;
+        gfx_round_rect(8, y, GFX_W - 16, 38, 8, C_PANE);
+        disc(30, y + 19, 13, C_DARK);
+        gfx_text(30 - gfx_text_width(num_s, &wl_font_bold) / 2, y + 19 - wl_font_bold.height / 2, num_s, &wl_font_bold, C_ACCENT);
+        gfx_text(56, y + (38 - wl_font_title.height) / 2 + 1, l + k + 1, &wl_font_title, C_FG);
       }
-      y += LINE_H;
+    } else {
+      if (hero) {
+        uint8_t ic = info_icon(pg);
+        disc(GFX_W / 2, BODY_Y + 24, 26, C_PANE);
+        icon(GFX_W / 2 - 24, BODY_Y, ic, &wl_icons_big, info_icon_color(ic));
+        y = BODY_Y + 58;
+      } else if (pg && n) { /* review pages sit on a highlight pane */
+        int h = 0;
+        for (uint8_t i = 0; i < n; i++) h += line_h(pg->lines[first + i]);
+        gfx_round_rect(4, BODY_Y - 4, GFX_W - 8, h + 8 > FOOT_Y - BODY_Y - 14 ? FOOT_Y - BODY_Y - 14 : h + 8, 8, C_PANE);
+      }
+      for (uint8_t i = 0; i < n; i++) {
+        const char *l = pg ? pg->lines[first + i] : S.lines[i];
+        if (l[0] == '\x01' && S.kind == K_PIN) { /* PIN: one slot per digit (min 4, max 8) */
+          int slots = S.pinlen > 4 ? S.pinlen : 4, sx = GFX_W / 2 - (slots - 1) * 13;
+          if (S.pinlen < VAULT_PIN_MAX && slots < VAULT_PIN_MAX && S.pinlen >= 4) slots++, sx -= 13;
+          for (int d = 0; d < slots; d++) {
+            disc(sx + d * 26, y + 14, 9, d < S.pinlen ? C_ACCENT : C_DARK);
+            if (d >= S.pinlen) disc(sx + d * 26, y + 14, 7, C_BG);
+          }
+          y += 32;
+        } else if (l[0] == '\x01') { /* big line (codes, typed prefix): inset box, accent */
+          int w = gfx_text_width(l + 1, &wl_font_big), bw = w + 32 < 160 ? 160 : w + 32;
+          gfx_round_rect((GFX_W - bw) / 2, y - 1, bw, wl_font_big.height + 2, 8, C_DARK);
+          gfx_text((GFX_W - w) / 2, y, l + 1, &wl_font_big, C_ACCENT);
+          y += wl_font_big.height + 2;
+        } else {
+          int k = numbered_prefix(l);
+          int x = hero ? (GFX_W - gfx_text_width(l, &wl_font_body)) / 2 : 12;
+          if (k && !hero) {
+            char num[8];
+            snprintf(num, sizeof(num), "%.*s", k, l);
+            gfx_text(x, y, num, &wl_font_body, C_ACCENT);
+            x += gfx_text_width("00. ", &wl_font_body);
+            gfx_text(x, y, l + k + 1, &wl_font_bold, C_FG);
+          } else {
+            bool question = !pg && l[0] && l[strlen(l) - 1] == '?'; /* quiz / choices: the question stands out */
+            bool dim = !pg && i == 0 && S.kind == K_MENU && !question;
+            gfx_text(x, y, l, (hero && i == 0) || question ? &wl_font_bold : &wl_font_body, question ? C_ACCENT : dim ? C_DIM : C_FG);
+          }
+          y += LINE_H;
+        }
+      }
     }
+    if (pg) page_dots();
+    else draw_items(y + 6);
   }
-  draw_items(y + 6);
   draw_legend();
 }
 
@@ -298,7 +487,6 @@ static void show_menu(const char *title, wl_tone_t tone, result_fn on) {
   hint("▲▼ choose  ✓ select");
 }
 
-static wl_review_t local_rv; /* pages built by flows (not protocol prompts) */
 
 static int line_h(const char *l) { return l[0] == '\x01' ? wl_font_big.height + 2 : LINE_H; }
 
@@ -1181,6 +1369,7 @@ static void home_r(int r) {
 void ui_home(void) {
   if (!vault_initialized()) {
     show_menu("Welcome", WL_TONE_NORMAL, setup_r);
+    S.layout = L_WELCOME;
 #ifdef TREDDER_DEMO_NO_SE
     line("DEMO: no security chip.");
     line("Nothing is saved. Test only.");
@@ -1192,6 +1381,8 @@ void ui_home(void) {
     item("Restore microSD backup");
   } else if (!vault_unlocked()) {
     show_menu("tredder", WL_TONE_NORMAL, locked_r);
+    S.layout = L_LOCKED;
+    hint("✓ unlock");
     line("Locked");
     if (D.app_connected && !D.paired) {
       line("A phone wants to pair:");
@@ -1206,6 +1397,7 @@ void ui_home(void) {
     item("Unlock");
   } else {
     show_menu("tredder", WL_TONE_NORMAL, home_r);
+    S.layout = L_HOME;
     line("Unlocked");
     line(D.app_connected ? (D.paired ? "App connected, paired" : "App connected") : "No app connected");
     if (vault_has_sweep()) {
