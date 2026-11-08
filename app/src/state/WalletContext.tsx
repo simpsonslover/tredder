@@ -58,6 +58,13 @@ interface Ctx {
 const WalletCtx = createContext<Ctx | null>(null);
 const LAST_BLE = 'ble.last';
 
+/** "$1,234.56", compact for large totals ("$12.3M"); only characters the device accepts. */
+export function balanceText(usd: number): string {
+  if (!Number.isFinite(usd) || usd < 0) usd = 0;
+  if (usd >= 1e7) return `$${(usd / 1e6).toFixed(1)}M`;
+  return `$${usd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
 export function WalletProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
@@ -274,6 +281,14 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     }
   }, [accounts, settings.net]);
+
+  // The device's main page shows the total (display only; the device has no internet). Sent when
+  // the portfolio changes and the device is unlocked; a device that does not know the request (or is
+  // locked / unpaired) answers with an error, which is ignored.
+  useEffect(() => {
+    if (!device || device.info.locked || !portfolio) return;
+    void device.client.request({ type: 'set-balance', text: balanceText(portfolio.totalUsd) }).catch(() => undefined);
+  }, [device, portfolio]);
 
   // Load balances once accounts are known (deferred: not during render/effect body).
   useEffect(() => {

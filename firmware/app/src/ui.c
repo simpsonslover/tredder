@@ -15,6 +15,7 @@
 #include "app/firmware.h"
 #include "app/gfx.h"
 #include "app/hal.h"
+#include "app/proto.h"
 #include "app/rng.h"
 #include "app/sdbackup.h"
 #include "app/se.h"
@@ -41,6 +42,7 @@
 #define C_DANGER RGB565(255, 128, 128)
 #define C_OK RGB565(128, 255, 128)
 #define C_CELL C_PANE
+#define C_EDGE RGB565(96, 96, 96)      /* card outlines */
 
 #define TITLE_H 30
 #define BODY_Y 38
@@ -87,6 +89,7 @@ static struct {
   bool charging;
   uint32_t lockout_until;
   uint32_t now;
+  char balance[20]; /* total value as the phone app reported it (display only, not verified) */
 } D;
 
 /* ---------------------------------------------------------------- screen setup */
@@ -125,8 +128,12 @@ static wl_review_t local_rv; /* pages built by flows (not protocol prompts) */
 enum {
   IC_LOCK, IC_UNLOCK, IC_ADD, IC_DOWNLOAD, IC_SAVE, IC_SHIELD, IC_TRASH, IC_KEY, IC_BLUETOOTH, IC_EYE_OFF,
   IC_WALLET, IC_PHONE, IC_CHECK, IC_WARNING, IC_CLOSE, IC_INFO, IC_HOURGLASS, IC_REFRESH, IC_UNDO, IC_SWAP,
-  IC_DOC, IC_ALERT, IC_NONE = 255
+  IC_DOC, IC_ALERT, IC_LOGO, IC_NONE = 255
 };
+
+#ifndef FW_VERSION
+#define FW_VERSION "dev"
+#endif
 
 static void icon(int x, int y, uint8_t ic, const wl_font_t *f, uint16_t color) {
   if (ic == IC_NONE) return;
@@ -149,7 +156,9 @@ static uint8_t item_icon(const char *s) {
       {"Create new wallet", IC_ADD}, {"Import seed", IC_DOWNLOAD}, {"Restore microSD", IC_SAVE}, {"Unlock", IC_UNLOCK},
       {"Lock", IC_LOCK},           {"Blind signing", IC_EYE_OFF}, {"Back up", IC_SAVE},          {"Wipe", IC_TRASH},
       {"Cancel", IC_UNDO},         {"Enter it again", IC_REFRESH}, {"Import & sweep", IC_SWAP},  {"Import as-is", IC_DOWNLOAD},
-      {"tredder-", IC_DOC},        {"✓ ", IC_CHECK},
+      {"tredder-", IC_DOC},        {"✓ ", IC_CHECK},           {"New wallet", IC_ADD},       {"Import wallet", IC_DOWNLOAD},
+      {"Restore from", IC_SAVE},   {"Backup", IC_SAVE},           {"Unpair", IC_BLUETOOTH},     {"Settings", IC_KEY},
+      {"About", IC_INFO},
   };
   for (unsigned i = 0; i < sizeof(MAP) / sizeof(MAP[0]); i++)
     if (!strncmp(s, MAP[i].prefix, strlen(MAP[i].prefix))) return MAP[i].ic;
@@ -186,20 +195,18 @@ static void draw_rows(int y, int row_h) {
     uint8_t ic = item_icon(txt);
     bool danger = !strncmp(txt, "Wipe", 4);
     if (!strncmp(txt, "✓ ", 4)) txt += 4; /* the icon says it */
-    if (sel) {
-      gfx_round_rect(4, ry + 1, GFX_W - 8, row_h - 2, 8, C_SEL);
-      gfx_fill(4, ry + 6, 3, row_h - 12, danger ? C_DANGER : C_ACCENT);
-    } else if (i > S.scroll) {
-      gfx_fill(ic == IC_NONE ? 12 : 40, ry, GFX_W - (ic == IC_NONE ? 24 : 52), 1, C_DARK); /* separator */
-    }
+    /* a card per entry: outlined, filled + accent outline when selected */
+    uint16_t edge = sel ? (danger ? C_DANGER : C_ACCENT) : C_EDGE;
+    gfx_round_rect(6, ry + 2, GFX_W - 12, row_h - 4, 9, edge);
+    gfx_round_rect(sel ? 8 : 7, ry + (sel ? 4 : 3), GFX_W - (sel ? 16 : 14), row_h - (sel ? 8 : 6), 8, sel ? C_SEL : C_BG);
     uint16_t fg = danger ? C_DANGER : sel ? C_ACCENT : C_FG;
-    int tx = 16;
+    int tx = 18;
     if (ic != IC_NONE) {
-      icon(14, ry + (row_h - wl_icons.height) / 2, ic, &wl_icons, danger ? C_DANGER : sel ? C_ACCENT : C_DIM);
-      tx = 42;
+      icon(18, ry + (row_h - wl_icons.height) / 2, ic, &wl_icons, danger ? C_DANGER : sel ? C_ACCENT : C_DIM);
+      tx = 44;
     }
-    gfx_text(tx, ry + (row_h - wl_font_body.height) / 2, txt, sel ? &wl_font_bold : &wl_font_body, fg);
-    if (sel) chevron(GFX_W - 20, ry + row_h / 2, danger ? C_DANGER : C_ACCENT);
+    gfx_text(tx, ry + (row_h - wl_font_bold.height) / 2, txt, &wl_font_bold, fg);
+    chevron(GFX_W - 24, ry + row_h / 2, sel ? (danger ? C_DANGER : C_ACCENT) : C_DIM);
   }
   if (S.scroll > 0) gfx_text(GFX_W - 18, y - 2, "▲", &wl_font_body, C_DIM);
   if (S.scroll + rows < S.nitems) gfx_text(GFX_W - 18, FOOT_Y - 17, "▼", &wl_font_body, C_DIM);
@@ -222,7 +229,27 @@ static void draw_items(int y) {
     first = 1;
   }
   bool pin = S.kind == K_PIN;
-  int cw = (GFX_W - 12) / S.cols, ch = pin ? 44 : 28;
+  if (pin) { /* 1-9 / ← 0 in three columns, ✓ as a tall key at the right */
+    for (int i = 0; i < S.nitems; i++) {
+      bool sel = i == S.cursor;
+      bool enter = !strcmp(S.items[i], "✓"), del = !strcmp(S.items[i], "←");
+      int col, row;
+      if (i < 9) col = i % 3, row = i / 3;           /* 1..9 */
+      else if (i == 9) col = 1, row = 3;              /* 0 */
+      else if (del) col = 0, row = 3;
+      else col = 3, row = 2;                          /* ✓ */
+      int kw = col == 3 ? 72 : 66, kh = 30, kx = 12 + col * 72 + (col == 3 ? 12 : 0), ky = y + row * (kh + 2);
+      int h = enter ? 2 * kh + 2 : kh;
+      uint16_t bg = sel ? (enter ? C_OK : del ? C_DANGER : C_ACCENT) : C_PANE;
+      uint16_t fg = sel ? C_ON_ACCENT : enter ? C_OK : del ? C_DANGER : C_FG;
+      gfx_round_rect(kx, ky, kw, h, 8, bg);
+      if (!sel) gfx_fill(kx + 6, ky + h - 1, kw - 12, 1, C_DARK);
+      int tw = gfx_text_width(S.items[i], &wl_font_title);
+      gfx_text(kx + (kw - tw) / 2, ky + (h - wl_font_title.height) / 2, S.items[i], &wl_font_title, fg);
+    }
+    return;
+  }
+  int cw = (GFX_W - 12) / S.cols, ch = 28;
   const wl_font_t *f = pin ? &wl_font_title : &wl_font_bold;
   for (int i = first; i < S.nitems; i++) {
     int k = i - first, cx = 6 + (k % S.cols) * cw, cy = y + (k / S.cols) * ch;
@@ -292,21 +319,15 @@ static void draw_legend(void) {
   }
 }
 
-/* The tredder mark (the app icon): two corner brackets around a T. */
-static void draw_logo(int x, int y, int s, uint16_t c) {
-  int t = s / 9 > 2 ? s / 9 : 2;
-  gfx_fill(x, y, s * 4 / 10, t, c);
-  gfx_fill(x, y, t, s * 4 / 10, c);
-  gfx_fill(x + s - s * 4 / 10, y + s - t, s * 4 / 10, t, c);
-  gfx_fill(x + s - t, y + s - s * 4 / 10, t, s * 4 / 10, c);
-  gfx_fill(x + s * 3 / 10, y + s * 3 / 10, s * 4 / 10, t, c);
-  gfx_fill(x + s / 2 - t / 2, y + s * 3 / 10, t, s * 4 / 10, c);
-}
-
-static void toolbar(const char *title, uint8_t tone, const char *suffix) {
+static void toolbar(const char *title, uint8_t tone, const char *suffix, bool logo) {
   gfx_fill(0, 0, GFX_W, TITLE_H, C_BAR);
   gfx_fill(0, TITLE_H, GFX_W, 2, C_SHADOW);
   int tx = 10;
+  if (logo) {
+    gfx_round_rect(6, 3, 24, 24, 5, C_DARK);
+    icon(9, 6, IC_LOGO, &wl_icons, C_FG);
+    tx = 38;
+  }
   if (tone != WL_TONE_NORMAL) {
     gfx_fill(0, 0, 4, TITLE_H, tone_color(tone));
     icon(10, (TITLE_H - wl_icons.height) / 2, tone == WL_TONE_DANGER ? IC_ALERT : IC_WARNING, &wl_icons, tone_color(tone));
@@ -322,23 +343,20 @@ static void toolbar(const char *title, uint8_t tone, const char *suffix) {
 static void page_dots(void) {
   if (S.nviews < 2 || S.nviews > 12) return;
   int gap = 12, x = GFX_W / 2 - (S.nviews - 1) * gap / 2;
-  for (int i = 0; i < S.nviews; i++) disc(x + i * gap, FOOT_Y - 7, i == S.page ? 4 : 3, i == S.page ? C_ACCENT : C_DARK);
+  int dy = S.final_ok ? FOOT_Y - 4 : FOOT_Y - 7;
+  for (int i = 0; i < S.nviews; i++) disc(x + i * gap, dy, i == S.page ? 4 : 3, i == S.page ? C_ACCENT : C_DARK);
 }
 
 /* ---- special layouts (same screen data, drawn as a proper screen instead of a list) */
 enum { L_LIST = 0, L_WELCOME, L_LOCKED, L_HOME };
 
 static void draw_welcome(void) {
-  draw_logo(18, 44, 44, C_FG);
-  gfx_text(76, 46, "tredder", &wl_font_big, C_FG);
-  gfx_text(78, 80, "hardware wallet", &wl_font_body, C_DIM);
-  int y = 102;
-  for (uint8_t i = 0; i < S.nlines; i++, y += LINE_H) {
-    bool demo = !strncmp(S.lines[i], "DEMO", 4) || strstr(S.lines[i], "Nothing is saved");
-    if (demo && i == 0) icon(12, y, IC_WARNING, &wl_icons, C_WARN);
-    gfx_text(demo ? 34 : 12, y, S.lines[i], &wl_font_body, demo ? C_WARN : C_DIM);
+  int y = BODY_Y;
+  for (uint8_t i = 0; i < S.nlines; i++, y += LINE_H) { /* demo builds: the warning */
+    if (i == 0) icon(10, y, IC_WARNING, &wl_icons, C_WARN);
+    gfx_text(32, y, S.lines[i], &wl_font_body, C_WARN);
   }
-  draw_rows(y + 4, 28);
+  draw_rows(S.nlines ? y + 4 : BODY_Y + 4, S.nlines ? 40 : 52);
 }
 
 static void draw_locked(void) {
@@ -360,19 +378,35 @@ static void draw_locked(void) {
 }
 
 static void draw_home(void) {
-  /* status card: unlocked + phone link (+ pending sweep) */
-  int extra = S.nlines > 2 ? (S.nlines - 2) * LINE_H : 0;
-  gfx_round_rect(4, BODY_Y - 2, GFX_W - 8, 46 + extra, 8, C_PANE);
-  disc(26, BODY_Y + 21, 15, C_OK);
-  icon(17, BODY_Y + 12, IC_UNLOCK, &wl_icons, C_ON_ACCENT);
-  gfx_text(50, BODY_Y + 2, S.nlines ? S.lines[0] : "", &wl_font_bold, C_OK);
-  if (S.nlines > 1) {
-    uint16_t c = D.app_connected ? (D.paired ? C_OK : C_WARN) : C_DIM;
-    icon(48, BODY_Y + 21, IC_BLUETOOTH, &wl_icons, c);
-    gfx_text(68, BODY_Y + 21, S.lines[1], &wl_font_body, C_FG);
+  /* the money, as the phone app reported it (the device has no internet; display only) */
+  int y = BODY_Y - 2;
+  if (D.balance[0]) {
+    gfx_text(14, y, D.balance, &wl_font_big, C_FG);
+    gfx_text(14, y + wl_font_big.height, "total, from your phone", &wl_font_body, C_DIM);
+  } else {
+    gfx_text(14, y, "$ \xe2\x80\x94", &wl_font_big, C_DIM);
+    gfx_text(14, y + wl_font_big.height, D.app_connected ? "waiting for the app" : "open the app to see it", &wl_font_body, C_DIM);
   }
-  for (uint8_t i = 2; i < S.nlines; i++) gfx_text(50, BODY_Y + 21 + (i - 1) * LINE_H, S.lines[i], &wl_font_body, C_WARN);
-  draw_rows(BODY_Y + 50 + extra, 25);
+  y += wl_font_big.height + LINE_H + 2;
+  for (uint8_t i = 2; i < S.nlines && i < 3; i++, y += LINE_H) { /* e.g. "Imported seed waiting" */
+    icon(12, y, IC_WARNING, &wl_icons, C_WARN);
+    gfx_text(34, y, S.lines[i], &wl_font_body, C_WARN);
+  }
+  draw_rows(y, (FOOT_Y - 2 - y) / 4 > 34 ? 34 : (FOOT_Y - 2 - y) / 4);
+}
+
+/* Approval screens (the last page of a request, "Pair phone?" too): ✗ and ✓ as two buttons. */
+static bool approve_view(void) { return S.kind == K_PAGES && S.final_ok && S.page == S.nviews - 1; }
+
+static void draw_decision(void) {
+  const int y = FOOT_Y - 12, h = GFX_H - y - 3, w = 96;
+  gfx_round_rect(6, y, w, h, 8, C_DANGER);
+  gfx_round_rect(8, y + 2, w - 4, h - 4, 7, C_BG);
+  int tw = gfx_text_width("✗ reject", &wl_font_bold);
+  gfx_text(6 + (w - tw) / 2, y + (h - wl_font_bold.height) / 2, "✗ reject", &wl_font_bold, C_DANGER);
+  gfx_round_rect(GFX_W - 6 - w, y, w, h, 8, C_OK);
+  tw = gfx_text_width("✓ accept", &wl_font_bold);
+  gfx_text(GFX_W - 6 - w + (w - tw) / 2, y + (h - wl_font_bold.height) / 2, "✓ accept", &wl_font_bold, C_ON_ACCENT);
 }
 
 /* Big icon on single result / info screens. */
@@ -399,13 +433,13 @@ static void draw(void) {
     pg = &S.rv->pages[S.vpage[S.page]];
     tone = pg->tone;
   }
-  toolbar(pg ? pg->title : S.title, tone, NULL);
+  toolbar(pg ? pg->title : S.title, tone, NULL, S.kind == K_MENU && (S.layout == L_WELCOME || S.layout == L_HOME));
 
   if (S.kind == K_MENU && S.layout == L_WELCOME) draw_welcome();
   else if (S.kind == K_MENU && S.layout == L_LOCKED) draw_locked();
   else if (S.kind == K_MENU && S.layout == L_HOME) draw_home();
   else {
-    int y = BODY_Y;
+    int y = S.kind == K_PIN ? BODY_Y - 2 : BODY_Y;
     uint8_t first = pg ? S.vfirst[S.page] : 0, n = pg ? S.vcount[S.page] : S.nlines;
     bool words = pg && n > 0;
     for (uint8_t i = 0; words && i < n; i++) words = numbered_prefix(pg->lines[first + i]) > 0;
@@ -437,14 +471,17 @@ static void draw(void) {
       }
       for (uint8_t i = 0; i < n; i++) {
         const char *l = pg ? pg->lines[first + i] : S.lines[i];
-        if (l[0] == '\x01' && S.kind == K_PIN) { /* PIN: one slot per digit (min 4, max 8) */
-          int slots = S.pinlen > 4 ? S.pinlen : 4, sx = GFX_W / 2 - (slots - 1) * 13;
-          if (S.pinlen < VAULT_PIN_MAX && slots < VAULT_PIN_MAX && S.pinlen >= 4) slots++, sx -= 13;
+        if (l[0] == '\x01' && S.kind == K_PIN) { /* PIN: wide entry box, one slot per digit */
+          gfx_round_rect(12, y, 210, 32, 9, C_EDGE);
+          gfx_round_rect(13, y + 1, 208, 30, 8, C_DARK);
+          int slots = S.pinlen > 4 ? S.pinlen : 4;
+          if (S.pinlen < VAULT_PIN_MAX && S.pinlen >= 4) slots++;
+          int sx = 117 - (slots - 1) * 12;
           for (int d = 0; d < slots; d++) {
-            disc(sx + d * 26, y + 14, 9, d < S.pinlen ? C_ACCENT : C_DARK);
-            if (d >= S.pinlen) disc(sx + d * 26, y + 14, 7, C_BG);
+            disc(sx + d * 24, y + 16, 7, d < S.pinlen ? C_ACCENT : C_EDGE);
+            if (d >= S.pinlen) disc(sx + d * 24, y + 16, 5, C_DARK);
           }
-          y += 32;
+          y += 36;
         } else if (l[0] == '\x01') { /* big line (codes, typed prefix): inset box, accent */
           int w = gfx_text_width(l + 1, &wl_font_big), bw = w + 32 < 160 ? 160 : w + 32;
           gfx_round_rect((GFX_W - bw) / 2, y - 1, bw, wl_font_big.height + 2, 8, C_DARK);
@@ -452,7 +489,7 @@ static void draw(void) {
           y += wl_font_big.height + 2;
         } else {
           int k = numbered_prefix(l);
-          int x = hero ? (GFX_W - gfx_text_width(l, &wl_font_body)) / 2 : 12;
+          int x = hero ? (GFX_W - gfx_text_width(l, &wl_font_body)) / 2 : S.kind == K_PIN ? 117 - gfx_text_width(l, &wl_font_body) / 2 : 12;
           if (k && !hero) {
             char num[8];
             snprintf(num, sizeof(num), "%.*s", k, l);
@@ -469,9 +506,10 @@ static void draw(void) {
       }
     }
     if (pg) page_dots();
-    else draw_items(y + 6);
+    else draw_items(S.kind == K_PIN ? y + 2 : y + 6);
   }
-  draw_legend();
+  if (approve_view()) draw_decision();
+  else draw_legend();
 }
 
 void ui_render(void) {
@@ -500,7 +538,8 @@ static void build_views(void) {
       if (S.nviews >= sizeof(S.vpage)) return; /* cannot happen: every line fits a view */
       uint8_t v = S.nviews++, start = i;
       int h = 0;
-      while (i < pg->n && (i == start || h + line_h(pg->lines[i]) <= FOOT_Y - BODY_Y)) h += line_h(pg->lines[i++]);
+      int room = (S.final_ok ? FOOT_Y - 14 : FOOT_Y - 6) - BODY_Y;
+      while (i < pg->n && (i == start || h + line_h(pg->lines[i]) <= room)) h += line_h(pg->lines[i++]);
       S.vpage[v] = p, S.vfirst[v] = start, S.vcount[v] = (uint8_t)(i - start);
     } while (i < pg->n);
   }
@@ -1329,12 +1368,48 @@ static void blind_r(int r) {
   }
 }
 
+static void settings(void);
+static void unpair_r(int r) {
+  if (r) {
+    bool had = proto_paired();
+    proto_forget_pairing();
+    hal_log("phone unpaired by the user");
+    status_info("Unpaired", WL_TONE_NORMAL, had ? "The phone app is no longer" : "No phone was paired.", had ? "paired. To use it again," : NULL,
+                had ? "pair and compare the code." : NULL);
+    return;
+  }
+  flow_end();
+}
+
 static void home_r(int r) {
   switch (r) {
     case 0:
+      F.after_pin = AFTER_BACKUP;
+      show_pin("PIN to confirm", "Back up to microSD", after_pin_r);
+      break;
+    case 1: {
+      wl_review_init(&local_rv);
+      wl_page_t *p = wl_review_page(&local_rv, "Unpair phone?", WL_TONE_WARN);
+      wl_page_line(p, "The phone app loses access.");
+      wl_page_line(p, "Pairing again needs this");
+      wl_page_line(p, "device, the PIN and the code.");
+      show_pages(&local_rv, true, unpair_r);
+      break;
+    }
+    case 2:
       fw_lock("user");
       break;
-    case 1:
+    case 3:
+      settings();
+      break;
+    default:
+      break;
+  }
+}
+
+static void settings_r(int r) {
+  switch (r) {
+    case 0:
       if (vault_blind_signing()) {
         vault_set_blind_signing(false);
         ui_home();
@@ -1351,34 +1426,53 @@ static void home_r(int r) {
         show_pages(&local_rv, true, blind_r);
       }
       break;
-    case 2:
-      F.after_pin = AFTER_BACKUP;
-      show_pin("PIN to confirm", "Back up to microSD", after_pin_r);
-      break;
-    case 3:
+    case 1:
       import_flow();
       break;
-    case 4:
+    case 2:
       danger_confirm(AFTER_WIPE, "Wipe device?", "Erases the seed.", "Only your written backup", "can restore the funds.");
       break;
+    case 3: {
+#ifdef TREDDER_DEMO_NO_SE
+      const char *b = "Demo build: no security";
+      const char *c = "chip, nothing is saved.";
+#else
+      const char *b = "Keys in the NXP SE050";
+      const char *c = "secure element.";
+#endif
+      status_info("About", WL_TONE_NORMAL, "tredder " FW_VERSION, b, c);
+      break;
+    }
     default:
+      flow_end(); /* back */
       break;
   }
 }
 
+static void settings(void) {
+  show_menu("Settings", WL_TONE_NORMAL, settings_r);
+  item(vault_blind_signing() ? "Blind signing: ON" : "Blind signing: off");
+  item("Import seed phrase");
+  item("Wipe device");
+  item("About");
+}
+
+void ui_set_balance(const char *text) {
+  snprintf(D.balance, sizeof(D.balance), "%s", text ? text : "");
+  if (S.layout == L_HOME) S.dirty = true;
+}
+
 void ui_home(void) {
   if (!vault_initialized()) {
-    show_menu("Welcome", WL_TONE_NORMAL, setup_r);
+    show_menu("Setup", WL_TONE_NORMAL, setup_r);
     S.layout = L_WELCOME;
 #ifdef TREDDER_DEMO_NO_SE
-    line("DEMO: no security chip.");
-    line("Nothing is saved. Test only.");
-#else
-    line("New device");
+    line("DEMO, no security chip:");
+    line("nothing is saved.");
 #endif
-    item("Create new wallet");
-    item("Import seed phrase");
-    item("Restore microSD backup");
+    item("New wallet");
+    item("Import wallet");
+    item("Restore from microSD");
   } else if (!vault_unlocked()) {
     show_menu("tredder", WL_TONE_NORMAL, locked_r);
     S.layout = L_LOCKED;
@@ -1396,19 +1490,19 @@ void ui_home(void) {
     }
     item("Unlock");
   } else {
-    show_menu("tredder", WL_TONE_NORMAL, home_r);
+    char title[28];
+    snprintf(title, sizeof(title), "tredder v%s", FW_VERSION);
+    char *dash = strchr(title, '-'); /* "0.3.0-demo" -> "0.3.0" (the About screen has the rest) */
+    if (dash) *dash = 0;
+    show_menu(title, WL_TONE_NORMAL, home_r);
     S.layout = L_HOME;
     line("Unlocked");
     line(D.app_connected ? (D.paired ? "App connected, paired" : "App connected") : "No app connected");
-    if (vault_has_sweep()) {
-      line("Imported seed waiting");
-      line("to be swept");
-    }
+    if (vault_has_sweep()) line("Old seed waiting for sweep");
+    item("Backup");
+    item("Unpair");
     item("Lock");
-    item(vault_blind_signing() ? "Blind signing: ON" : "Blind signing: off");
-    item("Back up to microSD");
-    item("Import seed phrase");
-    item("Wipe device");
+    item("Settings");
   }
 }
 

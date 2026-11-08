@@ -26,6 +26,9 @@ void ui_set_battery(int percent, bool charging);
 void ui_battery_low(void);
 /* Redraw everything (after the display was unpowered in sleep). */
 void ui_redraw(void);
+/* Total value as the phone app reports it (main page; display only, the device cannot verify it).
+   NULL / "" clears it. */
+void ui_set_balance(const char *text);
 
 #ifdef WL_DEBUGLINK
 #if defined(__arm__) || defined(__riscv)

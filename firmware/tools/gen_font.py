@@ -31,6 +31,8 @@ ICONS = [
     "arrow-undo", "swap-horizontal", "document-text-outline", "alert-circle",
 ]
 ICON_FONTS = [("wl_icons", 18), ("wl_icons_big", 48)]
+# + one more glyph after ICONS: the tredder logo, from the app icon (white strokes on #373737)
+LOGO_PNG = os.path.join(FW, "..", "app", "assets", "icon.png")
 
 FONTS = [
     # C name, file, pixel size
@@ -82,6 +84,14 @@ def render_icons(size):
         for k in range(0, len(px), 2):
             data.append((px[k] << 4) | px[k + 1])
         glyphs.append((0xE000 + i, size, size, 0, 0, size, off))
+    logo = Image.open(LOGO_PNG).convert("L").resize((size, size), Image.LANCZOS)
+    off = len(data)
+    px = [max(0, min(255, (logo.getpixel((x, y)) - 55) * 255 // 200)) >> 4 for y in range(size) for x in range(size)]
+    if len(px) % 2:
+        px.append(0)
+    for k in range(0, len(px), 2):
+        data.append((px[k] << 4) | px[k + 1])
+    glyphs.append((0xE000 + len(ICONS), size, size, 0, 0, size, off))
     return size, size, glyphs, data
 
 

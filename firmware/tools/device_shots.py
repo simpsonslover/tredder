@@ -105,9 +105,12 @@ def main():
         e.cmd("enter")
         time.sleep(1.5)                    # PIN key derivation
         e.shot("06_home")
-        for _ in range(3):                 # to the last item (Wipe device)
+        for _ in range(3):                 # Settings
             e.press("down")
-        e.shot("07_home_scrolled")
+        e.press("ok")
+        e.shot("07_settings")
+        e.press("down")
+        e.press("down")                    # Wipe device
         e.press("ok")
         e.shot("08_danger")
     finally:
