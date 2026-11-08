@@ -427,8 +427,17 @@ export function CoinIcon({ symbol, size = 32, logo, small, smallLogo }: { symbol
       {logo ? (
         <Image source={logo} style={{ width: size, height: size, borderRadius: size / 2 }} accessibilityLabel={symbol} />
       ) : (
-        <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: c + '33', alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ color: c, fontWeight: '800', fontSize: size * (symbol.length > 3 ? 0.26 : 0.32) }}>{symbol.slice(0, 4).toUpperCase()}</Text>
+        <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: c + '33', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', paddingHorizontal: size * 0.12 }}>
+          {/* Fixed size inside a fixed circle: iOS "Larger Text" scaled these letters past the circle
+              and they were cut off. One line, shrinks to fit. */}
+          <Text
+            allowFontScaling={false}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.6}
+            style={{ color: c, fontWeight: '800', fontSize: size * (symbol.length > 3 ? 0.26 : 0.32), lineHeight: size * 0.4, textAlign: 'center' }}>
+            {symbol.replace(/[^A-Za-z0-9$₮]/g, '').slice(0, 4).toUpperCase() || '?'}
+          </Text>
         </View>
       )}
       {small ? (
@@ -437,7 +446,7 @@ export function CoinIcon({ symbol, size = 32, logo, small, smallLogo }: { symbol
             <Image source={smallLogo} style={{ width: 14, height: 14, borderRadius: 7 }} accessibilityLabel={small} />
           ) : (
             <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: coinColor(small), alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ color: '#fff', fontSize: 8, fontWeight: '800' }}>{small.slice(0, 1)}</Text>
+              <Text allowFontScaling={false} style={{ color: '#fff', fontSize: 8, lineHeight: 10, fontWeight: '800' }}>{small.slice(0, 1)}</Text>
             </View>
           )}
         </View>
