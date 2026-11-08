@@ -679,10 +679,11 @@ static void ask_pairing(void) {
 #endif
   wl_review_init(&P.rv);
   wl_page_t *p = wl_review_page(&P.rv, "Allow pairing?", WL_TONE_NORMAL);
-  wl_page_line(p, "Pair this phone with the");
-  wl_page_line(p, "device? It must show:");
+  wl_page_line(p, "Enter this code in the");
+  wl_page_line(p, "phone app:");
   wl_page_line(p, "\x01%06lu", (unsigned long)code);
-  wl_page_line(p, "Not the same? Reject.");
+  wl_page_line(p, "Accept only when the app");
+  wl_page_line(p, "says it is correct.");
   P.pairing = true;
   hal_log("pairing request, code %06lu", (unsigned long)code);
   ask(true, pairing_done);

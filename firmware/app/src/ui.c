@@ -229,27 +229,8 @@ static void draw_items(int y) {
     first = 1;
   }
   bool pin = S.kind == K_PIN;
-  if (pin) { /* 1-9 / ← 0 in three columns, ✓ as a tall key at the right */
-    for (int i = 0; i < S.nitems; i++) {
-      bool sel = i == S.cursor;
-      bool enter = !strcmp(S.items[i], "✓"), del = !strcmp(S.items[i], "←");
-      int col, row;
-      if (i < 9) col = i % 3, row = i / 3;           /* 1..9 */
-      else if (i == 9) col = 1, row = 3;              /* 0 */
-      else if (del) col = 0, row = 3;
-      else col = 3, row = 2;                          /* ✓ */
-      int kw = col == 3 ? 72 : 66, kh = 30, kx = 12 + col * 72 + (col == 3 ? 12 : 0), ky = y + row * (kh + 2);
-      int h = enter ? 2 * kh + 2 : kh;
-      uint16_t bg = sel ? (enter ? C_OK : del ? C_DANGER : C_ACCENT) : C_PANE;
-      uint16_t fg = sel ? C_ON_ACCENT : enter ? C_OK : del ? C_DANGER : C_FG;
-      gfx_round_rect(kx, ky, kw, h, 8, bg);
-      if (!sel) gfx_fill(kx + 6, ky + h - 1, kw - 12, 1, C_DARK);
-      int tw = gfx_text_width(S.items[i], &wl_font_title);
-      gfx_text(kx + (kw - tw) / 2, ky + (h - wl_font_title.height) / 2, S.items[i], &wl_font_title, fg);
-    }
-    return;
-  }
-  int cw = (GFX_W - 12) / S.cols, ch = 28;
+  /* the PIN pad: two rows, 1 2 3 4 5 6 / 7 8 9 0 ← ✓ (the user preferred it to a phone-style pad) */
+  int cw = (GFX_W - 12) / S.cols, ch = pin ? 44 : 28;
   const wl_font_t *f = pin ? &wl_font_title : &wl_font_bold;
   for (int i = first; i < S.nitems; i++) {
     int k = i - first, cx = 6 + (k % S.cols) * cw, cy = y + (k / S.cols) * ch;
@@ -472,11 +453,11 @@ static void draw(void) {
       for (uint8_t i = 0; i < n; i++) {
         const char *l = pg ? pg->lines[first + i] : S.lines[i];
         if (l[0] == '\x01' && S.kind == K_PIN) { /* PIN: wide entry box, one slot per digit */
-          gfx_round_rect(12, y, 210, 32, 9, C_EDGE);
-          gfx_round_rect(13, y + 1, 208, 30, 8, C_DARK);
+          gfx_round_rect(40, y, 240, 32, 9, C_EDGE);
+          gfx_round_rect(41, y + 1, 238, 30, 8, C_DARK);
           int slots = S.pinlen > 4 ? S.pinlen : 4;
           if (S.pinlen < VAULT_PIN_MAX && S.pinlen >= 4) slots++;
-          int sx = 117 - (slots - 1) * 12;
+          int sx = GFX_W / 2 - (slots - 1) * 12;
           for (int d = 0; d < slots; d++) {
             disc(sx + d * 24, y + 16, 7, d < S.pinlen ? C_ACCENT : C_EDGE);
             if (d >= S.pinlen) disc(sx + d * 24, y + 16, 5, C_DARK);
@@ -489,7 +470,7 @@ static void draw(void) {
           y += wl_font_big.height + 2;
         } else {
           int k = numbered_prefix(l);
-          int x = hero ? (GFX_W - gfx_text_width(l, &wl_font_body)) / 2 : S.kind == K_PIN ? 117 - gfx_text_width(l, &wl_font_body) / 2 : 12;
+          int x = hero ? (GFX_W - gfx_text_width(l, &wl_font_body)) / 2 : S.kind == K_PIN ? (GFX_W - gfx_text_width(l, &wl_font_body)) / 2 : 12;
           if (k && !hero) {
             char num[8];
             snprintf(num, sizeof(num), "%.*s", k, l);
@@ -506,7 +487,7 @@ static void draw(void) {
       }
     }
     if (pg) page_dots();
-    else draw_items(S.kind == K_PIN ? y + 2 : y + 6);
+    else draw_items(S.kind == K_PIN ? y + 8 : y + 6);
   }
   if (approve_view()) draw_decision();
   else draw_legend();

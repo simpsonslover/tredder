@@ -39,6 +39,9 @@ interface Ctx {
   awaitingKind: string | null;
   /** BLE: the 6-digit code of this secure session (the device shows the same one when it asks to pair). */
   pairCode: string | null;
+  /** The device is asking to pair: stays true until it reports paired / rejected or the link drops
+   *  (not tied to any request, so the pairing popup no longer closes when a request finishes). */
+  pairing: boolean;
   connectMock(): Promise<void>;
   /** Throws IdentityChangedError if the device key is not the pinned one, unless acceptNewIdentity. */
   connectBle(id: string, opts?: { acceptNewIdentity?: boolean }): Promise<void>;
@@ -72,6 +75,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [awaitingUser, setAwaiting] = useState(false);
   const [awaitingKind, setAwaitingKind] = useState<string | null>(null);
   const [pairCode, setPairCode] = useState<string | null>(null);
+  const [pairing, setPairing] = useState(false);
   const currentReq = useRef<string | null>(null);
   const [byNet, setByNet] = useState<Record<Net, WalletAccount[]>>({ main: [], test: [] });
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
@@ -135,13 +139,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   const onEvent = useCallback((e: { event: string; detail?: string }) => {
     if (e.event === 'awaiting-user') {
-      setAwaiting(true);
-      setAwaitingKind(e.detail === 'pair' ? 'pair' : currentReq.current);
+      if (e.detail === 'pair') setPairing(true);
+      else {
+        setAwaiting(true);
+        setAwaitingKind(currentReq.current);
+      }
     }
-    if (e.event === 'paired' || e.event === 'pair-rejected') {
-      setAwaiting(false);
-      setAwaitingKind(null);
-    }
+    if (e.event === 'paired' || e.event === 'pair-rejected') setPairing(false);
     if (e.event === 'pair-rejected') setError('Pairing was rejected on the device');
     if (e.event === 'locked') setError('Device locked');
     if (e.event === 'unlocked' || e.event === 'paired') {
@@ -174,6 +178,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     deviceRef.current = null;
     setDevice(null);
     setAwaiting(false);
+    setPairing(false);
     setPairCode(null);
     await d?.client.close().catch(() => undefined);
   }, []);
@@ -299,8 +304,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }, [ready, accounts, settings.net]);
 
   const value = useMemo<Ctx>(
-    () => ({ ready, settings, updateSettings, device, awaitingUser, awaitingKind, pairCode, connectMock, connectBle, connectSim, reloadDevice, disconnect, accounts, setAccounts, portfolio, history, loading, error, refresh }),
-    [ready, settings, updateSettings, device, awaitingUser, awaitingKind, pairCode, connectMock, connectBle, connectSim, reloadDevice, disconnect, accounts, setAccounts, portfolio, history, loading, error, refresh],
+    () => ({ ready, settings, updateSettings, device, awaitingUser, awaitingKind, pairCode, pairing, connectMock, connectBle, connectSim, reloadDevice, disconnect, accounts, setAccounts, portfolio, history, loading, error, refresh }),
+    [ready, settings, updateSettings, device, awaitingUser, awaitingKind, pairCode, pairing, connectMock, connectBle, connectSim, reloadDevice, disconnect, accounts, setAccounts, portfolio, history, loading, error, refresh],
   );
   return <WalletCtx.Provider value={value}>{children}</WalletCtx.Provider>;
 }

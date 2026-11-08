@@ -2,7 +2,7 @@
 // buttons (debug link -> robot finger), exactly as a person would use the device.
 // Skipped if the emulator has not been built (python firmware/tools/build_emu.py).
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, test } from 'node:test';
@@ -204,6 +204,8 @@ describe('REAL FIRMWARE: on-device flows (buttons only)', { skip }, () => {
     try {
       let t = await startEmu({ seed: ABANDON, pin: '1234', stateDir: dir });
       await t.close();
+      // the emulator writes flash.bin while it shuts down: wait for it (was flaky)
+      for (let i = 0; i < 50 && !existsSync(join(dir, 'flash.bin')); i++) await new Promise((ok) => setTimeout(ok, 100));
       const flash = readFileSync(join(dir, 'flash.bin'));
       assert.ok(!flash.includes(Buffer.from('abandon')), 'no plaintext words in flash');
       assert.ok(!flash.includes(Buffer.alloc(24, 0)), 'word indices (abandon = 0) are not stored in clear');
