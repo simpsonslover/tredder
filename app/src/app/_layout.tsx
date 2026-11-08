@@ -7,9 +7,14 @@ import { ConfirmOnDevice, useTheme } from '../ui/components';
 function Overlay() {
   const { awaitingUser, awaitingKind, pairCode } = useWallet();
   // Receive draws its own prompt: the address must stay visible to compare with the device
-  return <ConfirmOnDevice visible={awaitingUser && awaitingKind !== 'show-address'} what={awaitingKind === 'pair' ? `Pairing code: ${pairCode ?? '------'}
-
-Accept on your tredder only if it shows the same code. If the codes differ, reject it: something is between your phone and the device.` : undefined} />;
+  const pairing = awaitingKind === 'pair';
+  return (
+    <ConfirmOnDevice
+      visible={awaitingUser && awaitingKind !== 'show-address'}
+      code={pairing ? pairCode ?? '------' : undefined}
+      what={pairing ? 'Approve on your tredder only if it shows exactly this code. If the codes differ, reject it: something is between your phone and the device.' : undefined}
+    />
+  );
 }
 
 export default function RootLayout() {
@@ -21,17 +26,17 @@ export default function RootLayout() {
         <StatusBar style="light" />
         <Stack
           screenOptions={{
-            headerStyle: { backgroundColor: t.bg },
+            headerStyle: { backgroundColor: t.card2 },
             headerTintColor: t.text,
             headerShadowVisible: false,
-            headerTitleStyle: { fontWeight: '600' },
+            headerTitleStyle: { fontWeight: '700', fontSize: 16 },
             contentStyle: { backgroundColor: t.bg },
           }}
         >
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="import" options={{ title: 'Find accounts' }} />
           <Stack.Screen name="sweep" options={{ title: 'Sweep to new wallet' }} />
-          <Stack.Screen name="settings" options={{ title: 'Settings' }} />
+          <Stack.Screen name="settings" options={{ title: 'Preferences' }} />
         </Stack>
         <Overlay />
       </WalletProvider>

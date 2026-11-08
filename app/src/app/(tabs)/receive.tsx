@@ -15,7 +15,7 @@ import { DeviceError } from '../../protocol/types';
 import { accountId, expectedReceiveAddress, verifyReceiveAddress, type WalletAccount } from '../../state/wallet';
 import { useWallet } from '../../state/WalletContext';
 import { chainLogo } from '../../ui/coinLogos';
-import { Button, Card, CoinIcon, Row, T, useTheme } from '../../ui/components';
+import { Button, Card, CoinIcon, ListGroup, Row, T, useTheme } from '../../ui/components';
 import { AddressText, IconPill, StepScreen } from '../../ui/flow';
 
 /** What a person calls each account, and which networks it receives on. */
@@ -84,21 +84,25 @@ export default function Receive() {
           </Card>
         ) : (
           <>
-            <T kind="muted">Choose the network the sender is using.</T>
-            {w.accounts.map((a) => {
-              const d = describe(a, net);
-              return (
-                <Row
-                  key={accountId(a)}
-                  onPress={() => void show(a)}
-                  icon={<CoinIcon symbol={d.symbol} logo={d.logo} />}
-                  left={<T kind="h2">{d.name + (a.account ? ` #${a.account + 1}` : '')}</T>}
-                  sub={a.family === 'evm' ? d.networks : `${d.networks} · ${SCHEME_LABEL[a.scheme]}`}
-                  right={<Ionicons name="qr-code-outline" size={20} color={t.muted} />}
-                />
-              );
-            })}
-            {net === 'test' ? <T kind="muted">Testnet addresses. Only send test coins here.</T> : null}
+            <ListGroup title="Choose the sender's network" footer={net === 'test' ? 'Testnet addresses. Only send test coins here.' : undefined}>
+              {w.accounts.map((a) => {
+                const d = describe(a, net);
+                return (
+                  <Row
+                    key={accountId(a)}
+                    onPress={() => void show(a)}
+                    icon={<CoinIcon symbol={d.symbol} logo={d.logo} />}
+                    left={<T kind="h2">{d.name + (a.account ? ` #${a.account + 1}` : '')}</T>}
+                    sub={a.family === 'evm' ? d.networks : `${d.networks} · ${SCHEME_LABEL[a.scheme]}`}
+                    right={
+                      <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: t.accent + '24', alignItems: 'center', justifyContent: 'center' }}>
+                        <Ionicons name="qr-code" size={18} color={t.accent} />
+                      </View>
+                    }
+                  />
+                );
+              })}
+            </ListGroup>
           </>
         )}
       </StepScreen>
