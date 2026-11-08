@@ -285,3 +285,14 @@ vault_result_t vault_replace_active(const uint16_t *idx, size_t words) {
   V.pt.sweep_words = 0;
   return recommit();
 }
+
+vault_result_t vault_export_backup(uint16_t idx[24], uint8_t *words, bool *blind) {
+  memset(idx, 0, 24 * sizeof(uint16_t));
+  *words = 0;
+  *blind = false;
+  if (!V.unlocked || !V.pt.words) return VAULT_ERROR;
+  memcpy(idx, V.pt.idx, V.pt.words * sizeof(uint16_t));
+  *words = V.pt.words;
+  *blind = V.pt.blind != 0;
+  return VAULT_OK;
+}

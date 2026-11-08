@@ -9,6 +9,7 @@ import { broadcastEvm, evmConfirmed, evmHistory, evmHoldings, prepareEvmTransfer
 import { broadcastSol, prepareSolTransfer, solConfirmed, solHistory, solHoldings, type SolPrepared } from '../chains/sol';
 import type { Holding, TxRecord } from '../chains/types';
 import { applyPrices, priceHoldings } from '../prices/prices';
+import { friendlyError } from '../util/http';
 import type { DeviceClient } from '../protocol/client';
 import type { AccountKey, Net, Scheme, WalletRef } from '../protocol/types';
 
@@ -58,20 +59,20 @@ export async function loadPortfolio(accounts: WalletAccount[], net: Net, opts: {
             btc[accountId(a)] = st;
             holdings.push({ chain: 'btc', net, scheme: a.scheme, account: a.account, owner: `${a.scheme} #${a.account}`, asset: { kind: 'native' }, kind: 'native', symbol: 'BTC', name: CHAINS.btc.net[net].label, decimals: 8, amount: st.balance });
           })
-          .catch((e) => void errors.push(`Bitcoin (${a.scheme}): ${(e as Error).message}`)),
+          .catch((e) => void errors.push(`Bitcoin (${a.scheme}): ${friendlyError(e)}`)),
       );
     } else if (a.family === 'evm') {
       for (const c of CHAIN_LIST.filter((x) => x.family === 'evm'))
         jobs.push(
           evmHoldings(c.id, net, a.scheme, a.account, addressOf(a) as Address)
             .then((hs) => void holdings.push(...hs))
-            .catch((e) => void errors.push(`${c.net[net].label}: ${(e as Error).message.split('\n')[0]}`)),
+            .catch((e) => void errors.push(`${c.net[net].label}: ${friendlyError(e)}`)),
         );
     } else if (a.family === 'sol') {
       jobs.push(
         solHoldings(net, a.scheme, a.account, addressOf(a))
           .then((hs) => void holdings.push(...hs))
-          .catch((e) => void errors.push(`Solana: ${(e as Error).message}`)),
+          .catch((e) => void errors.push(`Solana: ${friendlyError(e)}`)),
       );
     }
   }

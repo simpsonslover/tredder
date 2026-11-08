@@ -7,28 +7,18 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { Key } from '../util/amountInput';
 import { addressParts } from '../util/recipient';
-import { Button, T, useTheme } from './components';
+import { Button, T, Toolbar, useTheme } from './components';
 
 /** Full-height step: header, scrolling body, buttons pinned at the bottom. */
 export function StepScreen({ title, onBack, right, children, footer }: { title: string; onBack?: () => void; right?: ReactNode; children: ReactNode; footer?: ReactNode }) {
   const t = useTheme();
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }} edges={['top']}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, height: 52 }}>
-        <View style={{ width: 44 }}>
-          {onBack ? (
-            <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={onBack} hitSlop={12} style={{ padding: 6 }}>
-              <Ionicons name="chevron-back" size={26} color={t.text} />
-            </Pressable>
-          ) : null}
-        </View>
-        <Text style={{ flex: 1, textAlign: 'center', color: t.text, fontSize: 17, fontWeight: '600' }}>{title}</Text>
-        <View style={{ width: 44, alignItems: 'flex-end' }}>{right}</View>
-      </View>
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 8, gap: 14, paddingBottom: 24, flexGrow: 1 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.card2 }} edges={['top']}>
+      <Toolbar title={title} onBack={onBack} right={right} />
+      <ScrollView style={{ backgroundColor: t.bg }} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 14, paddingTop: 12, gap: 12, paddingBottom: 24, flexGrow: 1 }}>
         {children}
       </ScrollView>
-      {footer ? <View style={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 16, gap: 10 }}>{footer}</View> : null}
+      {footer ? <View style={{ paddingHorizontal: 14, paddingTop: 8, paddingBottom: 12, gap: 8, backgroundColor: t.bg }}>{footer}</View> : null}
     </SafeAreaView>
   );
 }

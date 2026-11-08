@@ -33,6 +33,7 @@ extern const wl_font_t wl_font_body, wl_font_bold, wl_font_title, wl_font_big;
 void gfx_init(void);              /* power the module, ST7789 init sequence + clear */
 void gfx_sleep(void);             /* backlight off, SLPIN, module unpowered (sleep mode) */
 void gfx_fill(int x, int y, int w, int h, uint16_t color);
+void gfx_round_rect(int x, int y, int w, int h, int r, uint16_t color);
 /* Draw UTF-8 text; returns the x after the last glyph. */
 int gfx_text(int x, int y, const char *utf8, const wl_font_t *f, uint16_t color);
 int gfx_text_width(const char *utf8, const wl_font_t *f);

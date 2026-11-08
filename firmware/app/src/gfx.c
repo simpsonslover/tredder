@@ -56,7 +56,7 @@ void gfx_init(void) {
   cmd_data(ST_INVON, NULL, 0); /* IPS panels need inversion for correct colours */
   cmd_data(ST_NORON, NULL, 0);
   memset(fb, 0, sizeof(fb));
-  dirty_y0 = 0, dirty_y1 = GFX_H - 1;
+  gfx_invalidate();
   gfx_flush();
   cmd_data(ST_DISPON, NULL, 0);
   gfx_backlight(true);
@@ -79,7 +79,11 @@ void gfx_resync(void) {
   cmd_data(ST_DISPON, NULL, 0);
 }
 
-void gfx_invalidate(void) { dirty_y0 = 0, dirty_y1 = GFX_H - 1; }
+static uint32_t shown[GFX_H];
+void gfx_invalidate(void) {
+  dirty_y0 = 0, dirty_y1 = GFX_H - 1;
+  memset(shown, 0, sizeof(shown)); /* panel content unknown: resend every row */
+}
 
 void gfx_sleep(void) {
   gfx_backlight(false);
@@ -171,17 +175,26 @@ int gfx_text_width(const char *s, const wl_font_t *f) {
   return w;
 }
 
-void gfx_flush(void) {
-  if (dirty_y1 < dirty_y0) return;
-  if (dirty_y1 >= GFX_H) dirty_y1 = GFX_H - 1;
+/* Row hashes of what the panel shows, so a flush only sends rows that really changed: a cursor
+   move then costs a few dozen rows instead of the whole 150 KB frame (0.6 s at the breadboard's
+   2 MHz SPI clock). 0 = unknown (after init / invalidate): always sent. (shown[] is above.) */
+
+static uint32_t row_hash(int y) {
+  uint32_t h = 2166136261u; /* FNV-1a over the row's pixels */
+  const uint16_t *r = &fb[y * GFX_W];
+  for (int x = 0; x < GFX_W; x++) h = (h ^ r[x]) * 16777619u;
+  return h | 1u; /* never 0 */
+}
+
+static void send_rows(int y0, int y1) {
   const uint8_t caset[4] = {0, 0, (GFX_W - 1) >> 8, (GFX_W - 1) & 0xFF};
-  const uint8_t raset[4] = {(uint8_t)(dirty_y0 >> 8), (uint8_t)dirty_y0, (uint8_t)(dirty_y1 >> 8), (uint8_t)dirty_y1};
+  const uint8_t raset[4] = {(uint8_t)(y0 >> 8), (uint8_t)y0, (uint8_t)(y1 >> 8), (uint8_t)y1};
   cmd_data(ST_CASET, caset, 4);
   cmd_data(ST_RASET, raset, 4);
   hal_lcd_cmd(ST_RAMWR);
   /* Big-endian RGB565 over SPI, one row at a time (DMA-sized chunks on the device). */
   uint8_t row[GFX_W * 2];
-  for (int y = dirty_y0; y <= dirty_y1; y++) {
+  for (int y = y0; y <= y1; y++) {
     for (int x = 0; x < GFX_W; x++) {
       uint16_t c = fb[y * GFX_W + x];
       row[2 * x] = (uint8_t)(c >> 8);
@@ -189,5 +202,39 @@ void gfx_flush(void) {
     }
     hal_lcd_data(row, sizeof(row));
   }
+}
+
+void gfx_flush(void) {
+  if (dirty_y1 < dirty_y0) return;
+  if (dirty_y1 >= GFX_H) dirty_y1 = GFX_H - 1;
+  int run = -1; /* start of the current run of changed rows */
+  for (int y = dirty_y0; y <= dirty_y1 + 1; y++) {
+    bool changed = false;
+    if (y <= dirty_y1) {
+      uint32_t h = row_hash(y);
+      changed = h != shown[y];
+      shown[y] = h;
+    }
+    if (changed && run < 0) run = y;
+    if (!changed && run >= 0) {
+      send_rows(run, y - 1);
+      run = -1;
+    }
+  }
   dirty_y0 = GFX_H, dirty_y1 = -1;
+}
+
+/* Filled rectangle with rounded corners (radius r). */
+void gfx_round_rect(int x, int y, int w, int h, int r, uint16_t color) {
+  if (2 * r > h) r = h / 2;
+  if (2 * r > w) r = w / 2;
+  for (int dy = 0; dy < h; dy++) {
+    int inset = 0;
+    int k = dy < r ? dy : dy >= h - r ? h - 1 - dy : -1;
+    if (k >= 0) { /* smallest inset whose pixel centre lies inside the corner circle */
+      int a = 2 * r - 2 * k - 1;
+      while (inset < r && (2 * r - 2 * inset - 1) * (2 * r - 2 * inset - 1) + a * a > 4 * r * r) inset++;
+    }
+    gfx_fill(x + inset, y + dy, w - 2 * inset, 1, color);
+  }
 }

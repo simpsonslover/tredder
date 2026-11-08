@@ -13,9 +13,12 @@ firmware/
                      gfx (ST7789 driver + fonts), rng (HMAC-DRBG), firmware (main loop)
   platform/rp2350/ Pico SDK code: main, platform hooks, generated board_pins.h
   platform/emu/    the firmware on emulated hardware as a Windows program (README inside)
+  app/fs/          microSD: FatFs glue (sdfs), encrypted backup files (sdbackup)
   third_party/     audited crypto, vendored UNMODIFIED with provenance (VENDORED.md)
     trezor-crypto/   Trezor core/v2.13.0: BIP39/32, secp256k1, ed25519, hashes, AES-GCM, ChaCha20-Poly1305, SLIP-39
     secp256k1/       bitcoin-core libsecp256k1 v0.8.0: Taproot tweak, BIP340 Schnorr, ECDSA recovery
+    monocypher/      Monocypher 4.0.2: Argon2id only (backup password hash)
+    fatfs/           FatFs R0.16: FAT12/16/32 + exFAT on the microSD card
   tests/host/      unit tests + generated vectors.h
   tools/
     host_test.py     build + run the unit tests with MSYS2 GCC (no SDK needed)
@@ -23,6 +26,9 @@ firmware/
     gen_board_pins.py  board_pins.h from hardware/tools/design.py (one source of truth for pins)
     gen_font.py      display fonts (DejaVu) -> app/src/font_data.c
     build_emu.py     build firmware/build-emu/tredder-emu.exe
+    fs_test.py       microSD file layer on a RAM card: FAT16/32/exFAT + randomly corrupted cards
+    gen_backup_vectors.py  backup files from an independent Python implementation -> tests
+    backup_e2e.py    backup on one emulated device, restore on a new one (same card)
   CMakeLists.txt   RP2350 build (needs Pico SDK 2.x toolchain)
 ```
 
@@ -35,7 +41,7 @@ firmware/
 | M3 | Drivers + UI: ST7789, buttons, power/charger, screens (PIN pad, word picker, review, confirm), idle lock; PC-side UI simulator | **UI + ST7789 driver done, emulator-tested** (`app/src/ui.c`, `gfx.c`); RP2350 GPIO/SPI/flash HAL + charger still to do |
 | M4 | Signing (testnets first): BTC PSBT (P2WPKH/P2TR/P2SH-P2WPKH/P2PKH), EVM EIP-1559 + clear signing of ERC-20 transfer/approve (unlimited-approval warning, blind signing off), Solana system/SPL transfers | **done, emulator-tested** against the app's own code (`core/src/btc.c`, `evm.c`, `sol.c`) |
 | M5 | BLE: LE Secure Connections numeric comparison, single bonded phone, authenticated + encrypted app channel (Noise, from trezor-crypto), request/approve protocol, auto-lock on disconnect | protocol + approvals + auto-lock done (`app/src/proto.c`); BLE (CYW43) and Noise still to do |
-| M6 | Backups: microSD AES-256-GCM + Argon2id with device-generated 12-word backup password, versioned file with checksum; SLIP-39 shares | |
+| M6 | Backups: microSD ~~AES-256-GCM~~ ChaCha20-Poly1305 + Argon2id with device-generated 12-word backup password, versioned file with checksum; SLIP-39 shares | **microSD backup + restore done**, host- and emulator-tested (`core/src/backup.c`, `app/fs/`), FAT32 + exFAT; SLIP-39 still to do |
 | M7 | Import + sweep (device side): scheme scan list, sweep plan display, PIN + confirm, resumable state | |
 | M8 | Secure boot, signed updates, anti-rollback, OTP lockdown (SWD off, glitch detectors), on a sacrificial board first | |
 
@@ -114,3 +120,31 @@ seed_blob (flash) = ChaCha20-Poly1305(KEK, nonce, seed || passphrase-flag || ver
 4. Open the USB serial port. It prints PASS/FAIL for each scheme plus timings.
 
 This works on a bare Pico 2 W; the custom board isn't needed.
+
+## M6: encrypted microSD backups
+
+Format, tests and decisions (details in `core/include/wallet/backup.h`):
+
+- **Backup password:** 12 BIP39 words, generated on the device (TRNG + SE through the
+  health-tested pool), shown only on the device, checked with a 3-word quiz. 128 bits of
+  randomness, plus a 4-bit checksum that catches typos before the slow key derivation.
+- **Key:** Argon2id (Monocypher), 64 KiB, 3 passes. The memory is what this board can spare
+  (the display buffer and message buffers use most of the RAM). Guessing is hopeless anyway with a
+  128-bit random password. The settings are stored in the file, so the PCB can use more.
+- **Encryption: ChaCha20-Poly1305 instead of the planned AES-256-GCM** (trade-off, security
+  first). trezor-crypto's AES is table-based and its GHASH is built without tables. Both can leak
+  key-dependent timing on the RP2350, whose tables sit in cached XIP flash. ChaCha20-Poly1305 is
+  constant-time in software and is the cipher the vault already uses.
+- **File:** 140 bytes, `tredder-xxxxxx.trd` (random name), header authenticated, plus an
+  unkeyed checksum to tell "damaged" from "wrong password". After writing, the device reads the
+  file back and decrypts it before it reports success; a copy that fails is deleted.
+- **Demo builds** mark their backups DEMO (authenticated) and restore only DEMO backups. A real
+  device refuses them: they hold test seeds that were kept without a security chip.
+- **Card:** FAT32 or exFAT (FatFs), MBR or no partition table. GPT is not supported.
+- **Tests:**
+  - host: Argon2id RFC 9106 vector; 8 files byte-identical to an independent Python
+    implementation (argon2-cffi + cryptography); every bit flipped, with and without a
+    recomputed checksum; demo-flag flip; hostile KDF settings; authentic files with invalid
+    payloads
+  - `fs_test.py`: FatFs on all layouts and on 20 000 corrupted cards
+  - `backup_e2e.py`: back up on one emulated device, restore on a new one, same fingerprint

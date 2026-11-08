@@ -96,7 +96,12 @@ export type WireRequest = Request & { id: number };
 export type WireResponse =
   | { id: number; ok: true; result: unknown }
   | { id: number; ok: false; error: { code: ErrorCode; message: string } };
-export type WireEvent = { type: 'event'; event: 'awaiting-user' | 'locked' | 'progress'; id?: number; detail?: string };
+export type WireEvent = {
+  type: 'event';
+  event: 'awaiting-user' | 'locked' | 'unlocked' | 'paired' | 'pair-rejected' | 'progress';
+  id?: number;
+  detail?: string;
+};
 
 export class DeviceError extends Error {
   constructor(

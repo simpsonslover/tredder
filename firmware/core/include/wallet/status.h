@@ -13,6 +13,9 @@ typedef enum {
   WL_ERR_CHECKSUM,        /* all words valid but the BIP39 checksum does not match */
   WL_ERR_PASSPHRASE,      /* passphrase has characters the device cannot enter (see mnemonic.h) */
   WL_ERR_CRYPTO,          /* underlying library reported failure (invalid key, etc.) */
+  WL_ERR_FORMAT,          /* not a file of this kind, or a version/setting this firmware does not accept */
+  WL_ERR_DAMAGED,         /* file structure fine but its checksum does not match (corrupted) */
+  WL_ERR_AUTH,            /* decryption failed: wrong password, or the file was altered */
 } wl_status_t;
 
 #endif

@@ -15,7 +15,7 @@ import { DeviceError } from '../../protocol/types';
 import { loadRecents, rememberRecipient, sameAddress, type Recent } from '../../state/recents';
 import { familyOf, prepareSend, signAndBroadcast, txStatus, type Prepared } from '../../state/wallet';
 import { useWallet } from '../../state/WalletContext';
-import { assetLogo, chainLogo } from '../../ui/coinLogos';
+import { assetLogo, assetSeed, chainLogo } from '../../ui/coinLogos';
 import { Badge, Button, Card, Choice, CoinIcon, Row, T, useTheme } from '../../ui/components';
 import { AddressText, IconPill, Keypad, Scanner, StepScreen } from '../../ui/flow';
 import { formatAmount, formatUsd, parseAmount } from '../../util/amount';
@@ -228,7 +228,7 @@ export default function Send() {
                     setMax(false);
                     setStep('to');
                   }}
-                  icon={<CoinIcon symbol={x.symbol} logo={assetLogo(x)} small={x.kind === 'token' ? CHAINS[x.chain].symbol : undefined} smallLogo={x.kind === 'token' ? chainLogo(x.chain) : undefined} />}
+                  icon={<CoinIcon symbol={x.symbol} logo={assetLogo(x)} seed={assetSeed(x)} small={x.kind === 'token' ? CHAINS[x.chain].symbol : undefined} smallLogo={x.kind === 'token' ? chainLogo(x.chain) : undefined} />}
                   left={<T kind="h2">{x.name || x.symbol}</T>}
                   sub={`${formatAmount(x.amount, x.decimals, 6)} ${x.symbol} · ${chainLabel(x.chain)}`}
                   right={x.usdValue !== undefined ? <T>{formatUsd(x.usdValue)}</T> : undefined}
@@ -359,7 +359,7 @@ export default function Send() {
         }
       >
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <CoinIcon symbol={h.symbol} logo={assetLogo(h)} size={28} />
+          <CoinIcon symbol={h.symbol} logo={assetLogo(h)} seed={assetSeed(h)} size={28} />
           <T kind="muted">To {shortAddress(to, 6)}</T>
         </View>
         <View style={{ alignItems: 'center', gap: 6, paddingVertical: 18 }}>
@@ -419,7 +419,7 @@ export default function Send() {
         }
       >
         <View style={{ alignItems: 'center', gap: 8, paddingVertical: 10 }}>
-          <CoinIcon symbol={h.symbol} logo={assetLogo(h)} size={56} small={h.kind === 'token' ? CHAINS[h.chain].symbol : undefined} smallLogo={h.kind === 'token' ? chainLogo(h.chain) : undefined} />
+          <CoinIcon symbol={h.symbol} logo={assetLogo(h)} seed={assetSeed(h)} size={56} small={h.kind === 'token' ? CHAINS[h.chain].symbol : undefined} smallLogo={h.kind === 'token' ? chainLogo(h.chain) : undefined} />
           <Text style={{ color: t.text, fontSize: 34, fontWeight: '700' }}>
             {formatAmount(prep.amount, h.decimals, 8)} {h.symbol}
           </Text>

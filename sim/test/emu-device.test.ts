@@ -56,16 +56,20 @@ describe('REAL FIRMWARE: on-device flows (buttons only)', { skip }, () => {
     await t.close();
   });
 
-  test('PIN pad digit positions reshuffle after every digit', async () => {
+  test('PIN pad: keys never move, the cursor jumps to a random digit after every entry', async () => {
     const t = await startEmu({ seed: ABANDON });
     const d = t.debug!;
     await d.press('ok');
     const orders = new Set<string>();
-    for (let i = 0; i < 6; i++) {
-      orders.add((await waitFor(d, (x) => x.kind === 'pin')).items.slice(0, 10).join(''));
+    const cursors = new Set<number>();
+    for (let i = 0; i < 8; i++) {
+      const s = await waitFor(d, (x) => x.kind === 'pin');
+      orders.add(s.items.slice(0, 10).join(''));
+      cursors.add(s.cursor);
       await d.type('1');
     }
-    assert.ok(orders.size > 1, 'digit order should change');
+    assert.equal(orders.size, 1, 'digit order must not change');
+    assert.ok(cursors.size > 1, 'cursor start should vary');
     await t.close();
   });
 

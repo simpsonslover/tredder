@@ -19,7 +19,8 @@ export function parseIncoming(bytes: Uint8Array): WireResponse | WireEvent {
   const v = decodeMessage(bytes);
   if (!isObj(v)) throw new Error('device message is not a map');
   if (v.type === 'event') {
-    if (!['awaiting-user', 'locked', 'progress'].includes(String(v.event))) throw new Error('unknown event');
+    if (!['awaiting-user', 'locked', 'unlocked', 'paired', 'pair-rejected', 'progress'].includes(String(v.event)))
+      throw new Error('unknown event');
     return v as WireEvent;
   }
   if (typeof v.id !== 'number' || !Number.isInteger(v.id)) throw new Error('response without integer id');

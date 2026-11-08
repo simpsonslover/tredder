@@ -75,6 +75,11 @@ const TOKENS: Record<string, ImageSourcePropType> = {
   'arbitrum:0x75faf114eafb1bdbe2f0316df893fd58ce46aa4d': L.usdc,
   'polygon:0x41e94eb019c0762f9bfcf9fb1e58725bfb0e7582': L.usdc,
   'sol:4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU': L.usdc,
+  // Chainlink's own Sepolia faucet LINK (docs.chain.link, "LINK token contracts")
+  'eth:0x779877a7b0d9e8603169ddbd7836e478b4624789': L.link,
+  // NOT listed on purpose: the many other Sepolia "USDT" / "USDC" / "DAI" tokens. Tether and Maker
+  // publish no official Sepolia contracts; on this test wallet alone there are ten tokens called
+  // USDT or USDC, from ten different deployers.
 };
 
 /** Logo for a holding, or undefined (caller shows the letter badge). */
@@ -86,4 +91,10 @@ export function assetLogo(h: Pick<Holding, 'chain' | 'asset'>): ImageSourcePropT
 
 export function chainLogo(chain: ChainId): ImageSourcePropType | undefined {
   return CHAIN[chain];
+}
+
+/** Seed for the generated icon of a token without a verified logo (unique per contract). */
+export function assetSeed(h: Pick<Holding, 'chain' | 'asset'>): string | undefined {
+  if (h.asset.kind === 'native') return undefined;
+  return `${h.chain}:${h.chain === 'sol' ? h.asset.address : h.asset.address.toLowerCase()}`;
 }

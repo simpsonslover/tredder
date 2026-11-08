@@ -6,10 +6,12 @@ import { DeviceClient } from '../protocol/client';
 import { pairCode as codeOf } from '../protocol/noise';
 import { handshake } from '../protocol/secure';
 import type { DeviceInfo, Net } from '../protocol/types';
-import { BleTransport } from '../transport/ble';
+import { BleTransport, requestBlePermissions } from '../transport/ble';
 import { MockTransport } from '../transport/mock';
 import { DEFAULT_SIM_URL, SimTransport } from '../transport/sim';
 import { IdentityChangedError, appStaticKey, pinDeviceKey, pinnedDeviceKey } from './pairing';
+import { assetSeed } from '../ui/coinLogos';
+import { ensureLogos } from '../ui/logoStore';
 import { loadJson, saveJson, secureKV } from './storage';
 import { DEFAULT_SCHEMES, accountId, fetchAccounts, loadHistory, loadPortfolio, type Portfolio, type WalletAccount } from './wallet';
 
@@ -54,6 +56,7 @@ interface Ctx {
 }
 
 const WalletCtx = createContext<Ctx | null>(null);
+const LAST_BLE = 'ble.last';
 
 export function WalletProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
@@ -69,6 +72,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const deviceRef = useRef<Device | null>(null);
+  const reloadRef = useRef<() => Promise<void>>(async () => undefined);
+  const autoTried = useRef(false);
 
   useEffect(() => {
     (async () => {
@@ -109,8 +114,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       deviceRef.current = d;
       setDevice(d);
       if (!accounts.length && info.initialized && !info.locked) {
-        const fetched = await fetchAccounts(client, settings.net, DEFAULT_SCHEMES, [0]);
-        await setAccounts(fetched);
+        try {
+          const fetched = await fetchAccounts(client, settings.net, DEFAULT_SCHEMES, [0]);
+          await setAccounts(fetched);
+        } catch (e) {
+          // BUSY: the device is asking the user to pair first; the "paired" event reloads.
+          if (!/BUSY|pair/i.test(String((e as Error).message))) throw e;
+        }
       }
     },
     [accounts.length, settings.net, setAccounts],
@@ -121,7 +131,16 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       setAwaiting(true);
       setAwaitingKind(e.detail === 'pair' ? 'pair' : currentReq.current);
     }
+    if (e.event === 'paired' || e.event === 'pair-rejected') {
+      setAwaiting(false);
+      setAwaitingKind(null);
+    }
+    if (e.event === 'pair-rejected') setError('Pairing was rejected on the device');
     if (e.event === 'locked') setError('Device locked');
+    if (e.event === 'unlocked' || e.event === 'paired') {
+      setError(null);
+      setTimeout(() => void reloadRef.current().catch((x: Error) => setError(x.message)), 0);
+    }
   }, []);
 
   const wrapClient = useCallback(
@@ -172,7 +191,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         if (pinned && pinned !== remote && !opts.acceptNewIdentity) throw new IdentityChangedError();
         t.onDisconnect(() => void disconnect()); // auto-lock: device locks on disconnect, app forgets the session
         setPairCode(codeOf(session.hash));
-        const client = wrapClient(new DeviceClient(t, onEvent, session));
+        // The device accepted us (code compared, PIN entered): pin its key for next time.
+        const events = (e: Parameters<typeof onEvent>[0]) => {
+          if (e.event === 'paired') void pinDeviceKey(id, session.remoteStatic);
+          onEvent(e);
+        };
+        const client = wrapClient(new DeviceClient(t, events, session));
         // Pin the device key once the device has accepted us (it answers nothing but get-info to an
         // unpaired app), so a later impostor with another key is caught before any request.
         if (pinned !== remote) {
@@ -184,6 +208,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           }) as typeof client.request;
         }
         await attach(client, 'ble');
+        await secureKV.set(LAST_BLE, id); // reconnect to it when the app opens again
       } catch (e) {
         await t.close();
         throw e;
@@ -214,6 +239,24 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     setError(null);
     await attach(d.client, d.kind);
   }, [attach]);
+  reloadRef.current = reloadDevice;
+
+  // Opening the app: reconnect to the last tredder. Its key must still be the pinned one; a changed
+  // key (demo device restarted, or a different device) is never accepted silently.
+  useEffect(() => {
+    if (!ready || autoTried.current || deviceRef.current) return;
+    autoTried.current = true;
+    (async () => {
+      const id = await secureKV.get(LAST_BLE);
+      if (!id || !(await requestBlePermissions().catch(() => false))) return;
+      try {
+        await connectBle(id);
+      } catch (e) {
+        if (e instanceof IdentityChangedError) setError('Your tredder has a new identity key (restarted demo or another device). Open Device and pair again.');
+        // otherwise: out of range or off. The Device tab can still scan.
+      }
+    })();
+  }, [ready, connectBle]);
 
   const refresh = useCallback(async () => {
     if (!accounts.length) return;
@@ -222,6 +265,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     try {
       const p = await loadPortfolio(accounts, settings.net);
       setPortfolio(p);
+      // real logos for listed tokens, downloaded in the background hidden among decoys
+      void ensureLogos(p.holdings.map((h) => assetSeed(h)).filter((k): k is string => !!k));
       setHistory(await loadHistory(accounts, settings.net, p));
     } catch (e) {
       setError((e as Error).message);

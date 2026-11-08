@@ -1,11 +1,12 @@
-import { Alert } from 'react-native';
+import { Alert, View } from 'react-native';
 
 import { removeJson, secureKV } from '../state/storage';
 import { useWallet } from '../state/WalletContext';
-import { Button, Card, Choice, Screen, T } from '../ui/components';
+import { Choice, ListGroup, ListItem, Screen, T, useTheme } from '../ui/components';
 
 export default function Settings() {
   const w = useWallet();
+  const t = useTheme();
   const s = w.settings;
 
   const enableMainnet = () =>
@@ -18,49 +19,60 @@ export default function Settings() {
       ],
     );
 
+  const forget = () =>
+    Alert.alert('Forget accounts?', 'Removes public account data from this phone. Your funds and keys are on the device and are not affected.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Forget',
+        style: 'destructive',
+        onPress: async () => {
+          await w.setAccounts([]);
+          await removeJson(secureKV, 'sweep.active');
+        },
+      },
+    ]);
+
   return (
     <Screen>
-      <Card>
-        <T kind="h2">Network</T>
+      <ListGroup
+        title="Network"
+        footer={s.mainnetEnabled ? undefined : 'Testnets: Bitcoin testnet4, Sepolia, Base Sepolia, BNB testnet, Polygon Amoy, Arbitrum Sepolia, Solana devnet.'}
+      >
+        <ListItem
+          icon="globe"
+          color={s.net === 'test' ? t.warn : t.ok}
+          title={s.net === 'test' ? 'Testnets' : 'Mainnet'}
+          sub={s.net === 'test' ? 'Test coins, no real value' : 'Real funds'}
+        />
         {s.mainnetEnabled ? (
-          <Choice options={[{ value: 'test', label: 'Testnets' }, { value: 'main', label: 'Mainnet' }]} value={s.net} onChange={(net) => void w.updateSettings({ net })} />
+          <View style={{ paddingVertical: 12 }}>
+            <Choice options={[{ value: 'test', label: 'Testnets' }, { value: 'main', label: 'Mainnet' }]} value={s.net} onChange={(net) => void w.updateSettings({ net })} />
+          </View>
+        ) : null}
+        {s.mainnetEnabled ? (
+          <ListItem icon="shield" color={t.muted} title="Disable mainnet" onPress={() => void w.updateSettings({ mainnetEnabled: false })} />
         ) : (
-          <>
-            <T kind="muted">Testnets: Bitcoin testnet4, Sepolia, Base Sepolia, BNB testnet, Polygon Amoy, Arbitrum Sepolia, Solana devnet.</T>
-            <Button kind="secondary" title="Enable mainnet…" onPress={enableMainnet} />
-          </>
+          <ListItem icon="flash" color={t.ok} title="Enable mainnet…" onPress={enableMainnet} />
         )}
-        {s.mainnetEnabled ? <Button kind="secondary" title="Disable mainnet" onPress={() => void w.updateSettings({ mainnetEnabled: false })} /> : null}
-      </Card>
-      <Card>
-        <T kind="h2">Sweep: ignore tokens worth less than</T>
-        <Choice
-          options={[0, 1, 5, 20].map((v) => ({ value: String(v), label: `$${v}` }))}
-          value={String(s.dustUsd)}
-          onChange={(v) => void w.updateSettings({ dustUsd: Number(v) })}
-        />
-      </Card>
-      <Card>
-        <T kind="h2">Privacy</T>
-        <T kind="muted">This app stores only public data (account public keys and addresses) in the phone’s secure storage, excluded from backups. Balances are fetched from public APIs (mempool.space, Blockscout, public RPC nodes, CoinGecko, DexScreener, Jupiter), which can see which addresses you look up.</T>
-        <Button
-          kind="danger"
-          title="Forget all accounts on this phone"
-          onPress={() =>
-            Alert.alert('Forget accounts?', 'Removes public account data from this phone. Your funds and keys are on the device and are not affected.', [
-              { text: 'Cancel', style: 'cancel' },
-              {
-                text: 'Forget',
-                style: 'destructive',
-                onPress: async () => {
-                  await w.setAccounts([]);
-                  await removeJson(secureKV, 'sweep.active');
-                },
-              },
-            ])
-          }
-        />
-      </Card>
+      </ListGroup>
+
+      <ListGroup title="Sweep" footer="Tokens worth less than this are left behind when sweeping an old seed.">
+        <View style={{ paddingVertical: 14, gap: 10 }}>
+          <T kind="h2">Ignore tokens worth less than</T>
+          <Choice
+            options={[0, 1, 5, 20].map((v) => ({ value: String(v), label: `$${v}` }))}
+            value={String(s.dustUsd)}
+            onChange={(v) => void w.updateSettings({ dustUsd: Number(v) })}
+          />
+        </View>
+      </ListGroup>
+
+      <ListGroup
+        title="Privacy"
+        footer="This app stores only public data (account public keys and addresses) in the phone’s secure storage, excluded from backups. Balances come from public APIs (mempool.space, Blockscout, public RPC nodes, CoinGecko, DexScreener, Jupiter), which can see which addresses you look up."
+      >
+        <ListItem icon="trash" danger title="Forget all accounts on this phone" onPress={forget} />
+      </ListGroup>
     </Screen>
   );
 }

@@ -65,7 +65,12 @@ The app refuses to send any request over real BLE without this channel. Only the
 
 Request: `{ id: uint, type: string, ...params }`
 Response: `{ id, ok: true, result }` or `{ id, ok: false, error: { code, message } }`
-Event (device → app, no reply): `{ type: "event", event: "awaiting-user" | "locked" | "progress", id?, detail? }`
+Event (device → app, no reply): `{ type: "event", event: "awaiting-user" | "locked" | "unlocked" | "paired" | "pair-rejected" | "progress", id?, detail? }`
+
+- `awaiting-user` without `id` and with `detail: "pair"`: an unpaired app connected and the device is
+  showing the pairing code on its own (no request needed). Locked device: it asks as soon as it is
+  unlocked. Answered by `paired` (accepted, PIN entered) or `pair-rejected`.
+- `unlocked`: the wallet was unlocked on the device; the app may reload (`get-info`, accounts).
 
 `awaiting-user` carries `detail: "pair"` while the device shows the pairing code (before the request itself); otherwise no detail.
 

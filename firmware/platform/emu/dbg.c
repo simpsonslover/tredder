@@ -5,6 +5,9 @@
  *   press up|down|back|ok
  *   type <text>       -> letters/digits via the robot finger ("\n" = select)
  *   enter             -> the select action of the current screen
+ *   shot <file.bmp>   -> save what the display shows (24-bit BMP)
+ *   fpr               -> BIP32 master fingerprint of the unlocked wallet (public data)
+ *   sd in|out         -> insert / remove the microSD card
  * press/type/enter reply "ok" once the robot finger has finished.
  */
 #include <winsock2.h>
@@ -13,7 +16,10 @@
 
 #include "app/ui.h"
 #include "app/vault.h"
+#include "bip32.h"
+#include "curves.h"
 #include "emu.h"
+#include "memzero.h"
 
 static SOCKET ls = INVALID_SOCKET, cs = INVALID_SOCKET;
 static char line[512];
@@ -85,7 +91,40 @@ static void screen_json(void) {
   put(buf);
 }
 
+/* "shot <path.bmp>": what the glass shows right now, as a 24-bit BMP (design review). */
+static void shot(const char *path) {
+  static uint32_t px[GLASS_W * GLASS_H];
+  lcd_model_snapshot(px);
+  FILE *f = fopen(path, "wb");
+  if (!f) {
+    put("error cannot write file\n");
+    return;
+  }
+  const unsigned row = GLASS_W * 3, size = 54 + row * GLASS_H;
+  uint8_t h[54] = {'B', 'M'};
+  h[2] = (uint8_t)size, h[3] = (uint8_t)(size >> 8), h[4] = (uint8_t)(size >> 16);
+  h[10] = 54, h[14] = 40;
+  h[18] = (uint8_t)GLASS_W, h[19] = (uint8_t)(GLASS_W >> 8);
+  h[22] = (uint8_t)GLASS_H, h[23] = (uint8_t)(GLASS_H >> 8);
+  h[26] = 1, h[28] = 24;
+  fwrite(h, 1, sizeof(h), f);
+  static uint8_t line_px[GLASS_W * 3];
+  for (int y = GLASS_H - 1; y >= 0; y--) { /* BMP rows go bottom-up */
+    for (unsigned x = 0; x < GLASS_W; x++) {
+      uint32_t c = px[y * GLASS_W + x];
+      line_px[3 * x] = (uint8_t)c, line_px[3 * x + 1] = (uint8_t)(c >> 8), line_px[3 * x + 2] = (uint8_t)(c >> 16);
+    }
+    fwrite(line_px, 1, row, f);
+  }
+  fclose(f);
+  put("ok\n");
+}
+
 static void command(char *c) {
+  if (!strncmp(c, "shot ", 5)) {
+    shot(c + 5);
+    return;
+  }
   if (!strcmp(c, "screen")) {
     screen_json();
     return;
@@ -104,6 +143,21 @@ static void command(char *c) {
   if (!strncmp(c, "type ", 5)) {
     for (const char *p = c + 5; *p; p++) robot_type(*p);
     reply_when_idle = true;
+    return;
+  }
+  if (!strcmp(c, "fpr")) { /* BIP32 master fingerprint of the unlocked wallet (public, in every PSBT) */
+    char out[32] = "error locked\n";
+    const uint8_t *seed = vault_seed();
+    HDNode n;
+    if (seed && hdnode_from_seed(seed, 64, SECP256K1_NAME, &n) && hdnode_fill_public_key(&n) == 0)
+      snprintf(out, sizeof(out), "%08lx\n", (unsigned long)hdnode_fingerprint(&n));
+    memzero(&n, sizeof(n));
+    put(out);
+    return;
+  }
+  if (!strcmp(c, "sd in") || !strcmp(c, "sd out")) { /* insert / remove the microSD card */
+    sd_model_insert(c[3] == 'i');
+    put("ok\n");
     return;
   }
   if (!strcmp(c, "enter")) {

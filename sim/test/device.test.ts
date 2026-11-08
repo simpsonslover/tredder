@@ -24,15 +24,18 @@ test('unlock with PIN', () => {
   assert.equal(d.status().locked, false);
 });
 
-test('PIN pad digits are shuffled', () => {
+test('PIN pad keys stay put, the cursor start is random', () => {
   const d = new Device({ seed: ABANDON });
   d.press('confirm');
   const orders = new Set<string>();
-  for (let i = 0; i < 5; i++) {
+  const cursors = new Set<number>();
+  for (let i = 0; i < 8; i++) {
     d.type('1');
     orders.add(d.view().items!.slice(0, 10).join(''));
+    cursors.add(d.view().cursor!);
   }
-  assert.ok(orders.size > 1, 'digit order should change');
+  assert.equal(orders.size, 1, 'digit order must not change');
+  assert.ok(cursors.size > 1, 'cursor start should vary');
 });
 
 test('10 wrong PINs wipe the device', () => {
