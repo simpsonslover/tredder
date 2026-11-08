@@ -10,6 +10,8 @@ import { BleTransport, requestBlePermissions } from '../transport/ble';
 import { MockTransport } from '../transport/mock';
 import { DEFAULT_SIM_URL, SimTransport } from '../transport/sim';
 import { IdentityChangedError, appStaticKey, pinDeviceKey, pinnedDeviceKey } from './pairing';
+import { assetSeed } from '../ui/coinLogos';
+import { ensureLogos } from '../ui/logoStore';
 import { loadJson, saveJson, secureKV } from './storage';
 import { DEFAULT_SCHEMES, accountId, fetchAccounts, loadHistory, loadPortfolio, type Portfolio, type WalletAccount } from './wallet';
 
@@ -263,6 +265,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     try {
       const p = await loadPortfolio(accounts, settings.net);
       setPortfolio(p);
+      // real logos for listed tokens, downloaded in the background hidden among decoys
+      void ensureLogos(p.holdings.map((h) => assetSeed(h)).filter((k): k is string => !!k));
       setHistory(await loadHistory(accounts, settings.net, p));
     } catch (e) {
       setError((e as Error).message);

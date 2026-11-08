@@ -26,6 +26,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Identicon } from './Identicon';
+import { useDownloadedLogo } from './logoStore';
 
 const THEME = {
   dark: true,
@@ -424,10 +425,11 @@ export function coinColor(symbol: string): string {
 export function CoinIcon({ symbol, size = 32, logo, seed, small, smallLogo }: { symbol: string; size?: number; logo?: ImageSourcePropType; seed?: string; small?: string; smallLogo?: ImageSourcePropType }) {
   const t = useTheme();
   const c = coinColor(symbol);
+  const downloaded = useDownloadedLogo(logo ? undefined : seed); // listed tokens, fetched with decoys (logoStore.ts)
   return (
     <View style={{ width: size, height: size }}>
-      {logo ? (
-        <Image source={logo} style={{ width: size, height: size, borderRadius: size / 2 }} accessibilityLabel={symbol} />
+      {logo || downloaded ? (
+        <Image source={logo ?? { uri: downloaded }} style={{ width: size, height: size, borderRadius: size / 2 }} accessibilityLabel={symbol} />
       ) : seed ? (
         <View accessibilityLabel={symbol}>
           <Identicon seed={seed} size={size} />
