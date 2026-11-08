@@ -1,11 +1,12 @@
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { CHAINS } from '../../chains/config';
 import { assetKey, type Holding } from '../../chains/types';
 import { useWallet } from '../../state/WalletContext';
 import { assetLogo, assetSeed, chainLogo } from '../../ui/coinLogos';
+import { splitHoldings } from '../../ui/tokenTrust';
 import {
   AllocationBar,
   Button,
@@ -53,6 +54,8 @@ export default function Portfolio() {
   const w = useWallet();
   const t = useTheme();
   const [view, setView] = useState<'assets' | 'accounts'>('assets');
+  const [showUnverified, setShowUnverified] = useState(false);
+  const [showErrors, setShowErrors] = useState(false);
   const [menu, setMenu] = useState(false);
   const testnet = w.settings.net === 'test';
   const holdings = useMemo(() => w.portfolio?.holdings ?? [], [w.portfolio]);
@@ -73,6 +76,11 @@ export default function Portfolio() {
     <Sheet visible={menu} onClose={() => setMenu(false)} title="Wallet">
       <ListItem icon="search" title="Find accounts" sub="Look up an imported seed's balances" onPress={() => open('/import')} />
       <ListItem icon="shuffle" title="Sweep to new wallet" sub="Move an old seed's funds to this device" onPress={() => open('/sweep')} />
+      <ListItem
+        icon="list-outline"
+        title={view === 'accounts' ? 'Show coins' : 'Show accounts and addresses'}
+        onPress={() => (setMenu(false), setView(view === 'accounts' ? 'assets' : 'accounts'))}
+      />
       <ListItem icon="settings-outline" title="Preferences" onPress={() => open('/settings')} />
     </Sheet>
   );
@@ -90,67 +98,65 @@ export default function Portfolio() {
       </Screen>
     );
 
+  const split = splitHoldings(assets);
+  const assetRow = (a: Asset) => (
+    <Row
+      key={a.key}
+      onPress={a.kind === 'native' || a.kind === 'token' ? () => router.push({ pathname: '/send', params: { asset: assetKey(a), at: String(Date.now()) } }) : undefined}
+      icon={
+        <CoinIcon
+          symbol={a.symbol}
+          logo={assetLogo(a)}
+          seed={assetSeed(a)}
+          small={a.kind !== 'native' || (a.chain !== 'eth' && CHAINS[a.chain].symbol === 'ETH') ? CHAINS[a.chain].name : undefined}
+          smallLogo={chainLogo(a.chain)}
+        />
+      }
+      left={<Text style={{ color: t.text, fontSize: 17 }}>{a.kind === 'native' ? a.symbol : a.name}{KIND_LABEL[a.kind] ? ` (${KIND_LABEL[a.kind]})` : ''}</Text>}
+      sub={`${chainLabel(a.chain)}${a.accounts > 1 ? ` · ${a.accounts} accounts` : ''}`}
+      right={
+        <>
+          <Text style={{ color: t.text, fontSize: 15, fontFamily: MONO, fontWeight: '700' }}>{formatAmount(a.amount, a.decimals, 6)}</Text>
+          <T kind="muted">{testnet || a.usd === undefined ? a.symbol : formatUsd(a.usd)}</T>
+        </>
+      }
+    />
+  );
+  const errors = w.portfolio?.errors ?? [];
+
   return (
     <Screen title={title} icon="wallet" right={toolbarRight} onRefresh={w.refresh} refreshing={w.loading}>
-      <Pane style={{ paddingHorizontal: 20, paddingVertical: 14, gap: 6 }}>
+      <Pane style={{ paddingHorizontal: 20, paddingVertical: 14, gap: 4 }}>
         {testnet ? (
-          <KeyValue label="Assets" value={<Text style={{ color: t.text, fontSize: 22, fontFamily: MONO }}>{String(assets.length)}</Text>} />
+          <>
+            <Text style={{ color: t.text, fontSize: 22 }}>Test wallet</Text>
+            <T kind="muted">Testnet coins have no real value.</T>
+          </>
         ) : (
-          <KeyValue label="Balance" value={<Text style={{ color: t.text, fontSize: 22, fontFamily: MONO }}>{formatUsd(w.portfolio?.totalUsd).replace('$', '')}</Text>} unit="USD" />
+          <>
+            <T kind="muted">Total</T>
+            <Text style={{ color: t.text, fontSize: 30, fontFamily: MONO }}>{formatUsd(w.portfolio?.totalUsd)}</Text>
+            <AllocationBar parts={assets.map((a) => ({ key: a.key, value: a.usd ?? 0, color: coinColor(a.symbol) }))} />
+          </>
         )}
         <T kind="muted">
-          {testnet ? 'Testnet: coins have no value · ' : ''}
-          {w.loading ? 'Synchronizing…' : w.portfolio ? `Updated ${new Date(w.portfolio.updatedAt).toLocaleTimeString()}` : 'Pull down to load'}
-          {w.device ? '' : ' · watch-only (device not connected)'}
+          {w.loading ? 'Updating…' : w.portfolio ? `Updated ${new Date(w.portfolio.updatedAt).toLocaleTimeString()} · pull down to refresh` : 'Pull down to load'}
+          {w.device ? '' : ' · device not connected'}
         </T>
-        {!testnet ? <AllocationBar parts={assets.map((a) => ({ key: a.key, value: a.usd ?? 0, color: coinColor(a.symbol) }))} /> : null}
       </Pane>
 
       {w.error ? <Notice kind="error">{w.error}</Notice> : null}
-      {w.portfolio?.errors.length ? (
-        <Notice>
-          <T kind="warn">Some balances could not be loaded. Pull down to retry.</T>
-          {w.portfolio.errors.map((e) => (
-            <T key={e} kind="muted">• {e}</T>
-          ))}
-        </Notice>
+      {errors.length ? (
+        <Pressable onPress={() => setShowErrors((v) => !v)}>
+          <Notice>
+            <T kind="warn">{errors.length === 1 ? '1 network' : `${errors.length} networks`} could not be loaded · {showErrors ? 'hide' : 'details'}</T>
+            {showErrors ? errors.map((e) => <T key={e} kind="muted">• {e}</T>) : null}
+          </Notice>
+        </Pressable>
       ) : null}
 
-      <Segmented
-        options={[{ value: 'assets', label: 'Assets' }, { value: 'accounts', label: 'Accounts' }]}
-        value={view}
-        onChange={setView}
-      />
-
-      {!holdings.length ? <T kind="muted" center>{w.loading ? 'Loading balances…' : 'No balances yet. Pull down to refresh.'}</T> : null}
-
-      {view === 'assets' && assets.length ? (
-        <ListGroup>
-          {assets.map((a) => (
-            <Row
-              key={a.key}
-              onPress={a.kind === 'native' || a.kind === 'token' ? () => router.push({ pathname: '/send', params: { asset: assetKey(a), at: String(Date.now()) } }) : undefined}
-              icon={
-                <CoinIcon
-                  symbol={a.symbol}
-                  logo={assetLogo(a)} seed={assetSeed(a)}
-                  small={a.kind !== 'native' || (a.chain !== 'eth' && CHAINS[a.chain].symbol === 'ETH') ? CHAINS[a.chain].name : undefined}
-                  smallLogo={chainLogo(a.chain)}
-                />
-              }
-              left={<Text style={{ color: t.text, fontSize: 17 }}>{a.name}{KIND_LABEL[a.kind] ? ` (${KIND_LABEL[a.kind]})` : ''}</Text>}
-              sub={`${chainLabel(a.chain)}${a.accounts > 1 ? ` · ${a.accounts} accounts` : ''}`}
-              right={
-                <>
-                  <Text style={{ color: t.text, fontSize: 15, fontFamily: MONO, fontWeight: '700' }}>{formatAmount(a.amount, a.decimals, 6)}</Text>
-                  <T kind="muted">{testnet ? a.symbol : `${a.symbol} · ${formatUsd(a.usd)}`}</T>
-                </>
-              }
-            />
-          ))}
-        </ListGroup>
-      ) : view === 'accounts' && holdings.length ? (
-        <ListGroup>
+      {view === 'accounts' ? (
+        <ListGroup title="Accounts and addresses" footer="Every account on every network, as the device reported it.">
           {holdings.map((h, i) => (
             <Row
               key={`${h.owner}-${h.symbol}-${i}`}
@@ -166,7 +172,32 @@ export default function Portfolio() {
             />
           ))}
         </ListGroup>
-      ) : null}
+      ) : !split.coins.length && !split.tokens.length && !split.unverified.length ? (
+        <Pane style={{ alignItems: 'center', paddingVertical: 24, gap: 10 }}>
+          <T center kind="muted">{w.loading ? 'Loading balances…' : 'No coins yet.'}</T>
+          {!w.loading ? <Button kind="secondary" title="Receive coins" icon="arrow-down" onPress={() => router.navigate('/receive')} /> : null}
+        </Pane>
+      ) : (
+        <>
+          {split.coins.length ? <ListGroup title="Coins">{split.coins.map(assetRow)}</ListGroup> : null}
+          {split.tokens.length ? <ListGroup title="Tokens">{split.tokens.map(assetRow)}</ListGroup> : null}
+          {split.unverified.length ? (
+            <ListGroup
+              title={`Unverified tokens (${split.unverified.length})`}
+              footer={showUnverified ? 'Anyone can send tokens to your address. Unknown ones are often scams that copy real names: do not trade or approve them.' : undefined}
+            >
+              <ListItem
+                icon={showUnverified ? 'eye-off-outline' : 'eye-outline'}
+                title={showUnverified ? 'Hide unverified tokens' : 'Show unverified tokens'}
+                sub={showUnverified ? undefined : 'Airdrops, test tokens and look-alikes'}
+                onPress={() => setShowUnverified((v) => !v)}
+                chevron={false}
+              />
+              {showUnverified ? split.unverified.map(assetRow) : null}
+            </ListGroup>
+          ) : null}
+        </>
+      )}
       {walletMenu}
     </Screen>
   );
