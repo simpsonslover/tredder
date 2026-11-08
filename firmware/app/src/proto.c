@@ -11,6 +11,7 @@
 
 #include "app/firmware.h"
 #include "app/hal.h"
+#include "app/noise.h"
 #include "app/ui.h"
 #include "app/vault.h"
 #include "rand.h"
@@ -30,7 +31,7 @@
 
 /* ---------------------------------------------------------------- state */
 static struct {
-  uint8_t buf[PROTO_MSG_MAX];
+  uint8_t buf[PROTO_MSG_MAX + NOISE_TAG];
   size_t len, filled;
   uint8_t seq;
   bool active;
@@ -61,13 +62,44 @@ static struct {
 } PLAN;
 
 static bool paired, connected;
-static uint8_t out[OUT_MAX];
+static uint8_t out[OUT_MAX + NOISE_TAG]; /* room to seal in place */
+
+/* ---------------------------------------------------------------- secure channel (protocol section 3)
+   WL_PROTO_NOISE (device builds): every message after the XX handshake is encrypted end to end
+   with the app instance's own static key; the device pins that key when the user accepts the
+   pairing code (derived from the handshake hash, so a man in the middle shows a different
+   code). Without it (emulator): plaintext, development only. */
+#ifdef WL_PROTO_NOISE
+enum { NZ_WAIT1, NZ_WAIT3, NZ_OPEN };
+static struct {
+  int state;
+  noise_hs_t hs;
+  noise_cs_t tx, rx;
+  uint8_t hash[32];
+  uint8_t peer[32];   /* this session's app static key */
+  bool peer_paired;   /* ... and it is the paired one */
+} NZ;
+static uint8_t dev_static[32]; /* device identity (demo: RAM, new at every start) */
+static uint8_t paired_key[32]; /* the one paired app */
+
+static void noise_begin(void) {
+  uint8_t e[32];
+  random_buffer(e, sizeof(e));
+  wl_wipe(&NZ, sizeof(NZ));
+  noise_xx_init(&NZ.hs, false, dev_static, e);
+  wl_wipe(e, sizeof(e));
+  NZ.state = NZ_WAIT1;
+}
+static bool session_paired(void) { return NZ.state == NZ_OPEN && NZ.peer_paired; }
+#else
+static bool session_paired(void) { return paired; }
+#endif
 
 bool proto_paired(void) { return paired; }
 bool proto_waiting_user(void) { return P.active; }
 
 /* ---------------------------------------------------------------- sending */
-static void send_message(const uint8_t *m, size_t n) {
+static void frame_out(const uint8_t *m, size_t n) {
   size_t fs = hal_link_frame_size();
   if (fs < 20 || fs > MAX_FRAME || !connected) return;
   uint8_t f[MAX_FRAME];
@@ -89,8 +121,18 @@ static void send_message(const uint8_t *m, size_t n) {
   }
 }
 
+/* m must have room for NOISE_TAG more bytes (it is sealed in place). */
+static void send_message(uint8_t *m, size_t n) {
+#ifdef WL_PROTO_NOISE
+  if (NZ.state != NZ_OPEN) return; /* nothing leaves the device before the secure channel exists */
+  noise_seal(&NZ.tx, m, n);
+  n += NOISE_TAG;
+#endif
+  frame_out(m, n);
+}
+
 static void begin_ok(wl_cbor_w_t *w, uint64_t id, size_t result_pairs) {
-  wl_cbor_w_init(w, out, sizeof(out));
+  wl_cbor_w_init(w, out, OUT_MAX);
   wl_cbor_w_map(w, 3);
   wl_cbor_w_kv_uint(w, "id", id);
   wl_cbor_w_kv_bool(w, "ok", true);
@@ -105,7 +147,7 @@ static void finish(wl_cbor_w_t *w) {
 
 static void send_error(uint64_t id, const char *code, const char *message) {
   wl_cbor_w_t w;
-  wl_cbor_w_init(&w, out, sizeof(out));
+  wl_cbor_w_init(&w, out, OUT_MAX);
   wl_cbor_w_map(&w, 3);
   wl_cbor_w_kv_uint(&w, "id", id);
   wl_cbor_w_kv_bool(&w, "ok", false);
@@ -119,7 +161,7 @@ static void send_error(uint64_t id, const char *code, const char *message) {
 
 static void send_event_detail(const char *event, bool with_id, uint64_t id, const char *detail) {
   wl_cbor_w_t w;
-  wl_cbor_w_init(&w, out, sizeof(out));
+  wl_cbor_w_init(&w, out, OUT_MAX);
   wl_cbor_w_map(&w, 2 + (with_id ? 1 : 0) + (detail ? 1 : 0));
   wl_cbor_w_kv_text(&w, "type", "event");
   wl_cbor_w_kv_text(&w, "event", event);
@@ -609,6 +651,10 @@ static void pairing_done(bool ok) {
     return;
   }
   paired = true;
+#ifdef WL_PROTO_NOISE
+  memcpy(paired_key, NZ.peer, 32); /* replaces any previously paired app */
+  NZ.peer_paired = true;
+#endif
   ui_set_status(connected, paired);
   hal_log("phone paired");
   dispatch();
@@ -672,8 +718,12 @@ static void handle(const uint8_t *msg, size_t len) {
   wl_cbor_parse(P.msg, P.len, &P.root);
   snprintf(P.type, sizeof(P.type), "%s", type);
 
-  if (!paired) {
+  if (!session_paired()) {
+#ifdef WL_PROTO_NOISE
+    uint32_t code = noise_pair_code(NZ.hash);
+#else
     uint32_t code = 100000 + random32() % 900000;
+#endif
     wl_review_init(&P.rv);
     wl_page_t *p = wl_review_page(&P.rv, "Pair phone?", WL_TONE_NORMAL);
     wl_page_line(p, "Allow this phone app to");
@@ -690,6 +740,43 @@ static void handle(const uint8_t *msg, size_t len) {
     return;
   }
   dispatch();
+}
+
+/* ---------------------------------------------------------------- secure channel in */
+static void deliver(uint8_t *msg, size_t len) {
+#ifndef WL_PROTO_NOISE
+  if (len <= PROTO_MSG_MAX) handle(msg, len);
+#else
+  if (NZ.state == NZ_WAIT1) {
+    uint8_t m2[NOISE_MSG2];
+    if (noise_xx_read(&NZ.hs, msg, len) && noise_xx_write(&NZ.hs, m2, sizeof(m2)) == NOISE_MSG2) {
+      frame_out(m2, sizeof(m2));
+      NZ.state = NZ_WAIT3;
+    } else {
+      hal_log("secure channel: bad handshake start, reset");
+      noise_begin();
+    }
+  } else if (NZ.state == NZ_WAIT3) {
+    if (noise_xx_read(&NZ.hs, msg, len) && noise_xx_split(&NZ.hs, &NZ.tx, &NZ.rx, NZ.hash, NZ.peer)) {
+      NZ.state = NZ_OPEN;
+      NZ.peer_paired = paired && wl_ct_equal(NZ.peer, paired_key, 32);
+      hal_log("secure channel open (%s app)", NZ.peer_paired ? "paired" : "unpaired");
+    } else {
+      hal_log("secure channel: handshake failed, reset");
+      noise_begin();
+    }
+  } else if (noise_open(&NZ.rx, msg, len)) {
+    if (len - NOISE_TAG <= PROTO_MSG_MAX) handle(msg, len - NOISE_TAG);
+  } else {
+    /* forged, replayed or out of order: the session is dead, the app must reconnect */
+    hal_log("secure channel: message failed authentication, session closed");
+    if (P.active) {
+      ui_cancel_prompt();
+      wl_wipe(&P, sizeof(P));
+    }
+    noise_begin();
+  }
+#endif
 }
 
 /* ---------------------------------------------------------------- framing */
@@ -713,7 +800,7 @@ static void rx_frame(const uint8_t *f, size_t n) {
       return;
     }
     size_t len = (size_t)f[1] << 24 | (size_t)f[2] << 16 | (size_t)f[3] << 8 | f[4];
-    if (len > PROTO_MSG_MAX) {
+    if (len > PROTO_MSG_MAX + NOISE_TAG) {
       hal_log("message too large (%u bytes), dropped", (unsigned)len);
       rx_reset();
       return;
@@ -740,7 +827,7 @@ static void rx_frame(const uint8_t *f, size_t n) {
     bool complete = RX.filled == RX.len;
     size_t len = RX.len;
     rx_reset();
-    if (complete) handle(RX.buf, len);
+    if (complete) deliver(RX.buf, len);
   } else if (RX.filled == RX.len) {
     rx_reset();
   }
@@ -755,6 +842,9 @@ void proto_poll(void) {
 void proto_link_changed(bool up) {
   connected = up;
   rx_reset();
+#ifdef WL_PROTO_NOISE
+  noise_begin(); /* every connection starts a fresh handshake */
+#endif
   if (!up && P.active) {
     ui_cancel_prompt();
     wl_wipe(&P, sizeof(P));
@@ -774,6 +864,10 @@ void proto_locked(void) {
 
 void proto_forget_pairing(void) {
   paired = false;
+#ifdef WL_PROTO_NOISE
+  wl_wipe(paired_key, sizeof(paired_key));
+  NZ.peer_paired = false;
+#endif
   memset(&PLAN, 0, sizeof(PLAN));
   ui_set_status(connected, paired);
 }
@@ -783,4 +877,8 @@ void proto_init(void) {
   memset(&P, 0, sizeof(P));
   memset(&PLAN, 0, sizeof(PLAN));
   paired = connected = false;
+#ifdef WL_PROTO_NOISE
+  random_buffer(dev_static, sizeof(dev_static));
+  noise_begin();
+#endif
 }

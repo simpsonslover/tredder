@@ -3,7 +3,10 @@
 ```powershell
 & "C:\Program Files\KiCad\10.0\bin\python.exe" hardware\sim\run_all.py           # everything (~15 s)
 & "C:\Program Files\KiCad\10.0\bin\python.exe" hardware\sim\run_all.py sd_power  # one test (name match)
+& "C:\Program Files\KiCad\10.0\bin\python.exe" hardware\sim\breadboard.py        # breadboard prototype -> breadboard/TEST_REPORT.md
 ```
+
+`breadboard.py` simulates the breadboard prototype from `tools/gen_breadboard.py`'s layout data (the same data the picture is drawn from), so a wire missing from the picture is missing from the simulation too.
 
 The suite writes **[report.md](report.md)** (every check, its measured value and its limit) and SVG waveform plots in `out/`. The exit code is the number of failing tests, so it can gate a CI job or a pre-order checklist.
 

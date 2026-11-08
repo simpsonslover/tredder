@@ -1,10 +1,8 @@
 // Real BLE transport (react-native-ble-plx). Needs a development build.
 //
-// Pairing is LE Secure Connections with numeric comparison: the OS shows the
-// 6-digit code on the phone, the device shows it on its screen, the user
-// confirms on both. This transport stays `secure = false` until the Noise
-// channel from protocol §3 is implemented (firmware M5); DeviceClient refuses
-// to send requests over an insecure BLE link.
+// Frames only: no BLE-level bonding. Security comes from the Noise channel on top
+// (protocol §3, protocol/secure.ts): DeviceClient refuses a BLE transport without a
+// Noise session, and the pairing code shown on both screens comes from the handshake.
 import { base64 } from '@scure/base';
 import { PermissionsAndroid, Platform } from 'react-native';
 import { BleManager, State, type Device, type Subscription } from 'react-native-ble-plx';
@@ -87,7 +85,6 @@ export function scanForWallets(onFound: (d: FoundDevice) => void, onError: (e: E
 
 export class BleTransport implements Transport {
   readonly kind = 'ble' as const;
-  readonly secure = false; // becomes true once the Noise session exists (M5)
   private frameCbs = new Set<(f: Uint8Array) => void>();
   private discCbs = new Set<() => void>();
   private subs: Subscription[] = [];

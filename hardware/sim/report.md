@@ -1,6 +1,6 @@
 # Hardware simulation report
 
-Generated 2026-11-02 19:13 by `sim/run_all.py` from `tools/design.py` (ngspice from KiCad + behavioural models; see `sim/README.md` for what is and isn't modelled).
+Generated 2026-11-02 21:24 by `sim/run_all.py` from `tools/design.py` (ngspice from KiCad + behavioural models; see `sim/README.md` for what is and isn't modelled).
 
 | Status | Test | What it checks |
 |---|---|---|
@@ -83,7 +83,7 @@ Worst-case simultaneous loads on the Pico's 3V3 output (Raspberry Pi recommends 
 
 ## kicad_checks
 
-**KiCad ERC, DRC and schematic/PCB parity** - PASS (5.1 s)
+**KiCad ERC, DRC and schematic/PCB parity** - PASS (23.5 s)
 
 Runs kicad-cli on the real project files.
 
@@ -98,7 +98,7 @@ Runs kicad-cli on the real project files.
 
 ## reset_default_off
 
-**Boot / reset: peripherals default OFF** - PASS (0.1 s)
+**Boot / reset: peripherals default OFF** - PASS (0.0 s)
 
 All GPIOs in RP2350 reset state (input, pull-DOWN 36-113 k). The SE, microSD, display power and backlight switches must stay OFF until firmware turns them on. Swept over pull-down and AO3401A Vth corners.
 
@@ -170,7 +170,7 @@ Battery 3.7 V and 3.4 V, no USB, power switch turned ON at 1 ms.
 
 ## usb_hotplug
 
-**USB-C hot-plug and unplug with battery (load sharing)** - PASS (6.5 s)
+**USB-C hot-plug and unplug with battery (load sharing)** - PASS (6.6 s)
 
 Battery 3.7 V, switch ON, MCU running. A live 5 V charger is hot-plugged through a cable of 1 uH / 0.1 Ohm (worst-case ringing) and later unplugged. Ringing is simulated with a 5 ns step for both ends of the PTC fuse range (0.15 / 0.3 Ohm).
 
@@ -247,7 +247,7 @@ No USB. SW1 OFF: battery must see only charger leakage. SW1 ON with firmware asl
 
 ## charge_cycle
 
-**Full charge cycle (CC -> CV -> complete)** - PASS (0.1 s)
+**Full charge cycle (CC -> CV -> complete)** - PASS (0.2 s)
 
 Battery capacity scaled to 2 mAh so a full CC/CV cycle fits in 40 s of simulated time (currents and voltages are those of the real circuit). Firmware reads GP5 as input.
 
@@ -336,7 +336,7 @@ GP11 low at 1 ms (SE on), high at 21 ms (off: the SE050 has no reset pin, so thi
 
 ## i2c_timing
 
-**I2C edge rates to the secure element** - PASS (0.4 s)
+**I2C edge rates to the secure element** - PASS (0.5 s)
 
 SE powered, MCU pulls SDA (open-drain) at 400 kHz. Bus = MCU pin 5 pF + SE 10 pF + trace 15 pF (assumed). I2C spec rise time (30->70 %): Fm <= 300 ns, Fm+ <= 120 ns.
 

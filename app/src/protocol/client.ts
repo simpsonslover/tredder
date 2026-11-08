@@ -3,6 +3,7 @@
 import type { Transport } from '../transport/types';
 import { bytesOf, encodeMessage, parseIncoming } from './codec';
 import { Reassembler, toFrames } from './framing';
+import type { Session } from './noise';
 import {
   type AccountKey,
   DeviceError,
@@ -27,20 +28,22 @@ export class DeviceClient {
   private rx = new Reassembler();
   private unsub: (() => void)[] = [];
 
+  /**
+   * @param session Noise session from secure.ts handshake(). Required for real BLE: every
+   *   message is then sealed / opened with it (protocol §3).
+   */
   constructor(
     private readonly transport: Transport,
     private readonly onEvent: (e: WireEvent) => void = () => {},
+    private readonly session?: Session,
   ) {
     if (transport.kind === 'sim' && !isDevBuild()) {
       // The desktop simulator speaks plaintext over localhost: development builds only.
       throw new DeviceError('UNSUPPORTED', 'The simulator can only be used in development builds.');
     }
-    if (transport.kind === 'ble' && !transport.secure) {
+    if (transport.kind === 'ble' && !session) {
       // Protocol §3: never talk plaintext to a real device.
-      throw new DeviceError(
-        'UNSUPPORTED',
-        'Secure channel not available yet (firmware milestone M5). Use the mock device until then.',
-      );
+      throw new DeviceError('UNSUPPORTED', 'No secure channel: refusing to talk to a real device in plaintext.');
     }
     this.unsub.push(transport.onFrame((f) => this.onFrame(f)));
     this.unsub.push(transport.onDisconnect(() => this.failAll(new DeviceError('INTERNAL', 'Device disconnected'))));
@@ -53,7 +56,8 @@ export class DeviceClient {
   async request<K extends Request['type']>(req: Extract<Request, { type: K }>): Promise<ResultMap[K]> {
     const id = this.nextId++;
     const timeout = NEEDS_USER.has(req.type) ? USER_TIMEOUT_MS : TIMEOUT_MS;
-    const bytes = encodeMessage({ ...req, id } as Request & { id: number });
+    const plain = encodeMessage({ ...req, id } as Request & { id: number });
+    const bytes = this.session ? this.session.send.seal(plain) : plain;
     const result = new Promise<unknown>((resolve, reject) => {
       const timer = setTimeout(() => {
         this.pending.delete(id);
@@ -83,6 +87,16 @@ export class DeviceClient {
       return; // malformed framing: drop; pending requests will time out
     }
     if (!msg) return;
+    if (this.session) {
+      try {
+        msg = this.session.recv.open(msg);
+      } catch {
+        // Forged, replayed or reordered: the device has dropped the session as well.
+        this.failAll(new DeviceError('INTERNAL', 'Secure channel broken. Reconnect to the device.'));
+        void this.transport.close();
+        return;
+      }
+    }
     let parsed: WireResponse | WireEvent;
     try {
       parsed = parseIncoming(msg);

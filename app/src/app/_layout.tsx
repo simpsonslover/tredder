@@ -5,9 +5,11 @@ import { WalletProvider, useWallet } from '../state/WalletContext';
 import { ConfirmOnDevice, useTheme } from '../ui/components';
 
 function Overlay() {
-  const { awaitingUser, awaitingKind } = useWallet();
+  const { awaitingUser, awaitingKind, pairCode } = useWallet();
   // Receive draws its own prompt: the address must stay visible to compare with the device
-  return <ConfirmOnDevice visible={awaitingUser && awaitingKind !== 'show-address'} what={awaitingKind === 'pair' ? 'Your tredder shows a 6-digit pairing code. Approve it with your PIN.' : undefined} />;
+  return <ConfirmOnDevice visible={awaitingUser && awaitingKind !== 'show-address'} what={awaitingKind === 'pair' ? `Pairing code: ${pairCode ?? '------'}
+
+Accept on your tredder only if it shows the same code. If the codes differ, reject it: something is between your phone and the device.` : undefined} />;
 }
 
 export default function RootLayout() {

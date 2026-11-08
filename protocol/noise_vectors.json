@@ -1,0 +1,18 @@
+{
+  "protocol": "Noise_XX_25519_ChaChaPoly_SHA256",
+  "prologue": "tredder/1",
+  "initiatorStatic": "10171e252c333a41484f565d646b727980878e959ca3aab1b8bfc6cdd4dbe2e9",
+  "initiatorEphemeral": "20272e353c434a51585f666d747b828990979ea5acb3bac1c8cfd6dde4ebf2f9",
+  "responderStatic": "30373e454c535a61686f767d848b9299a0a7aeb5bcc3cad1d8dfe6edf4fb0209",
+  "responderEphemeral": "40474e555c636a71787f868d949ba2a9b0b7bec5ccd3dae1e8eff6fd040b1219",
+  "msg1": "c1c318eeeead11778e566a24a8cb04b9b431eb84cfa623c6a682c7ee56c8e206",
+  "msg2": "e7a0ed1ad488a5ff884c273c2a17b3d2cee3195f22308326f3845f70a85b5a2b3947a2876c87cfd83858f665c4663de0cb86d452cbaa5194a426baca467177f69fcd91dc7adc9cdc89d1eaa823dc90d2bddee478a4e639dfdb4c7aef8e0aaf76",
+  "msg3": "c9cf099ee793727c4d602652b1b0cd88b742338dc17136c3a377020d487ef92c4b065ca3ae2fe9543e403c44d264b103205c734417747a40a207171085ec72cd",
+  "handshakeHash": "595aa9e24362f6cf16a2338f509985b17a516c37df8078a35a512cc02fc2b4c7",
+  "pairCode": 236170,
+  "toResponder": ["hello device", "second request"],
+  "toInitiator": ["hello app"],
+  "toResponder0": "c1fc7992db8c27be316c1c214e199eeeb9dbacda911d7c720cddb64f",
+  "toResponder1": "91f1addc507da4b65bce101d0a508e855fb0af76227bca4263b4b11092a9",
+  "toInitiator0": "848c764d6654e93fea9b858ed3095e499b06c2d2731b133dd2"
+}

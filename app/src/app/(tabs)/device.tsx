@@ -1,6 +1,8 @@
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
+import { Alert } from 'react-native';
 
+import { IdentityChangedError } from '../../state/pairing';
 import { useWallet } from '../../state/WalletContext';
 import { requestBlePermissions, scanForWallets, waitForBluetooth, type FoundDevice } from '../../transport/ble';
 import { Badge, Button, Card, Row, Screen, T, useTheme } from '../../ui/components';
@@ -52,6 +54,25 @@ export default function DeviceScreen() {
     }
   };
 
+  // A changed device key: never continue silently. Pairing again means comparing the 6-digit
+  // code on both screens, which a fake device cannot match.
+  const connect = async (id: string) => {
+    try {
+      await w.connectBle(id);
+    } catch (e) {
+      if (!(e instanceof IdentityChangedError)) throw e;
+      const again = await new Promise<boolean>((resolve) =>
+        Alert.alert('Device identity changed', `${e.message}
+
+Continue only if you restarted or reset this device yourself. You will compare a pairing code on both screens.`, [
+          { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+          { text: 'Pair again', style: 'destructive', onPress: () => resolve(true) },
+        ]),
+      );
+      if (again) await w.connectBle(id, { acceptNewIdentity: true });
+    }
+  };
+
   return (
     <Screen>
       <T kind="title">Device</T>
@@ -85,7 +106,7 @@ export default function DeviceScreen() {
           </T>
           <Button title={scanning ? 'Scanning…' : 'Scan for device'} onPress={scan} loading={scanning} />
           {found.map((d) => (
-            <Row key={d.id} left={d.name} sub={d.id} right={d.rssi ? `${d.rssi} dBm` : undefined} onPress={() => run(() => w.connectBle(d.id))} />
+            <Row key={d.id} left={d.name} sub={d.id} right={d.rssi ? `${d.rssi} dBm` : undefined} onPress={() => run(() => connect(d.id))} />
           ))}
           <T kind="muted">
             Note: the encrypted app channel arrives with firmware milestone M5. Until then the app will not exchange data with real hardware. Use the mock device to try everything.

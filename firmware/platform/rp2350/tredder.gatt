@@ -1,0 +1,13 @@
+// tredder GATT database (protocol/PROTOCOL.md section 1). No characteristic needs BLE-level
+// pairing: every message on RX/TX is end-to-end encrypted with Noise (section 3).
+PRIMARY_SERVICE, GAP_SERVICE
+CHARACTERISTIC, GAP_DEVICE_NAME, READ, "tredder"
+
+PRIMARY_SERVICE, GATT_SERVICE
+CHARACTERISTIC, GATT_DATABASE_HASH, READ,
+
+PRIMARY_SERVICE, 7a3f0001-5c1e-4c6b-9f2e-6b7d2a1e0b10
+// RX: app -> device, write with response
+CHARACTERISTIC, 7a3f0002-5c1e-4c6b-9f2e-6b7d2a1e0b10, WRITE | DYNAMIC,
+// TX: device -> app, notify
+CHARACTERISTIC, 7a3f0003-5c1e-4c6b-9f2e-6b7d2a1e0b10, NOTIFY,

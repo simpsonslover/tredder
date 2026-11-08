@@ -25,8 +25,9 @@ BLE GATT  ──►  framing (chunks ⇄ messages)  ──►  secure channel (N
 | RX (app → device) | `7a3f0002-5c1e-4c6b-9f2e-6b7d2a1e0b10` | write (with response) |
 | TX (device → app) | `7a3f0003-5c1e-4c6b-9f2e-6b7d2a1e0b10` | notify |
 
-- **Pairing:** LE Secure Connections with **numeric comparison**. The same 6-digit code appears on the phone and on the device, and the user confirms on both.
-- **One phone at a time:** the device stores a single bond. Pairing a new phone needs PIN + confirm, and replaces the old bond.
+- **No BLE-level bonding or link encryption.** All security is in the Noise channel (§3), which encrypts and authenticates every message end to end. Trade-off: someone nearby can see *that* a phone talks to the device, and the message sizes and timing, never the content. BLE bonding would not stop other apps on the same phone anyway (§3), and it adds OS pairing dialogs that the user cannot check against the device.
+- **One phone at a time:** the device stores a single paired app key (§3). Pairing a new app needs PIN + confirm, and replaces the old one.
+- Advertising: flags + the service UUID; the name `tredder` is in the scan response.
 
 ### 2. Framing
 
@@ -44,17 +45,21 @@ The receiver rejects the following and resets its reassembly state:
 - more payload than declared
 - a `last` flag set before all bytes have arrived
 
-### 3. Secure channel (Noise) — implemented in M5, not yet
+### 3. Secure channel (Noise) — M5
 
-BLE encryption alone isn't enough. On Android, any app on the phone can use an existing bond. So every message is also protected end-to-end with the app instance's own key:
+BLE encryption alone isn't enough. On Android, any app on the phone can use an existing bond. So every message is protected end-to-end with the app instance's own key.
 
-- **First pairing:** `Noise_XX_25519_ChaChaPoly_SHA256`. Afterwards the device shows a 6-digit code taken from the handshake hash, and the app shows the same code. The user confirms on the device. The device then stores the app's static public key, one app per device.
-- **Every later session:** `Noise_KK_25519_ChaChaPoly_SHA256` with the stored keys. Messages from any other app or phone fail to decrypt and are dropped.
+- **Handshake, every connection:** `Noise_XX_25519_ChaChaPoly_SHA256`, prologue `tredder/1`, empty payloads. The app is the initiator. The three handshake messages (32, 96 and 64 bytes) are framed like any other message (§2); the device starts a fresh handshake on every connection and answers nothing before it completes.
+  - XX is used for every session instead of switching to KK after pairing: both sides learn and check each other's static key in every handshake, which gives the same authentication as KK with one simpler code path, at the cost of one extra message per connection.
+- **Pairing:** the device accepts requests (other than `get-info`) only from the paired app key. For an unknown key it shows a 6-digit code and needs PIN + Confirm; the app shows the same code. Code = `SHA-256("tredder pairing code" || h)`, first 4 bytes big-endian, mod 1 000 000, where `h` is the handshake hash. A man in the middle runs two different handshakes, so the two screens show different codes. On Confirm, the device stores the app's static public key, replacing any earlier one.
+- **Device identity pinning (app):** after the first request the device accepted, the app stores the device's static public key for that device. A different key later (wiped device, or a fake one) stops the connection; the user must explicitly pair again and compare the code.
+- **Transport:** ChaChaPoly with nonce = 4 zero bytes ‖ 64-bit little-endian counter, empty associated data, 16-byte tag appended; one Noise message per framed message. Unlike the Noise spec, messages may exceed 65 535 bytes (the framing limit applies). A message that fails authentication ends the session on both sides; the app reconnects.
+- **Test vectors:** `protocol/noise_vectors.json`, written by the firmware's C implementation (`firmware/tools/noise_vectors.py`). The app's TypeScript (`app/src/protocol/noise.ts`) and the PC test client (`firmware/tools/ble_probe.py`) must reproduce them byte for byte.
 - **Where the keys live:**
-  - **App:** static key in the phone's secure keystore (`expo-secure-store`), never exported.
-  - **Device:** static key generated on the device and stored encrypted.
+  - **App:** static key in the phone's secure keystore (`expo-secure-store`). It never leaves the app; the device only learns its public half.
+  - **Device:** static key generated on the device. Final firmware: stored encrypted under the secure element. **Demo build without the SE050:** the device key and the paired app key live in RAM only, so every restart is a new device identity and the phone has to pair again (the app warns about the changed identity).
 
-Until M5 ships, the app refuses to send any request over real BLE without this channel. Only the built-in **mock device** talks plaintext, and it holds no keys.
+The app refuses to send any request over real BLE without this channel. Only the built-in **mock device** and the desktop simulator (development builds only) talk plaintext, and they hold no real keys.
 
 ### 4. Messages (CBOR, string keys)
 

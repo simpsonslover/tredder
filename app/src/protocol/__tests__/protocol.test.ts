@@ -129,16 +129,16 @@ describe('client + mock device (real framing at MTU 20)', () => {
 describe('security rules', () => {
   it('refuses to talk plaintext over real BLE', () => {
     const fakeBle: Transport = {
-      kind: 'ble', secure: false, frameSize: 20, name: 'x',
+      kind: 'ble', frameSize: 20, name: 'x',
       send: async () => {}, onFrame: () => () => {}, onDisconnect: () => () => {}, close: async () => {},
     };
-    expect(() => new DeviceClient(fakeBle)).toThrow(/Secure channel/);
+    expect(() => new DeviceClient(fakeBle)).toThrow(/secure channel/i);
   });
 
   it('times out silent devices', async () => {
     jest.useFakeTimers();
     const silent: Transport = {
-      kind: 'mock', secure: false, frameSize: 20, name: 'silent',
+      kind: 'mock', frameSize: 20, name: 'silent',
       send: async () => {}, onFrame: () => () => {}, onDisconnect: () => () => {}, close: async () => {},
     };
     const c = new DeviceClient(silent);

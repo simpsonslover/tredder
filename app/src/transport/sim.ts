@@ -7,7 +7,6 @@ export const DEFAULT_SIM_URL = 'ws://localhost:8765';
 
 export class SimTransport implements Transport {
   readonly kind = 'sim' as const;
-  readonly secure = false;
   readonly frameSize = 244;
   readonly name = 'tredder simulator';
   private frameCbs = new Set<(f: Uint8Array) => void>();

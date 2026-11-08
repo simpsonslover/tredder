@@ -22,6 +22,7 @@
 #define ST_RASET 0x2B
 #define ST_RAMWR 0x2C
 #define ST_MADCTL 0x36
+#define ST_VSCSAD 0x37
 #define ST_COLMOD 0x3A
 
 static uint16_t fb[GFX_W * GFX_H];
@@ -62,6 +63,23 @@ void gfx_init(void) {
 }
 
 void gfx_backlight(bool on) { hal_lcd_backlight(on); }
+
+/* Re-send the panel settings (no reset, no blanking). A corrupted SPI byte can land as a stray
+   command: inversion off (wrong colours), a scroll (picture shifted) or sleep-in (frozen picture).
+   Seen on the breadboard; this undoes every one of those, so call it before redraws. */
+void gfx_resync(void) {
+  cmd_data(ST_SLPOUT, NULL, 0); /* no effect when already awake */
+  delay_ms(5);
+  const uint8_t colmod = 0x55, madctl = 0x60, vsa[2] = {0, 0};
+  cmd_data(ST_COLMOD, &colmod, 1);
+  cmd_data(ST_MADCTL, &madctl, 1);
+  cmd_data(ST_VSCSAD, vsa, 2); /* scroll start back to 0 */
+  cmd_data(ST_INVON, NULL, 0);
+  cmd_data(ST_NORON, NULL, 0); /* leaves partial / scroll mode */
+  cmd_data(ST_DISPON, NULL, 0);
+}
+
+void gfx_invalidate(void) { dirty_y0 = 0, dirty_y1 = GFX_H - 1; }
 
 void gfx_sleep(void) {
   gfx_backlight(false);

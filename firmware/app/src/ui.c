@@ -675,6 +675,11 @@ static void import_count_r(int r) {
 }
 
 static void import_flow(void) {
+#ifdef TREDDER_DEMO_NO_SE
+  /* No secure element: a real seed typed here would sit in unprotected RAM. Refuse. */
+  status_info("Import disabled", WL_TONE_WARN, "Demo build, no security", "chip. Never type a real", "seed into this device.");
+  return;
+#endif
   show_menu("Import", WL_TONE_NORMAL, import_count_r);
   line("Number of words?");
   item("12 words");
@@ -881,7 +886,12 @@ static void home_r(int r) {
 void ui_home(void) {
   if (!vault_initialized()) {
     show_menu("Welcome", WL_TONE_NORMAL, setup_r);
+#ifdef TREDDER_DEMO_NO_SE
+    line("DEMO: no security chip.");
+    line("Nothing is saved. Test only.");
+#else
     line("New device");
+#endif
     item("Create new wallet");
     item("Import seed phrase");
     item("Restore microSD backup");

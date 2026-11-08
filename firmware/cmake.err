@@ -1,0 +1,14 @@
+PICO_SDK_PATH is C:/Users/david/pico/pico-sdk
+Target board (PICO_BOARD) is 'pico2_w'.
+Using board configuration from C:/Users/david/pico/pico-sdk/src/boards/include/boards/pico2_w.h
+Pico Platform (PICO_PLATFORM) is 'rp2350-arm-s'.
+Build type is Release
+Using picotool from C:/Users/david/Desktop/Projects/tredder/firmware/build-rp2350/_deps/picotool/picotool.exe
+TinyUSB available at C:/Users/david/pico/pico-sdk/lib/tinyusb/hw/bsp/rp2040; enabling build support for USB.
+BTstack available at C:/Users/david/pico/pico-sdk/lib/btstack
+cyw43-driver available at C:/Users/david/pico/pico-sdk/lib/cyw43-driver
+Pico W Bluetooth build support available.
+mbedtls available at C:/Users/david/pico/pico-sdk/lib/mbedtls
+lwIP available at C:/Users/david/pico/pico-sdk/lib/lwip
+Pico W Wi-Fi build support available.
+C library type is newlib

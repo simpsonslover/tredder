@@ -24,7 +24,6 @@ export interface MockOptions {
 
 export class MockTransport implements Transport {
   readonly kind = 'mock' as const;
-  readonly secure = false;
   readonly name = 'Mock device (test phrase, cannot sign)';
   readonly frameSize: number;
   private frameCbs = new Set<(f: Uint8Array) => void>();

@@ -45,6 +45,8 @@ sys.path.insert(0, os.path.join(HERE, "..", "tools"))
 import design as D  # noqa: E402
 
 PIN_NET = D.check()
+PARTS = D.P        # board being simulated; sim/breadboard.py swaps in the breadboard's parts + nets
+EMITTERS = {}      # extra part types: type -> fn(cfg, ref, n, L)
 
 # ---------------------------------------------------------------- helpers
 
@@ -166,7 +168,7 @@ def default_config():
 def emit_parts(cfg, L):
     vth = VTH[cfg["vth"]] if isinstance(cfg["vth"], str) else cfg["vth"]
     L.append(f".model PAO3401 PMOS(LEVEL=1 VTO={vth} KP=5.6 LAMBDA=0.01)")
-    for ref, p in D.P.items():
+    for ref, p in PARTS.items():
         t = p["type"]
         n = lambda pin: pin_node(ref, pin)  # noqa: E731
         if t == "R":
@@ -174,6 +176,8 @@ def emit_parts(cfg, L):
             L.append(f"R{ref} {n('1')} {n('2')} {max(v, 1e-3):g}")
         elif t == "C":
             L.append(f"C{ref} {n('1')} {n('2')} {value(p['value']):g}")
+        elif t == "DIODE":                 # 1 = anode, 2 = cathode (Schottky)
+            L.append(f"D{ref} {n('1')} {n('2')} DSCH")
         elif t == "LED":
             L.append(f"D{ref} {n('2')} {n('1')} DRED")
         elif t == "FUSE":
@@ -228,6 +232,8 @@ def emit_parts(cfg, L):
                       f"D{ref}l{pin} 0 {n(pin)} DESD"]
             L += [f"D{ref}bl {n('8')} {ref.lower()}_bl DWHITE", f"R{ref}bl {ref.lower()}_bl {ref.lower()}_bl0 10",
                   f"V{ref}blm {ref.lower()}_bl0 0 0"]
+        elif t in EMITTERS:
+            EMITTERS[t](cfg, ref, n, L)
         else:
             raise SystemExit(f"no simulation model for type {t} ({ref})")
 
@@ -347,11 +353,11 @@ def emit_battery(cfg, ref, n, L):
         return
     soc0 = b["soc"] if "soc" in b else soc_for_ocv(b["v"])
     q = b.get("cap_mah", 1000) * 3.6
-    plus = n("1")
+    plus, minus = n("1"), n("2")   # minus is whatever the wiring connects it to, not assumed GND
     L += [
         "* --- LiPo cell ---",
         "Csoc bat_soc 0 " + f"{q:g}",
-        f"Bocv bat_ocv 0 V={ocv_expr('V(bat_soc)')}",
+        f"Bocv bat_ocv {minus} V={ocv_expr('V(bat_soc)')}",
         f"Rint bat_ocv bat_mid {b.get('rint', 0.12):g}",
         f"Vbat bat_mid {plus} 0",
         "Bsoc 0 bat_soc I=-i(Vbat)",

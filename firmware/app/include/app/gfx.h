@@ -38,5 +38,7 @@ int gfx_text(int x, int y, const char *utf8, const wl_font_t *f, uint16_t color)
 int gfx_text_width(const char *utf8, const wl_font_t *f);
 void gfx_flush(void);             /* push the framebuffer to the panel */
 void gfx_backlight(bool on);
+void gfx_resync(void);            /* re-send panel settings (recovers from a corrupted command) */
+void gfx_invalidate(void);        /* next gfx_flush repaints the whole screen */
 
 #endif

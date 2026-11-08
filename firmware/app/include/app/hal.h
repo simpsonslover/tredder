@@ -20,8 +20,9 @@ uint32_t hal_millis(void);
 void hal_idle(uint32_t max_ms);
 
 /* ---------------------------------------------------------------- buttons
-   Raw pin levels already inverted (bit set = pressed). Active-low GPIO 12..15
-   with external pull-ups and RC debounce; firmware debounces again. */
+   Raw pin levels already inverted (bit set = pressed). Active-low GPIO 12..15.
+   The HAL enables the internal pull-ups: the breadboard has no resistors, the PCB
+   adds 10 k pull-ups and RC debounce. Firmware debounces again. */
 #define HAL_BTN_BACK 0x01u
 #define HAL_BTN_CONFIRM 0x02u
 #define HAL_BTN_UP 0x04u

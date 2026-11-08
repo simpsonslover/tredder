@@ -1,11 +1,15 @@
+import { bytesToHex } from '@noble/hashes/utils.js';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
 import type { TxRecord } from '../chains/types';
 import { DeviceClient } from '../protocol/client';
+import { pairCode as codeOf } from '../protocol/noise';
+import { handshake } from '../protocol/secure';
 import type { DeviceInfo, Net } from '../protocol/types';
 import { BleTransport } from '../transport/ble';
 import { MockTransport } from '../transport/mock';
 import { DEFAULT_SIM_URL, SimTransport } from '../transport/sim';
+import { IdentityChangedError, appStaticKey, pinDeviceKey, pinnedDeviceKey } from './pairing';
 import { loadJson, saveJson, secureKV } from './storage';
 import { DEFAULT_SCHEMES, accountId, fetchAccounts, loadHistory, loadPortfolio, type Portfolio, type WalletAccount } from './wallet';
 
@@ -31,8 +35,11 @@ interface Ctx {
   awaitingUser: boolean;
   /** What the device is waiting for: 'pair' (pairing code) or the request type, e.g. 'show-address'. */
   awaitingKind: string | null;
+  /** BLE: the 6-digit code of this secure session (the device shows the same one when it asks to pair). */
+  pairCode: string | null;
   connectMock(): Promise<void>;
-  connectBle(id: string): Promise<void>;
+  /** Throws IdentityChangedError if the device key is not the pinned one, unless acceptNewIdentity. */
+  connectBle(id: string, opts?: { acceptNewIdentity?: boolean }): Promise<void>;
   connectSim(url?: string): Promise<void>;
   /** Re-read device state (e.g. after unlocking it) and load default accounts. */
   reloadDevice(): Promise<void>;
@@ -54,6 +61,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [device, setDevice] = useState<Device | null>(null);
   const [awaitingUser, setAwaiting] = useState(false);
   const [awaitingKind, setAwaitingKind] = useState<string | null>(null);
+  const [pairCode, setPairCode] = useState<string | null>(null);
   const currentReq = useRef<string | null>(null);
   const [byNet, setByNet] = useState<Record<Net, WalletAccount[]>>({ main: [], test: [] });
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
@@ -140,6 +148,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     deviceRef.current = null;
     setDevice(null);
     setAwaiting(false);
+    setPairCode(null);
     await d?.client.close().catch(() => undefined);
   }, []);
 
@@ -152,13 +161,29 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }, [attach, disconnect, onEvent, wrapClient]);
 
   const connectBle = useCallback(
-    async (id: string) => {
+    async (id: string, opts: { acceptNewIdentity?: boolean } = {}) => {
       await disconnect();
       setError(null);
       const t = await BleTransport.connect(id);
-      t.onDisconnect(() => void disconnect()); // auto-lock: device locks on disconnect, app forgets the session
       try {
-        await attach(wrapClient(new DeviceClient(t, onEvent)), 'ble');
+        const session = await handshake(t, await appStaticKey());
+        const pinned = await pinnedDeviceKey(id);
+        const remote = bytesToHex(session.remoteStatic);
+        if (pinned && pinned !== remote && !opts.acceptNewIdentity) throw new IdentityChangedError();
+        t.onDisconnect(() => void disconnect()); // auto-lock: device locks on disconnect, app forgets the session
+        setPairCode(codeOf(session.hash));
+        const client = wrapClient(new DeviceClient(t, onEvent, session));
+        // Pin the device key once the device has accepted us (it answers nothing but get-info to an
+        // unpaired app), so a later impostor with another key is caught before any request.
+        if (pinned !== remote) {
+          const orig = client.request.bind(client);
+          client.request = (async (req: Parameters<typeof orig>[0]) => {
+            const r = await orig(req);
+            if (req.type !== 'get-info') await pinDeviceKey(id, session.remoteStatic);
+            return r;
+          }) as typeof client.request;
+        }
+        await attach(client, 'ble');
       } catch (e) {
         await t.close();
         throw e;
@@ -214,8 +239,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }, [ready, accounts, settings.net]);
 
   const value = useMemo<Ctx>(
-    () => ({ ready, settings, updateSettings, device, awaitingUser, awaitingKind, connectMock, connectBle, connectSim, reloadDevice, disconnect, accounts, setAccounts, portfolio, history, loading, error, refresh }),
-    [ready, settings, updateSettings, device, awaitingUser, awaitingKind, connectMock, connectBle, connectSim, reloadDevice, disconnect, accounts, setAccounts, portfolio, history, loading, error, refresh],
+    () => ({ ready, settings, updateSettings, device, awaitingUser, awaitingKind, pairCode, connectMock, connectBle, connectSim, reloadDevice, disconnect, accounts, setAccounts, portfolio, history, loading, error, refresh }),
+    [ready, settings, updateSettings, device, awaitingUser, awaitingKind, pairCode, connectMock, connectBle, connectSim, reloadDevice, disconnect, accounts, setAccounts, portfolio, history, loading, error, refresh],
   );
   return <WalletCtx.Provider value={value}>{children}</WalletCtx.Provider>;
 }

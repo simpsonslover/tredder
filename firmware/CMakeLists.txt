@@ -37,7 +37,9 @@ add_library(trezor_crypto STATIC
     ${TC}/ed25519-donna/curve25519-donna-32bit.c ${TC}/ed25519-donna/curve25519-donna-helpers.c
     ${TC}/ed25519-donna/curve25519-donna-scalarmult-base.c ${TC}/ed25519-donna/modm-donna-32bit.c
     ${TC}/ed25519-donna/ed25519-donna-basepoint-table.c ${TC}/ed25519-donna/ed25519-donna-32bit-tables.c
-    ${TC}/ed25519-donna/ed25519-donna-impl-base.c)
+    ${TC}/ed25519-donna/ed25519-donna-impl-base.c
+    ${TC}/chacha20poly1305/chacha20poly1305.c ${TC}/chacha20poly1305/chacha_merged.c
+    ${TC}/chacha20poly1305/poly1305-donna.c ${TC}/chacha20poly1305/rfc7539.c)
 target_include_directories(trezor_crypto PUBLIC ${TC})
 target_compile_definitions(trezor_crypto PUBLIC ${WALLET_DEFINES})
 target_compile_options(trezor_crypto PRIVATE -w)
@@ -67,3 +69,45 @@ target_compile_options(wallet PRIVATE -Wall -Wextra -Werror)
 pico_enable_stdio_usb(wallet 1)
 pico_enable_stdio_uart(wallet 0)
 pico_add_extra_outputs(wallet)
+
+# ---------------------------------------------------------------- bring-up: display + buttons
+# No secrets, no secure element: tests the ST7789 wiring and the four buttons (breadboard or PCB).
+add_executable(bringup_display
+    platform/rp2350/bringup_display.c
+    platform/rp2350/hal_display.c
+    app/src/gfx.c
+    app/src/font_data.c)
+target_include_directories(bringup_display PRIVATE platform/rp2350 app/include)
+target_link_libraries(bringup_display PRIVATE pico_stdlib hardware_spi)
+target_compile_options(bringup_display PRIVATE -Wall -Wextra -Werror)
+pico_enable_stdio_usb(bringup_display 1)
+pico_enable_stdio_uart(bringup_display 0)
+pico_add_extra_outputs(bringup_display)
+
+# ---------------------------------------------------------------- the wallet firmware, DEMO without the SE050
+# The real UI/vault/PIN code (app/) on the board, for the breadboard before the secure element is
+# fitted. TREDDER_DEMO_NO_SE: storage and the "SE" are RAM-only (lost at reset), seed import is
+# disabled. WL_PROTO_NOISE: BLE link with the Noise secure channel (M5); pairing is RAM-only too.
+# Never use it with real funds. The secure build needs the SE050 driver (M2).
+file(GLOB APP_SRC ${CMAKE_CURRENT_LIST_DIR}/app/src/*.c)
+add_executable(tredder_demo
+    platform/rp2350/main_os.c
+    platform/rp2350/hal_display.c
+    platform/rp2350/hal_board.c
+    platform/rp2350/hal_ble.c
+    platform/rp2350/se_demo.c
+    ${APP_SRC})
+target_include_directories(tredder_demo PRIVATE platform/rp2350 app/include)
+target_compile_definitions(tredder_demo PRIVATE TREDDER_DEMO_NO_SE WL_PROTO_NOISE CYW43_LWIP=0 FW_VERSION="0.3.0-demo")
+target_link_libraries(tredder_demo PRIVATE wallet_core pico_stdlib pico_rand hardware_spi hardware_adc
+    pico_cyw43_arch_poll pico_btstack_ble pico_btstack_cyw43)
+pico_btstack_make_gatt_header(tredder_demo PRIVATE ${CMAKE_CURRENT_LIST_DIR}/platform/rp2350/tredder.gatt)
+# Strict warnings on our sources only (the SDK's INTERFACE libraries, e.g. BTstack, compile inside
+# this target too and are not ours to fix).
+set_source_files_properties(
+    platform/rp2350/main_os.c platform/rp2350/hal_display.c platform/rp2350/hal_board.c
+    platform/rp2350/hal_ble.c platform/rp2350/se_demo.c ${APP_SRC}
+    TARGET_DIRECTORY tredder_demo PROPERTIES COMPILE_OPTIONS "-Wall;-Wextra;-Werror;-Wno-format-truncation")
+pico_enable_stdio_usb(tredder_demo 1)
+pico_enable_stdio_uart(tredder_demo 0)
+pico_add_extra_outputs(tredder_demo)

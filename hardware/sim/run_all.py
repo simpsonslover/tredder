@@ -30,8 +30,9 @@ def badge(c):
     return c["kind"]
 
 
-def main(only):
-    tests = static_checks.ALL + scenarios.ALL
+def main(only, tests=None, report=os.path.join(HERE, "report.md"), title="Hardware simulation report",
+         source="`sim/run_all.py` from `tools/design.py`"):
+    tests = tests or static_checks.ALL + scenarios.ALL
     if only:
         tests = [t for t in tests if any(o in t.__name__ for o in only)]
     results = []
@@ -52,16 +53,16 @@ def main(only):
         if res.error:
             print("        " + res.error.splitlines()[0])
         results.append(res)
-    write_report(results)
+    write_report(results, report, title, source)
     nfail = sum(r.status in ("FAIL", "ERROR") for r in results)
     print(f"\n{len(results) - nfail}/{len(results)} tests passed, "
-          f"{sum(r.status == 'WARN' for r in results)} with warnings. Report: sim/report.md")
+          f"{sum(r.status == 'WARN' for r in results)} with warnings. Report: {os.path.relpath(report, os.path.join(HERE, '..'))}")
     return nfail
 
 
-def write_report(results):
-    L = ["# Hardware simulation report", "",
-         f"Generated {datetime.datetime.now():%Y-%m-%d %H:%M} by `sim/run_all.py` from `tools/design.py` "
+def write_report(results, report, title, source):
+    L = [f"# {title}", "",
+         f"Generated {datetime.datetime.now():%Y-%m-%d %H:%M} by {source} "
          "(ngspice from KiCad + behavioural models; see `sim/README.md` for what is and isn't modelled).", "",
          "| Status | Test | What it checks |", "|---|---|---|"]
     for r in results:
@@ -76,9 +77,13 @@ def write_report(results):
             for c in r.checks:
                 L.append(f"| {badge(c)} | {c['desc']} | {fmt(c['val'])} {c['unit']} | {c['limit']} |")
             L.append("")
+        for n in r.notes:
+            L.append(f"- {n}")
+        if r.notes:
+            L.append("")
         for p in r.plots:
             L += [f"![{r.name}](out/{p})", ""]
-    with open(os.path.join(HERE, "report.md"), "w", encoding="utf8") as fh:
+    with open(report, "w", encoding="utf8") as fh:
         fh.write("\n".join(L))
 
 
