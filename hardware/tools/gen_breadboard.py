@@ -69,12 +69,16 @@ def intended():
     Nets that reach a Pico pin carry the PCB's name for that pin (check_layout() compares)."""
     n = {
         "GND": [f"A1.{p}" for p in PICO_GND] + ["SD.GND", "SE.GND", "LCD.GND", "CHG.GND", "BAT.-",
-                                                "R11.2"] + [f"SW_{b}.4" for _, b in BUTTONS],
+                                                "R11.2", "SW1.3"] + [f"SW_{b}.4" for _, b in BUTTONS],
         "+3V3": ["A1.36", "SD.VCC", "SE.3.3V", "LCD.VCC", "LCD.BL"],
         "VBUS": ["A1.40", "CHG.VIN"],
         "VBAT": ["CHG.BAT", "BAT.+", "D1.A", "R10.1"],
         "VSYS": ["A1.39", "D1.K"],
         "VBAT_SENSE": ["A1.34", "R10.2", "R11.1"],
+        # on/off: the PCB's SW1 pole B. Slid to the GND leg, 3V3_EN is pulled low and the Pico's 3.3 V
+        # regulator (and everything on the 3.3 V rail) is off, even on USB. No resistor: the Pico has
+        # its own pull-up on 3V3_EN. (SW1.1, the other outer leg, stays unconnected.)
+        "3V3_EN": ["A1.37", "SW1.2"],
     }
     for pin, mod, mpin, _, what in WIRES:
         if mod != CHG:
@@ -220,6 +224,7 @@ class Layout:
 
 
 BTN_COL0 = 30
+SW1_COLS = (25, 26, 27)   # on/off switch legs (row c)
 
 
 # breadboard resistors: (layout name, value, what it does)
@@ -259,6 +264,12 @@ def layout():
     L.wire("BAT.+", (BAT_PLUS_COL, "a"), "red")
     L.wire((BAT_PLUS_COL, "e"), (A_COL, "e"), "red", width=5)     # short jumper to the battery + column
     L.wire("BAT.-", L.rail_hole(BAT_MINUS_COL, "-t"), "black")
+
+    # on/off slide switch (SPDT): legs c25 c26 c27, middle to 3V3_EN (pin 37), c27 to the - rail
+    for k, c in enumerate(SW1_COLS, 1):
+        L.leg(f"SW1.{k}", (c, "c"))
+    L.wire(wire_end("37"), (SW1_COLS[1], "a"), "grey", ry("+t") - 100)
+    L.wire((SW1_COLS[2], "b"), L.rail_hole(SW1_COLS[2], "-t"), "black", ry("-t") + 12, 4)
 
     # buttons straddle the channel; signal on the bottom-left leg, GND on the diagonally opposite leg,
     # so the button works whichever way round it goes in. No pull-up resistor: the firmware turns on
@@ -521,6 +532,18 @@ def draw(lay):
             d.ellipse([x - 5, y - 5, x + 5, y + 5], fill=(200, 200, 200), outline=(10, 10, 10))
         d.text((tl[0] - 14, br[1] + 14), b, fill=(20, 20, 20), font=F)
 
+    # on/off slide switch
+    l1, l3 = leg["SW1.1"], leg["SW1.3"]
+    d.rounded_rectangle([l1[0] - 16, l1[1] - 16, l3[0] + 16, l3[1] + 16], 5, fill=(30, 30, 30), outline=(10, 10, 10), width=2)
+    d.rectangle([l3[0] - 12, l3[1] - 7, l3[0] + 6, l3[1] + 7], fill=(230, 230, 230))     # knob, slid to the GND end = OFF
+    for k in (1, 2, 3):
+        x, y = leg[f"SW1.{k}"]
+        d.ellipse([x - 4, y - 4, x + 4, y + 4], fill=(200, 200, 200))
+    sx, sy = l1[0] - 16, l1[1] + 22
+    d.rounded_rectangle([sx, sy, sx + 238, sy + 46], 4, fill=(255, 250, 220), outline=(140, 120, 60))
+    d.text((sx + 4, sy + 1), "SW1 on/off switch", fill=(20, 20, 20), font=F)
+    d.text((sx + 4, sy + 24), "knob towards c27 (GND) = OFF", fill=(20, 20, 20), font=FS)
+
     for w in lay.wires:
         route(d, xy(w["a"]), xy(w["b"]), w["lane"], w["colour"], w["width"])
     # resistor labels last, on top of the wires: PCB reference + value
@@ -577,6 +600,7 @@ def markdown(lay):
          "| 1 | NXP SE050 development kit **OM-SE050ARD** (Arduino-shield format, SE050C2 configuration) | The PCB's U2 is the bare SE050C2 chip. Wire it with male-female jumpers from its Arduino header (SDA, SCL, 3.3V, GND). Leave its I2C pull-up jumpers J37/J38 at the default 3.3 k and add none; set the supply jumper J19 for 3.3 V from the header (NXP AN12395, power settings table) | " + amazon("NXP OM-SE050ARD SE050 development kit") + " (often not stocked there: [Mouser](https://www.mouser.com/c/?q=OM-SE050ARD), [Digi-Key](https://www.digikey.com/en/products/result?keywords=OM-SE050ARD)) |",
          "| 1 | microSD card module, 6 pins **VCC GND MISO MOSI SCK CS** (SPI, no card-detect pin) | VCC goes to the 3.3 V rail. If yours has a 3-pin regulator chip (often AMS1117-3.3) and the card won't start, see \"microSD module power\" below | " + amazon('micro SD card module SPI 6 pin') + " |",
          "| 4 | 6 mm tactile push buttons (4 legs) | BACK, CONFIRM, UP, DOWN | " + amazon('6x6mm tactile push button switch 4 pin through hole') + " |",
+         "| 1 | Mini slide switch, SPDT, 3 legs, 2.54 mm pitch (e.g. SS12D00) | SW1, on/off (as on the PCB: it grounds 3V3_EN) | " + amazon('SS12D00 mini slide switch SPDT 3 pin breadboard') + " |",
          "| 2 | 4.7 k resistors | Battery-voltage divider into GP28 (as on the PCB: R10, R11) | " + amazon('4.7k ohm resistor 1/4W metal film') + " |",
          "| 1 | LiPo charger breakout with the MCP73831 (e.g. Adafruit Micro-Lipo) | Same charger chip as the PCB. Its own battery socket stays empty | " + amazon('Adafruit Micro-Lipo charger MCP73831 JST') + " |",
          "| 1 | 1S LiPo 503035, 500 mAh, with protection circuit, JST-PH lead (BT1) | The same cell as the PCB | " + amazon('503035 500mAh 3.7V LiPo battery JST PH 2.0 protection') + " |",
@@ -599,6 +623,7 @@ def markdown(lay):
         L.append(f"| {pin} | {gpio(pin)} | hole j{c}: {b} button's bottom-left leg (f{c}); "
                  f"the diagonally opposite leg (e{c + 2}) goes to GND (a{c + 2} -> top - rail) | BTN_{b} |")
     L += [f"| 9 | GP6 | nothing (the module has no card-detect pin; the firmware pulls GP6 up inside the Pico) | SD_DET |",
+          f"| 37 | 3V3_EN | SW1 middle leg (c{SW1_COLS[1]}); its outer leg c{SW1_COLS[2]} goes to the - rail, c{SW1_COLS[0]} stays free | on/off: knob towards c{SW1_COLS[2]} = OFF |",
           f"| 39 | VSYS | D1 1N5817 cathode (c{K_COL}; band towards the cathode) | battery power into the Pico |",
           f"| 34 | GP28 | middle of the R10 + R11 4.7 k divider (column {TAP_COL}: battery + column {A_COL} -> {TAP_COL} -> "
           f"{GND_COL} -> - rail) | VBAT_SENSE (ADC) |", ""]
@@ -608,6 +633,16 @@ def markdown(lay):
     L += [f"| Charger **BAT** | battery + column {A_COL} (b{A_COL}; D1 anode c{A_COL}, top of R10 d{A_COL}) |",
           f"| BT1 red (+) | a{BAT_PLUS_COL}, jumper e{BAT_PLUS_COL} -> e{A_COL} |",
           "| BT1 black (-) | top - rail |", "",
+          "**On/off switch (SW1):** a 3-leg slide switch, no resistor (the Pico has its own pull-up on 3V3_EN). "
+          "Knob towards the GND leg = OFF: the Pico's 3.3 V regulator stops, so the Pico, display, security chip and "
+          "+3.3 V rail are off even with USB plugged in, exactly like the PCB's SW1. Knob towards the free leg = ON. "
+          "A microSD module powered from pin 40 (5 V, see below) keeps power from USB while the switch is off; that "
+          "is harmless.", "",
+          "**USB only, no battery (simplest):** leave out BT1, the charger, D1 (the 1N5817 diode: lets the battery "
+          "feed VSYS but nothing flow back into it) and R10/R11 (the 4.7 k divider that halves the battery voltage "
+          "for GP28; not pull-ups). The Pico runs from its USB cable. The firmware sees that GP28 is not connected "
+          "(\"battery: none (GP28 not connected)\" in the log): no battery icon and no \"battery low\" sleep, also "
+          "on a wall charger. No transistors and no pull-up resistors are needed anywhere on the breadboard.", "",
           "**Buttons:** no resistors. Each button just connects its Pico pin to GND when pressed; the firmware "
           "turns on the Pico's internal pull-ups (about 50 k) on GP12-GP15, so a released button reads high. (The "
           "PCB also has 10 k pull-ups R26-R29 and RC debounce; the internal pull-ups do no harm there.) The GND "
@@ -621,7 +656,7 @@ def markdown(lay):
           "the microSD card, battery voltage reading, charging from the Pico's USB, running from the "
           "battery, the radio, and all of the firmware.", "",
           "**Does not test** (PCB only):", "",
-          "- The power switches Q1-Q5. Here the display, security chip and SD card are always powered and the "
+          "- The power switches Q1-Q5 (SW1, the on/off switch, is on the breadboard). Here the display, security chip and SD card are always powered and the "
           "backlight is always on, so GP7, GP11, GP18 and GP19 switch nothing, and sleep current is higher. "
           "The SE050 has no reset pin (the PCB resets it by switching its power), so to reset it here, pull its 3.3V wire.",
           "- The battery/USB switch Q1: the diode does the same job, with a 0.3 V drop.",
@@ -638,6 +673,11 @@ def markdown(lay):
           "(VBUS, 5 V)**. Its SPI outputs stay at 3.3 V because its level shifter runs from the regulator. The catch: "
           "pin 40 only has power while USB is plugged in, so on battery alone the SD card is off. Never put 5 V on "
           "a module *without* the regulator: that would destroy the card.", "",
+          "How the SD test (`bringup_sd`) shows a power problem: \"no card (nothing answered)\", and on the serial "
+          "console \"MISO ... held LOW\" with a raw CMD0 reply of all `00` (the unpowered module drags MISO to "
+          "ground), or \"MISO selected: held HIGH\" with all `FF` (module powered, card still silent: under-voltage, "
+          "card not seated, or a wrong SCK/MOSI wire). Tested on the breadboard with a 5 V module on pin 40 and a "
+          "64 GB exFAT card: no CRC errors at 0.5-8 MHz.", "",
           "## Before powering it", "",
           "1. **3.3 V only.** Never connect VBUS (5 V) to the display, the security chip or the 3.3 V rail.",
           "2. **Check the display's pin order** printed on its back. If it differs from BL CS DC RST SDA SCL VCC GND, "
