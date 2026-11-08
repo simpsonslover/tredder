@@ -6,6 +6,8 @@
  *   type <text>       -> letters/digits via the robot finger ("\n" = select)
  *   enter             -> the select action of the current screen
  *   shot <file.bmp>   -> save what the display shows (24-bit BMP)
+ *   fpr               -> BIP32 master fingerprint of the unlocked wallet (public data)
+ *   sd in|out         -> insert / remove the microSD card
  * press/type/enter reply "ok" once the robot finger has finished.
  */
 #include <winsock2.h>
@@ -14,7 +16,10 @@
 
 #include "app/ui.h"
 #include "app/vault.h"
+#include "bip32.h"
+#include "curves.h"
 #include "emu.h"
+#include "memzero.h"
 
 static SOCKET ls = INVALID_SOCKET, cs = INVALID_SOCKET;
 static char line[512];
@@ -138,6 +143,21 @@ static void command(char *c) {
   if (!strncmp(c, "type ", 5)) {
     for (const char *p = c + 5; *p; p++) robot_type(*p);
     reply_when_idle = true;
+    return;
+  }
+  if (!strcmp(c, "fpr")) { /* BIP32 master fingerprint of the unlocked wallet (public, in every PSBT) */
+    char out[32] = "error locked\n";
+    const uint8_t *seed = vault_seed();
+    HDNode n;
+    if (seed && hdnode_from_seed(seed, 64, SECP256K1_NAME, &n) && hdnode_fill_public_key(&n) == 0)
+      snprintf(out, sizeof(out), "%08lx\n", (unsigned long)hdnode_fingerprint(&n));
+    memzero(&n, sizeof(n));
+    put(out);
+    return;
+  }
+  if (!strcmp(c, "sd in") || !strcmp(c, "sd out")) { /* insert / remove the microSD card */
+    sd_model_insert(c[3] == 'i');
+    put("ok\n");
     return;
   }
   if (!strcmp(c, "enter")) {

@@ -70,6 +70,9 @@ bool emu_sleeping(void);
 /* flash + secure element persistence */
 void flash_model_load(void);
 void se_model_load(void);
+void sd_model_load(void);          /* sd_model.c: microSD card image */
+void sd_model_insert(bool in);
+bool sd_model_present(void);
 uint8_t se_model_tries_left(void);
 
 /* phone link */

@@ -18,6 +18,7 @@ import sys
 FW = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 TC = os.path.join(FW, "third_party", "trezor-crypto")
 SECP = os.path.join(FW, "third_party", "secp256k1")
+MONO = os.path.join(FW, "third_party", "monocypher")
 BUILD = os.path.join(FW, "build-host")
 
 # Security-relevant configuration (mirrored in CMakeLists.txt)
@@ -42,6 +43,8 @@ TREZOR_SRC = [
     "ed25519-donna/curve25519-donna-scalarmult-base.c", "ed25519-donna/modm-donna-32bit.c",
     "ed25519-donna/ed25519-donna-basepoint-table.c", "ed25519-donna/ed25519-donna-32bit-tables.c",
     "ed25519-donna/ed25519-donna-impl-base.c",
+    "chacha20poly1305/chacha20poly1305.c", "chacha20poly1305/chacha_merged.c",
+    "chacha20poly1305/poly1305-donna.c", "chacha20poly1305/rfc7539.c",
 ]
 SECP_SRC = ["src/secp256k1.c", "src/precomputed_ecmult.c", "src/precomputed_ecmult_gen.c"]
 
@@ -82,7 +85,7 @@ def main():
     if args.clean and os.path.isdir(BUILD):
         shutil.rmtree(BUILD)
     gcc = find_gcc()
-    core_inc = [os.path.join(FW, "core", "include"), TC, os.path.join(SECP, "include")]
+    core_inc = [os.path.join(FW, "core", "include"), TC, os.path.join(SECP, "include"), MONO]
     objs = []
     # Third-party code: build as-is, warnings off (not ours to edit).
     for rel in TREZOR_SRC:
@@ -90,6 +93,9 @@ def main():
         obj = os.path.join(BUILD, "tc", rel.replace("/", "_") + ".o")
         compile_one(gcc, src, obj, [TC], ["-w"])
         objs.append(obj)
+    obj = os.path.join(BUILD, "mono", "monocypher.c.o")
+    compile_one(gcc, os.path.join(MONO, "monocypher.c"), obj, [MONO], ["-w"])
+    objs.append(obj)
     for rel in SECP_SRC:
         src = os.path.join(SECP, rel)
         obj = os.path.join(BUILD, "secp", os.path.basename(rel) + ".o")

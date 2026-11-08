@@ -51,4 +51,9 @@ vault_result_t vault_set_blind_signing(bool on);
 vault_result_t vault_set_sweep(const uint16_t *idx, size_t words); /* words = 0 erases it */
 vault_result_t vault_replace_active(const uint16_t *idx, size_t words);
 
+/* Only while unlocked, and only for the encrypted microSD backup (app/fs/sdbackup.c): the
+   active wallet's word indices + settings. Never called by the protocol code; the caller wipes
+   idx after use. */
+vault_result_t vault_export_backup(uint16_t idx[24], uint8_t *words, bool *blind);
+
 #endif

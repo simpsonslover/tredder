@@ -363,6 +363,8 @@ static void test_secure(void) {
   CHECK(a[0] == 0, "error output cleared");
 }
 
+void test_backup(int *checks, int *fails); /* test_backup.c */
+
 int main(void) {
   test_secure();
   test_bip39_official();
@@ -374,6 +376,7 @@ int main(void) {
   test_account_keys();
   test_scheme_rules();
   test_entropy();
+  test_backup(&g_checks, &g_fail);
   printf("%d checks, %d failed (%zu BIP39, %zu SLIP-10, %zu official address, %zu differential vectors)\n", g_checks,
          g_fail, N(BIP39_VECTORS), N(SLIP10_ED25519), N(OFFICIAL_ADDRESSES), N(DIFF_VECTORS));
   return g_fail ? 1 : 0;

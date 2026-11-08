@@ -16,6 +16,7 @@
 #include "app/gfx.h"
 #include "app/hal.h"
 #include "app/rng.h"
+#include "app/sdbackup.h"
 #include "app/se.h"
 #include "app/vault.h"
 #include "rand.h"
@@ -389,9 +390,9 @@ static void word_refresh(void) {
   if (S.cursor >= S.nitems) S.cursor = 0;
 }
 
-static void show_word(int number, int total, result_fn on) {
+static void show_word(const char *what, int number, int total, result_fn on) {
   char t[28];
-  snprintf(t, sizeof(t), "Word %d of %d", number, total);
+  snprintf(t, sizeof(t), "%s %d of %d", what, number, total);
   screen(K_WORD, t, WL_TONE_NORMAL, on);
   S.nlines = 3;
   S.lines[0][0] = 0;
@@ -496,7 +497,17 @@ static struct {
   size_t sweep_count;
   char pin1[VAULT_PIN_MAX + 1];
   int after_pin;           /* what to do after a PIN check */
+  int mode;                /* MODE_*: what the shared word screens are for */
+  /* microSD backup / restore (the file is ciphertext; names are random) */
+  uint8_t bk_file[WL_BACKUP_FILE_LEN];
+  char bk_names[BK_MAX_FILES][BK_NAME_LEN];
+  size_t bk_n;
+  bool restore_blind;
 } F;
+
+/* F.words holds the wallet's words (MODE_WALLET), the new backup password while it is shown and
+   checked (MODE_BACKUP), or the password being typed in, then the restored words (MODE_RESTORE). */
+enum { MODE_WALLET = 0, MODE_BACKUP, MODE_RESTORE };
 
 static void flow_end(void) {
   wl_wipe(&F, sizeof(F));
@@ -550,14 +561,19 @@ static void choose_pin(void) { show_pin("Choose PIN", "4 to 8 digits", pin_first
 static void finish_create(void) {
   vault_result_t r = vault_create(F.words, F.count, F.pin1);
   if (r == VAULT_OK && F.for_sweep) r = vault_set_sweep(F.sweep_words, F.sweep_count);
-  bool sweep = F.for_sweep;
+  if (r == VAULT_OK && F.mode == MODE_RESTORE && F.restore_blind) r = vault_set_blind_signing(true);
+  bool sweep = F.for_sweep, restored = F.mode == MODE_RESTORE;
   wl_wipe(F.pin1, sizeof(F.pin1));
   fw_state_changed();
   if (r != VAULT_OK) {
     status_info("Error", WL_TONE_DANGER, "Could not store the", "wallet. Nothing saved.", NULL);
     return;
   }
-  hal_log("wallet stored%s", sweep ? " (+ imported seed to sweep)" : "");
+  hal_log("wallet stored%s", sweep ? " (+ imported seed to sweep)" : restored ? " (restored from microSD)" : "");
+  if (restored) {
+    status_info("Restored", WL_TONE_NORMAL, "Wallet restored from", "the microSD backup.", "Unlocked.");
+    return;
+  }
   status_info("Ready", WL_TONE_NORMAL, sweep ? "New wallet created." : "Wallet ready.",
               sweep ? "Now sweep the old seed" : "Unlocked.", sweep ? "from the phone app." : NULL);
 }
@@ -565,6 +581,7 @@ static void finish_create(void) {
 /* ---- create: show words, quiz */
 static void show_words(void);
 static void quiz_ask(void);
+static void do_backup(void);
 static void show_words_r(int r) {
   (void)r;
   show_words();
@@ -582,7 +599,8 @@ static void quiz_r(int r) {
     return;
   }
   if (++F.quiz_k == 3) {
-    choose_pin();
+    if (F.mode == MODE_BACKUP) do_backup();
+    else choose_pin();
     return;
   }
   quiz_ask();
@@ -631,9 +649,22 @@ static void words_r(int r) {
 
 static void show_words(void) {
   wl_review_init(&local_rv);
+  bool pw = F.mode == MODE_BACKUP;
   for (size_t i = 0; i < F.count; i += 4) {
-    wl_page_t *p = wl_review_page(&local_rv, "Write down", WL_TONE_NORMAL);
+    wl_page_t *p = wl_review_page(&local_rv, pw ? "Backup password" : "Write down", WL_TONE_NORMAL);
     for (size_t k = i; k < i + 4 && k < F.count; k++) wl_page_line(p, "%2u. %s", (unsigned)(k + 1), wl_word(F.words[k]));
+  }
+  if (pw) {
+    wl_page_t *p = wl_review_page(&local_rv, "Keep it apart", WL_TONE_WARN);
+    wl_page_line(p, "This is NOT your");
+    wl_page_line(p, "recovery phrase. It only");
+    wl_page_line(p, "opens this backup file.");
+    wl_page_line(p, " ");
+    wl_page_line(p, "Card + password = wallet:");
+    wl_page_line(p, "never store them together.");
+    wl_page_line(p, "Next: a quick check.");
+    show_pages(&local_rv, false, words_r);
+    return;
   }
   wl_page_t *p = wl_review_page(&local_rv, "Keep it safe", WL_TONE_WARN);
   wl_page_line(p, "Never type these words");
@@ -704,10 +735,12 @@ static void enter_word(void) {
     review_words();
     return;
   }
-  show_word(F.edit >= 0 ? F.edit + 1 : (int)F.count + 1, (int)import_target, word_r);
+  show_word(F.mode == MODE_RESTORE ? "Password" : "Word", F.edit >= 0 ? F.edit + 1 : (int)F.count + 1,
+            (int)import_target, word_r);
 }
 
 static void import_choice_r(int r);
+static void restore_decrypt(void);
 
 static void review_r(int r) {
   if (r < 0) {
@@ -720,6 +753,10 @@ static void review_r(int r) {
     return;
   }
   /* "✓ Words are correct" */
+  if (F.mode == MODE_RESTORE) {
+    restore_decrypt();
+    return;
+  }
   show_menu("Was it ever typed?", WL_TONE_WARN, import_choice_r);
   line("A seed ever typed into a");
   line("phone or computer may");
@@ -732,10 +769,12 @@ static void review_r(int r) {
 
 static void review_words(void) {
   bool ok = wl_mnemonic_check_indices(F.words, F.count) == WL_OK;
-  show_menu(ok ? "Review words" : "Checksum wrong!", ok ? WL_TONE_NORMAL : WL_TONE_DANGER, review_r);
+  bool pw = F.mode == MODE_RESTORE;
+  show_menu(ok ? (pw ? "Review password" : "Review words") : "Checksum wrong!", ok ? WL_TONE_NORMAL : WL_TONE_DANGER,
+            review_r);
   if (ok) {
     line("Check every word against");
-    line("your paper backup.");
+    line(pw ? "the written password." : "your paper backup.");
   } else {
     line("One or more words are");
     line("wrong. Pick one to fix.");
@@ -745,7 +784,7 @@ static void review_words(void) {
     snprintf(s, sizeof(s), "%2u. %s", (unsigned)(i + 1), wl_word(F.words[i]));
     item(s);
   }
-  if (ok) item("✓ Words are correct");
+  if (ok) item(pw ? "✓ Password is correct" : "✓ Words are correct");
 }
 
 static void import_count_r(int r) {
@@ -776,7 +815,8 @@ static void import_flow(void) {
 }
 
 /* ---- PIN-confirmed actions while unlocked */
-enum { AFTER_REPLACE = 1, AFTER_WIPE, AFTER_BLIND_ON, AFTER_SWEEP_EXISTING };
+enum { AFTER_REPLACE = 1, AFTER_WIPE, AFTER_BLIND_ON, AFTER_SWEEP_EXISTING, AFTER_BACKUP };
+static void backup_intro(void);
 
 static void after_pin_r(int r) {
   if (!r) {
@@ -819,6 +859,9 @@ static void after_pin_r(int r) {
     case AFTER_BLIND_ON:
       vault_set_blind_signing(true);
       flow_end();
+      break;
+    case AFTER_BACKUP:
+      backup_intro();
       break;
     default:
       flow_end();
@@ -916,11 +959,173 @@ static void unlock_flow(void) {
   show_pin("Enter PIN", info, unlock_pin_r);
 }
 
+/* ---------------------------------------------------------------- microSD backup + restore (M6) */
+/* A screen shown while the device works (key derivation takes seconds): drawn immediately. */
+static void busy(const char *title, const char *a, const char *b) {
+  const char *l[2] = {a, b};
+  show_info(title, WL_TONE_NORMAL, l, b ? 2 : 1, go_home_r);
+  hint("please wait...");
+  ui_render();
+}
+
+static void bk_fail(const char *title, bk_status_t s) {
+  const char *a, *b;
+  bk_status_text(s, &a, &b);
+  status_info(title, WL_TONE_WARN, a, b[0] ? b : NULL, NULL);
+}
+
+static void backup_show_password_r(int r) {
+  if (!r) {
+    flow_end();
+    return;
+  }
+  /* the card is there and readable: now make the password (TRNG + SE, health-tested) */
+  uint8_t ent[16];
+  F.mode = MODE_BACKUP;
+  if (!rng_collect(ent, sizeof(ent)) || wl_mnemonic_from_entropy(ent, sizeof(ent), F.words, &F.count) != WL_OK) {
+    wl_wipe(ent, sizeof(ent));
+    status_info("Entropy error", WL_TONE_DANGER, "Random source failed", "its health test.", "No backup made.");
+    return;
+  }
+  wl_wipe(ent, sizeof(ent));
+  show_words();
+}
+
+static void backup_intro_r(int r) {
+  if (!r) {
+    flow_end();
+    return;
+  }
+  busy("microSD", "Checking the card...", NULL);
+  bk_status_t s = bk_list(F.bk_names, &F.bk_n);
+  if (s != BK_OK && s != BK_NO_FILES) {
+    bk_fail("Backup", s);
+    return;
+  }
+  const char *l[] = {"Card OK.", " ", "Next: the device shows a", "new 12-word BACKUP", "PASSWORD. Have paper and",
+                     "a pen ready."};
+  show_info("Backup", WL_TONE_NORMAL, l, 6, backup_show_password_r);
+}
+
+static void backup_intro(void) {
+  const char *l[] = {"Insert a microSD card", "(FAT32 or exFAT).", " ", "The wallet is encrypted",
+                     "with a new password the", "device makes up. The", "card alone is useless."};
+  show_info("Back up to microSD", WL_TONE_NORMAL, l, 7, backup_intro_r);
+}
+
+static void do_backup(void) {
+  busy("Saving backup", "Encrypting, writing and", "checking. A few seconds.");
+  char name[BK_NAME_LEN];
+  bk_status_t s = bk_create(F.words, name);
+  wl_wipe(F.words, sizeof(F.words));
+  if (s != BK_OK) {
+    bk_fail("Backup failed", s);
+    return;
+  }
+  char l1[32];
+  snprintf(l1, sizeof(l1), "%s", name);
+  const char *l[] = {"Saved and checked as", l1, " ", "Keep the card and the", "password in different", "places."};
+  show_info("Backup saved", WL_TONE_NORMAL, l, 6, go_home_r);
+}
+
+static void restore_enter_r(int r) {
+  if (!r) {
+    flow_end();
+    return;
+  }
+  F.mode = MODE_RESTORE;
+  F.count = 0;
+  F.edit = -1;
+  import_target = WL_BACKUP_PW_WORDS;
+  enter_word();
+}
+
+static void restore_pick_r(int r) {
+  if (r < 0 || (size_t)r >= F.bk_n) {
+    flow_end();
+    return;
+  }
+  busy("microSD", "Reading the backup...", NULL);
+  bk_status_t s = bk_load(F.bk_names[r], F.bk_file);
+  if (s != BK_OK) {
+    bk_fail("Restore", s);
+    return;
+  }
+  const char *l[] = {"Enter the 12-word", "BACKUP PASSWORD that was", "shown when this backup", "was made.", " ",
+                     "(Not the recovery phrase.)"};
+  show_info("Backup password", WL_TONE_NORMAL, l, 6, restore_enter_r);
+}
+
+static void restore_flow(void) {
+  F.mode = MODE_RESTORE;
+  busy("microSD", "Looking for backups...", NULL);
+  bk_status_t s = bk_list(F.bk_names, &F.bk_n);
+  if (s != BK_OK) {
+    bk_fail("Restore", s);
+    return;
+  }
+  if (F.bk_n == 1) {
+    restore_pick_r(0);
+    return;
+  }
+  show_menu("Choose backup", WL_TONE_NORMAL, restore_pick_r);
+  line("Backups on the card:");
+  for (size_t i = 0; i < F.bk_n; i++) item(F.bk_names[i]);
+}
+
+static void restore_retry_r(int r) {
+  if (r != 0) {
+    flow_end();
+    return;
+  }
+  restore_enter_r(1);
+}
+
+static void restore_ready_r(int r) {
+  if (!r) {
+    flow_end();
+    return;
+  }
+  choose_pin();
+}
+
+static void restore_decrypt(void) {
+  busy("Decrypting", "Checking the password.", "A few seconds.");
+  wl_backup_payload_t p;
+  bk_status_t s = bk_decrypt(F.bk_file, F.words, &p);
+  wl_wipe(F.words, sizeof(F.words));
+  F.count = 0;
+  if (s == BK_WRONG_PASSWORD || s == BK_PASSWORD_TYPO) {
+    const char *a, *b;
+    bk_status_text(s, &a, &b);
+    show_menu("Wrong password", WL_TONE_WARN, restore_retry_r);
+    line(a);
+    line(b);
+    item("Enter it again");
+    item("Cancel");
+    return;
+  }
+  if (s != BK_OK) {
+    wl_wipe(&p, sizeof(p));
+    bk_fail("Restore", s);
+    return;
+  }
+  memcpy(F.words, p.idx, sizeof(F.words));
+  F.count = p.words;
+  F.restore_blind = p.blind_signing;
+  wl_wipe(&p, sizeof(p));
+  hal_log("restore: backup decrypted (%u words)", (unsigned)F.count);
+  char l1[32];
+  snprintf(l1, sizeof(l1), "Wallet with %u words found.", (unsigned)F.count);
+  const char *l[] = {"Backup decrypted.", l1, " ", "Now choose a PIN for", "this device."};
+  show_info("Backup OK", WL_TONE_NORMAL, l, 5, restore_ready_r);
+}
+
 /* ---------------------------------------------------------------- top-level screens */
 static void setup_r(int r) {
   if (r == 0) create_flow(false);
   else if (r == 1) import_flow();
-  else if (r == 2) status_info("microSD restore", WL_TONE_NORMAL, "Encrypted microSD backup", "arrives in firmware", "milestone M6.");
+  else if (r == 2) restore_flow();
 }
 
 static void locked_r(int r) {
@@ -959,9 +1164,13 @@ static void home_r(int r) {
       }
       break;
     case 2:
-      import_flow();
+      F.after_pin = AFTER_BACKUP;
+      show_pin("PIN to confirm", "Back up to microSD", after_pin_r);
       break;
     case 3:
+      import_flow();
+      break;
+    case 4:
       danger_confirm(AFTER_WIPE, "Wipe device?", "Erases the seed.", "Only your written backup", "can restore the funds.");
       break;
     default:
@@ -984,6 +1193,10 @@ void ui_home(void) {
   } else if (!vault_unlocked()) {
     show_menu("tredder", WL_TONE_NORMAL, locked_r);
     line("Locked");
+    if (D.app_connected && !D.paired) {
+      line("A phone wants to pair:");
+      line("unlock to see the code.");
+    }
     uint8_t left = vault_tries_left();
     if (left < SE_PIN_MAX_TRIES) {
       char l[32];
@@ -1001,6 +1214,7 @@ void ui_home(void) {
     }
     item("Lock");
     item(vault_blind_signing() ? "Blind signing: ON" : "Blind signing: off");
+    item("Back up to microSD");
     item("Import seed phrase");
     item("Wipe device");
   }

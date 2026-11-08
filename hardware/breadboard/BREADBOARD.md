@@ -82,6 +82,8 @@ Power rails: Pico pin 36 (3V3) -> **+ rail**, pin 38 (GND) -> **- rail**; the to
 
 VCC goes to the 3.3 V rail, which can't damage any version of the module. Many 6-pin modules are made for 5 V: they carry a 3.3 V regulator (a 3-pin chip, often marked AMS1117-3.3) and a 14-pin level-shifter chip. Fed 3.3 V, the regulator leaves the card only about 2.2 V, below its 2.7 V minimum, and the card may not start. If yours has that regulator and the card doesn't start, move its VCC wire to **Pico pin 40 (VBUS, 5 V)**. Its SPI outputs stay at 3.3 V because its level shifter runs from the regulator. The catch: pin 40 only has power while USB is plugged in, so on battery alone the SD card is off. Never put 5 V on a module *without* the regulator: that would destroy the card.
 
+How the SD test (`bringup_sd`) shows a power problem: "no card (nothing answered)", and on the serial console "MISO ... held LOW" with a raw CMD0 reply of all `00` (the unpowered module drags MISO to ground), or "MISO selected: held HIGH" with all `FF` (module powered, card still silent: under-voltage, card not seated, or a wrong SCK/MOSI wire). Tested on the breadboard with a 5 V module on pin 40 and a 64 GB exFAT card: no CRC errors at 0.5-8 MHz.
+
 ## Before powering it
 
 1. **3.3 V only.** Never connect VBUS (5 V) to the display, the security chip or the 3.3 V rail.

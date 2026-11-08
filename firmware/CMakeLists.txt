@@ -51,11 +51,17 @@ target_include_directories(secp256k1 PUBLIC ${SECP}/include PRIVATE ${SECP}/src)
 target_compile_definitions(secp256k1 PUBLIC ${WALLET_DEFINES})
 target_compile_options(secp256k1 PRIVATE -w)
 
+# Monocypher 4.0.2, Argon2id only (microSD backup password hash), unmodified.
+set(MONO ${CMAKE_CURRENT_LIST_DIR}/third_party/monocypher)
+add_library(monocypher STATIC ${MONO}/monocypher.c)
+target_include_directories(monocypher PUBLIC ${MONO})
+target_compile_options(monocypher PRIVATE -w)
+
 # ---------------------------------------------------------------- wallet core (portable, host-tested)
 file(GLOB WALLET_CORE_SRC ${CMAKE_CURRENT_LIST_DIR}/core/src/*.c)
 add_library(wallet_core STATIC ${WALLET_CORE_SRC})
 target_include_directories(wallet_core PUBLIC ${CMAKE_CURRENT_LIST_DIR}/core/include)
-target_link_libraries(wallet_core PUBLIC trezor_crypto secp256k1)
+target_link_libraries(wallet_core PUBLIC trezor_crypto secp256k1 monocypher)
 target_compile_options(wallet_core PRIVATE -Wall -Wextra -Werror -Wshadow -Wvla)
 
 # ---------------------------------------------------------------- firmware image
@@ -84,6 +90,14 @@ pico_enable_stdio_usb(bringup_display 1)
 pico_enable_stdio_uart(bringup_display 0)
 pico_add_extra_outputs(bringup_display)
 
+# ---------------------------------------------------------------- microSD files: FatFs (unmodified)
+# FAT12/16/32 + exFAT; configuration in app/fs/ffconf.h (no formatter on the device).
+# PC tests: tools/fs_test.py.
+set(FATFS ${CMAKE_CURRENT_LIST_DIR}/third_party/fatfs)
+add_library(fatfs STATIC ${FATFS}/ff.c ${FATFS}/ffunicode.c)
+target_include_directories(fatfs PUBLIC ${FATFS} ${CMAKE_CURRENT_LIST_DIR}/app/fs)
+target_compile_options(fatfs PRIVATE -w)
+
 # ---------------------------------------------------------------- the wallet firmware, DEMO without the SE050
 # The real UI/vault/PIN code (app/) on the board, for the breadboard before the secure element is
 # fitted. TREDDER_DEMO_NO_SE: storage and the "SE" are RAM-only (lost at reset), seed import is
@@ -96,18 +110,37 @@ add_executable(tredder_demo
     platform/rp2350/hal_board.c
     platform/rp2350/hal_ble.c
     platform/rp2350/se_demo.c
+    platform/rp2350/sd_spi.c
+    app/fs/sdfs.c
+    app/fs/sdbackup.c
     ${APP_SRC})
 target_include_directories(tredder_demo PRIVATE platform/rp2350 app/include)
 target_compile_definitions(tredder_demo PRIVATE TREDDER_DEMO_NO_SE WL_PROTO_NOISE CYW43_LWIP=0 FW_VERSION="0.3.0-demo")
-target_link_libraries(tredder_demo PRIVATE wallet_core pico_stdlib pico_rand hardware_spi hardware_adc
+target_link_libraries(tredder_demo PRIVATE wallet_core fatfs pico_stdlib pico_rand hardware_spi hardware_adc
     pico_cyw43_arch_poll pico_btstack_ble pico_btstack_cyw43)
 pico_btstack_make_gatt_header(tredder_demo PRIVATE ${CMAKE_CURRENT_LIST_DIR}/platform/rp2350/tredder.gatt)
 # Strict warnings on our sources only (the SDK's INTERFACE libraries, e.g. BTstack, compile inside
 # this target too and are not ours to fix).
 set_source_files_properties(
     platform/rp2350/main_os.c platform/rp2350/hal_display.c platform/rp2350/hal_board.c
-    platform/rp2350/hal_ble.c platform/rp2350/se_demo.c ${APP_SRC}
+    platform/rp2350/hal_ble.c platform/rp2350/se_demo.c platform/rp2350/sd_spi.c app/fs/sdfs.c app/fs/sdbackup.c
+    ${APP_SRC}
     TARGET_DIRECTORY tredder_demo PROPERTIES COMPILE_OPTIONS "-Wall;-Wextra;-Werror;-Wno-format-truncation")
 pico_enable_stdio_usb(tredder_demo 1)
 pico_enable_stdio_uart(tredder_demo 0)
 pico_add_extra_outputs(tredder_demo)
+
+# ---------------------------------------------------------------- bring-up: microSD (read-only)
+add_executable(bringup_sd
+    platform/rp2350/bringup_sd.c
+    platform/rp2350/sd_spi.c
+    platform/rp2350/hal_display.c
+    app/fs/sdfs.c
+    app/src/gfx.c
+    app/src/font_data.c)
+target_include_directories(bringup_sd PRIVATE platform/rp2350 app/include)
+target_link_libraries(bringup_sd PRIVATE pico_stdlib hardware_spi fatfs)
+target_compile_options(bringup_sd PRIVATE -Wall -Wextra -Werror)
+pico_enable_stdio_usb(bringup_sd 1)
+pico_enable_stdio_uart(bringup_sd 0)
+pico_add_extra_outputs(bringup_sd)

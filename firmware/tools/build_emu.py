@@ -23,8 +23,6 @@ FW = ht.FW
 BUILD = os.path.join(FW, "build-emu")
 OUT = os.path.join(BUILD, "tredder-emu.exe")
 
-CHACHA = ["chacha20poly1305/chacha20poly1305.c", "chacha20poly1305/chacha_merged.c",
-          "chacha20poly1305/poly1305-donna.c", "chacha20poly1305/rfc7539.c"]
 EMU_DEFINES = ["WL_DEBUGLINK", 'FW_VERSION="0.2.0-emu"', "WIN32_LEAN_AND_MEAN", "_WIN32_WINNT=0x0601"]
 STRICT = ["-Wall", "-Wextra", "-Werror", "-Wshadow", "-Wformat=2", "-Wvla"]
 
@@ -64,7 +62,7 @@ def main():
         shutil.rmtree(BUILD)
     gcc = ht.find_gcc()
     objs = []
-    for rel in ht.TREZOR_SRC + CHACHA:
+    for rel in ht.TREZOR_SRC:
         obj = os.path.join(BUILD, "tc", rel.replace("/", "_") + ".o")
         compile_one(gcc, os.path.join(ht.TC, rel), obj, [ht.TC], ["-w"])
         objs.append(obj)
@@ -73,19 +71,31 @@ def main():
         compile_one(gcc, os.path.join(ht.SECP, rel), obj, [os.path.join(ht.SECP, "include"), os.path.join(ht.SECP, "src")], ["-w"])
         objs.append(obj)
 
-    core_inc = [os.path.join(FW, "core", "include"), ht.TC, os.path.join(ht.SECP, "include")]
-    app_inc = core_inc + [os.path.join(FW, "app", "include")]
+    obj = os.path.join(BUILD, "mono", "monocypher.c.o")
+    compile_one(gcc, os.path.join(ht.MONO, "monocypher.c"), obj, [ht.MONO], ["-w"])
+    objs.append(obj)
+    # microSD files: FatFs (with the formatter: the emulator creates its card image)
+    fatfs = os.path.join(FW, "third_party", "fatfs")
+    fs_inc = [fatfs, os.path.join(FW, "app", "fs")]
+    for name in ("ff.c", "ffunicode.c"):
+        obj = os.path.join(BUILD, "fatfs", name + ".o")
+        compile_one(gcc, os.path.join(fatfs, name), obj, fs_inc, ["-w"], ["FF_USE_MKFS=1"])
+        objs.append(obj)
+
+    core_inc = [os.path.join(FW, "core", "include"), ht.TC, os.path.join(ht.SECP, "include"), ht.MONO]
+    app_inc = core_inc + [os.path.join(FW, "app", "include")] + fs_inc
     emu_inc = app_inc + [os.path.join(FW, "platform", "emu")]
     groups = [
         ("core", sorted(glob.glob(os.path.join(FW, "core", "src", "*.c"))), core_inc, STRICT),
         ("app", sorted(glob.glob(os.path.join(FW, "app", "src", "*.c"))), app_inc, STRICT),
+        ("fs", sorted(glob.glob(os.path.join(FW, "app", "fs", "*.c"))), app_inc, STRICT),
         ("emu", sorted(glob.glob(os.path.join(FW, "platform", "emu", "*.c"))), emu_inc,
          ["-Wall", "-Wextra", "-Werror", "-Wshadow", "-Wvla", "-Wno-format-truncation"]),
     ]
     for name, srcs, inc, flags in groups:
         for src in srcs:
             obj = os.path.join(BUILD, name, os.path.basename(src) + ".o")
-            compile_one(gcc, src, obj, inc, flags, EMU_DEFINES)
+            compile_one(gcc, src, obj, inc, flags, EMU_DEFINES + (["FF_USE_MKFS=1"] if name in ("fs", "emu") else []))
             objs.append(obj)
 
     rc = os.path.join(FW, "platform", "emu", "emu.rc")

@@ -333,6 +333,7 @@ int main(int argc, char **argv) {
   if (emu_opts.usb) battery_model_usb(true);
   flash_model_load();
   se_model_load();
+  sd_model_load();
   if (!ws_start(emu_opts.port)) {
     char m[160];
     snprintf(m, sizeof(m), "Port %d is already in use.\nIs another tredder emulator or simulator running?", emu_opts.port);
