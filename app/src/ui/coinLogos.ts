@@ -92,3 +92,9 @@ export function assetLogo(h: Pick<Holding, 'chain' | 'asset'>): ImageSourcePropT
 export function chainLogo(chain: ChainId): ImageSourcePropType | undefined {
   return CHAIN[chain];
 }
+
+/** Seed for the generated icon of a token without a verified logo (unique per contract). */
+export function assetSeed(h: Pick<Holding, 'chain' | 'asset'>): string | undefined {
+  if (h.asset.kind === 'native') return undefined;
+  return `${h.chain}:${h.chain === 'sol' ? h.asset.address : h.asset.address.toLowerCase()}`;
+}

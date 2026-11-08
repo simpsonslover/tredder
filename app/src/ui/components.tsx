@@ -25,6 +25,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Identicon } from './Identicon';
+
 const THEME = {
   dark: true,
   bg: '#303030', //          Material.background (Dark)
@@ -418,14 +420,18 @@ export function coinColor(symbol: string): string {
   return `#${f(0)}${f(8)}${f(4)}`;
 }
 
-/** Coin logo (bundled, see coinLogos.ts) or a letter badge; optional chain marker in the corner. */
-export function CoinIcon({ symbol, size = 32, logo, small, smallLogo }: { symbol: string; size?: number; logo?: ImageSourcePropType; small?: string; smallLogo?: ImageSourcePropType }) {
+/** Coin logo (bundled, see coinLogos.ts), else a pattern from the contract (Identicon.tsx), else a letter badge; optional chain marker in the corner. */
+export function CoinIcon({ symbol, size = 32, logo, seed, small, smallLogo }: { symbol: string; size?: number; logo?: ImageSourcePropType; seed?: string; small?: string; smallLogo?: ImageSourcePropType }) {
   const t = useTheme();
   const c = coinColor(symbol);
   return (
     <View style={{ width: size, height: size }}>
       {logo ? (
         <Image source={logo} style={{ width: size, height: size, borderRadius: size / 2 }} accessibilityLabel={symbol} />
+      ) : seed ? (
+        <View accessibilityLabel={symbol}>
+          <Identicon seed={seed} size={size} />
+        </View>
       ) : (
         <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: c + '33', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', paddingHorizontal: size * 0.12 }}>
           {/* Fixed size inside a fixed circle: iOS "Larger Text" scaled these letters past the circle

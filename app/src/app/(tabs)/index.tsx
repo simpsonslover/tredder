@@ -5,7 +5,7 @@ import { Text, View } from 'react-native';
 import { CHAINS } from '../../chains/config';
 import { assetKey, type Holding } from '../../chains/types';
 import { useWallet } from '../../state/WalletContext';
-import { assetLogo, chainLogo } from '../../ui/coinLogos';
+import { assetLogo, assetSeed, chainLogo } from '../../ui/coinLogos';
 import {
   AllocationBar,
   Button,
@@ -133,7 +133,7 @@ export default function Portfolio() {
               icon={
                 <CoinIcon
                   symbol={a.symbol}
-                  logo={assetLogo(a)}
+                  logo={assetLogo(a)} seed={assetSeed(a)}
                   small={a.kind !== 'native' || (a.chain !== 'eth' && CHAINS[a.chain].symbol === 'ETH') ? CHAINS[a.chain].name : undefined}
                   smallLogo={chainLogo(a.chain)}
                 />
@@ -154,7 +154,7 @@ export default function Portfolio() {
           {holdings.map((h, i) => (
             <Row
               key={`${h.owner}-${h.symbol}-${i}`}
-              icon={<CoinIcon symbol={h.symbol} logo={assetLogo(h)} small={CHAINS[h.chain].name} smallLogo={chainLogo(h.chain)} />}
+              icon={<CoinIcon symbol={h.symbol} logo={assetLogo(h)} seed={assetSeed(h)} small={CHAINS[h.chain].name} smallLogo={chainLogo(h.chain)} />}
               left={<Text style={{ color: t.text, fontSize: 16 }}>{`${chainLabel(h.chain)} ${h.account ? `#${h.account + 1}` : ''}`.trim()}</Text>}
               sub={<Text style={{ color: t.muted, fontSize: 12, fontFamily: MONO }}>{h.chain === 'btc' ? `${h.owner} · ${h.scheme}` : `${h.owner.slice(0, 8)}…${h.owner.slice(-6)} · ${h.scheme}`}</Text>}
               right={
