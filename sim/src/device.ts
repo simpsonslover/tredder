@@ -186,17 +186,19 @@ export class Device extends EventEmitter {
     };
   }
 
-  /** PIN pad with randomized digit order. */
+  /** PIN pad: fixed keys, cursor starts on a random digit and jumps to one after every entry
+   *  (same as the firmware: button presses reveal nothing, the keys never move). */
   private pinMode(title: string, done: (pin: string | null) => void, lines: string[] = []): Mode {
     let pin = '';
-    let items = shuffle(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']).concat(['⌫', '✓ OK']);
-    let cur = 0;
+    const items = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '⌫', '✓ OK'];
+    const randomDigit = () => Math.floor(Math.random() * 10);
+    let cur = randomDigit();
     const add = (d: string) => {
       if (pin.length < 8) pin += d;
-      items = shuffle(items.slice(0, 10)).concat(['⌫', '✓ OK']); // re-randomize after every digit
+      cur = randomDigit();
     };
     return {
-      view: () => ({ title, lines: [...lines, `PIN: ${'•'.repeat(pin.length) || '—'}`], items, cursor: cur, hint: 'Digit positions are randomized' }),
+      view: () => ({ title, lines: [...lines, `PIN: ${'•'.repeat(pin.length) || '—'}`], items, cursor: cur, hint: 'Cursor starts on a random digit' }),
       button: (b) => {
         if (b === 'up') cur = (cur + items.length - 1) % items.length;
         if (b === 'down') cur = (cur + 1) % items.length;

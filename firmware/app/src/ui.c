@@ -22,22 +22,30 @@
 #include "wallet/mnemonic.h"
 #include "wallet/secure.h"
 
-/* ---------------------------------------------------------------- look */
-#define C_BG RGB565(10, 12, 16)
-#define C_FG RGB565(236, 239, 243)
-#define C_DIM RGB565(130, 140, 155)
-#define C_ACCENT RGB565(37, 99, 235)
-#define C_CELL RGB565(30, 36, 46)
-#define C_TITLE RGB565(30, 38, 52)
-#define C_WARN RGB565(176, 108, 18)
-#define C_DANGER RGB565(180, 36, 36)
-#define C_OK RGB565(22, 128, 72)
+/* ---------------------------------------------------------------- look
+   Same visual language as the phone app (which follows Electrum's mobile UI): Material Dark
+   grey, a #424242 toolbar with a shadow line, light-blue accent, rounded "highlight panes",
+   list rows with separators, and a button-legend bar at the bottom split by thin separators. */
+#define C_BG RGB565(48, 48, 48)        /* #303030 background */
+#define C_BAR RGB565(66, 66, 66)       /* #424242 toolbar */
+#define C_PANE RGB565(62, 62, 62)      /* #3E3E3E highlight pane / keys */
+#define C_DARK RGB565(36, 36, 36)      /* inset boxes, separators */
+#define C_SHADOW RGB565(28, 28, 28)
+#define C_FG RGB565(255, 255, 255)
+#define C_DIM RGB565(158, 158, 158)
+#define C_ACCENT RGB565(129, 212, 250) /* #81D4FA light blue */
+#define C_ON_ACCENT RGB565(16, 16, 16)
+#define C_SEL RGB565(74, 84, 92)       /* selected row: grey with a blue tint */
+#define C_WARN RGB565(255, 238, 88)
+#define C_DANGER RGB565(255, 128, 128)
+#define C_OK RGB565(128, 255, 128)
+#define C_CELL C_PANE
 
 #define TITLE_H 30
 #define BODY_Y 38
 #define LINE_H 18
 #define FOOT_Y 218
-#define ROW_H 24
+#define ROW_H 26
 
 typedef enum { K_MENU, K_PAGES, K_PIN, K_WORD } kind_t;
 typedef void (*result_fn)(int r);
@@ -107,59 +115,117 @@ static void shuffle_u8(uint8_t *a, size_t n) {
   }
 }
 
+static int line_h(const char *l);
+
 /* ---------------------------------------------------------------- drawing */
-static uint16_t tone_color(uint8_t t) { return t == WL_TONE_DANGER ? C_DANGER : t == WL_TONE_WARN ? C_WARN : C_TITLE; }
+static uint16_t tone_color(uint8_t t) { return t == WL_TONE_DANGER ? C_DANGER : t == WL_TONE_WARN ? C_WARN : C_FG; }
+
+/* "12. word" style lines: the number in accent, the rest in white. */
+static int numbered_prefix(const char *l) {
+  int i = 0;
+  while (l[i] == ' ') i++;
+  int d = i;
+  while (l[i] >= '0' && l[i] <= '9') i++;
+  return i > d && l[i] == '.' && l[i + 1] == ' ' ? i + 1 : 0;
+}
 
 static void draw_items(int y) {
   if (!S.nitems) return;
   if (S.cols == 1) {
-    int rows = (FOOT_Y - 4 - y) / ROW_H;
+    int rows = (FOOT_Y - 2 - y) / ROW_H;
     if (rows < 1) rows = 1;
     if (S.cursor < S.scroll) S.scroll = S.cursor;
     if (S.cursor >= S.scroll + rows) S.scroll = (uint8_t)(S.cursor - rows + 1);
     for (int i = S.scroll; i < S.nitems && i < S.scroll + rows; i++) {
       int ry = y + (i - S.scroll) * ROW_H;
       bool sel = i == S.cursor;
-      if (sel) gfx_fill(6, ry, GFX_W - 12, ROW_H - 2, C_ACCENT);
-      gfx_text(14, ry + 3, S.items[i], sel ? &wl_font_bold : &wl_font_body, sel ? C_FG : C_FG);
+      if (i > S.scroll) gfx_fill(8, ry, GFX_W - 16, 1, C_DARK); /* separator */
+      if (sel) {
+        gfx_round_rect(4, ry + 2, GFX_W - 8, ROW_H - 3, 6, C_SEL);
+        gfx_fill(4, ry + 5, 3, ROW_H - 9, C_ACCENT);
+      }
+      gfx_text(16, ry + (ROW_H - wl_font_body.height) / 2, S.items[i], sel ? &wl_font_bold : &wl_font_body, sel ? C_ACCENT : C_FG);
+      if (sel) { /* chevron, drawn (the fonts have no U+203A) */
+        int cx = GFX_W - 20, cy = ry + ROW_H / 2;
+        for (int d = 0; d < 5; d++) {
+          gfx_fill(cx + d, cy - 4 + d, 2, 1, C_ACCENT);
+          gfx_fill(cx + d, cy + 4 - d, 2, 1, C_ACCENT);
+        }
+      }
     }
-    if (S.scroll > 0) gfx_text(GFX_W - 16, y - 16, "▲", &wl_font_body, C_DIM);
-    if (S.scroll + rows < S.nitems) gfx_text(GFX_W - 16, FOOT_Y - 18, "▼", &wl_font_body, C_DIM);
+    if (S.scroll > 0) gfx_text(GFX_W / 2 - 5, y - 15, "▲", &wl_font_body, C_DIM);
+    if (S.scroll + rows < S.nitems) gfx_text(GFX_W / 2 - 5, FOOT_Y - 16, "▼", &wl_font_body, C_DIM);
     return;
   }
-  /* grid */
+  /* grid: PIN pad (digits, ←, ✓) and the word picker's letters */
   int first = 0;
   if (S.wide_first) {
     bool sel = S.cursor == 0;
-    gfx_fill(6, y, GFX_W - 12, 28, sel ? C_OK : C_CELL);
-    gfx_text(14, y + 5, S.items[0], &wl_font_bold, C_FG);
+    gfx_round_rect(6, y, GFX_W - 12, 28, 6, sel ? C_OK : C_PANE);
+    gfx_text(16, y + (28 - wl_font_bold.height) / 2, S.items[0], &wl_font_bold, sel ? C_ON_ACCENT : C_OK);
     y += 32;
     first = 1;
   }
-  int cw = (GFX_W - 12) / S.cols, ch = S.kind == K_PIN ? 40 : 28;
-  const wl_font_t *f = S.kind == K_PIN ? &wl_font_title : &wl_font_bold;
+  bool pin = S.kind == K_PIN;
+  int cw = (GFX_W - 12) / S.cols, ch = pin ? 42 : 28;
+  const wl_font_t *f = pin ? &wl_font_title : &wl_font_bold;
   for (int i = first; i < S.nitems; i++) {
     int k = i - first, cx = 6 + (k % S.cols) * cw, cy = y + (k / S.cols) * ch;
     bool sel = i == S.cursor;
-    gfx_fill(cx + 2, cy + 2, cw - 4, ch - 4, sel ? C_ACCENT : C_CELL);
+    bool enter = pin && !strcmp(S.items[i], "✓"), del = pin && !strcmp(S.items[i], "←");
+    uint16_t bg = sel ? C_ACCENT : C_PANE;
+    uint16_t fg = sel ? C_ON_ACCENT : enter ? C_OK : del ? C_DANGER : C_FG;
+    gfx_round_rect(cx + 2, cy + 2, cw - 4, ch - 4, pin ? 8 : 5, bg);
     int tw = gfx_text_width(S.items[i], f);
-    gfx_text(cx + (cw - tw) / 2, cy + (ch - f->height) / 2, S.items[i], f, C_FG);
+    gfx_text(cx + (cw - tw) / 2, cy + (ch - f->height) / 2, S.items[i], f, fg);
   }
 }
 
-/* 24 x 12 battery outline + nub, fill by level; green bar while charging. */
+/* Battery outline + nub, fill by level; green while charging. */
 static void draw_battery(int x, int y) {
   if (D.battery < 0) return;
   const int w = 22, h = 12;
   uint16_t c = D.charging ? C_OK : D.battery <= 15 ? C_DANGER : C_FG;
-  gfx_fill(x, y, w, 1, C_FG);
-  gfx_fill(x, y + h - 1, w, 1, C_FG);
-  gfx_fill(x, y, 1, h, C_FG);
-  gfx_fill(x + w - 1, y, 1, h, C_FG);
-  gfx_fill(x + w, y + 3, 2, h - 6, C_FG);
+  gfx_fill(x, y, w, 1, C_DIM);
+  gfx_fill(x, y + h - 1, w, 1, C_DIM);
+  gfx_fill(x, y, 1, h, C_DIM);
+  gfx_fill(x + w - 1, y, 1, h, C_DIM);
+  gfx_fill(x + w, y + 3, 2, h - 6, C_DIM);
   int fw = (w - 4) * (D.battery > 100 ? 100 : D.battery) / 100;
   if (fw < 1 && D.battery > 0) fw = 1;
   gfx_fill(x + 2, y + 2, fw, h - 4, c);
+}
+
+/* Phone-link marker: ring, filled green when the paired app is connected. */
+static void draw_link(int x, int y) {
+  uint16_t c = D.app_connected ? (D.paired ? C_OK : C_WARN) : C_DIM;
+  gfx_round_rect(x, y, 10, 10, 5, c);
+  if (!D.app_connected) gfx_round_rect(x + 2, y + 2, 6, 6, 3, C_BAR);
+}
+
+/* Bottom legend bar: segments of the hint (split at double spaces) between thin separators. */
+static void draw_legend(void) {
+  if (!S.hint[0]) return;
+  gfx_fill(0, FOOT_Y, GFX_W, GFX_H - FOOT_Y, C_PANE);
+  char seg[3][24];
+  int n = 0;
+  const char *p = S.hint;
+  while (*p && n < 3) {
+    const char *e = strstr(p, "  ");
+    size_t len = e ? (size_t)(e - p) : strlen(p);
+    if (len >= sizeof(seg[0])) len = sizeof(seg[0]) - 1;
+    memcpy(seg[n], p, len);
+    seg[n++][len] = 0;
+    if (!e) break;
+    p = e;
+    while (*p == ' ') p++;
+  }
+  int sw = GFX_W / n;
+  for (int i = 0; i < n; i++) {
+    if (i) gfx_fill(i * sw, FOOT_Y + 5, 2, GFX_H - FOOT_Y - 10, C_DARK);
+    int w = gfx_text_width(seg[i], &wl_font_body);
+    gfx_text(i * sw + (sw - w) / 2, FOOT_Y + (GFX_H - FOOT_Y - wl_font_body.height) / 2, seg[i], &wl_font_body, C_FG);
+  }
 }
 
 static void draw(void) {
@@ -170,33 +236,52 @@ static void draw(void) {
     pg = &S.rv->pages[S.vpage[S.page]];
     tone = pg->tone;
   }
-  gfx_fill(0, 0, GFX_W, TITLE_H, tone_color(tone));
-  char title[40];
-  if (pg && S.nviews > 1) snprintf(title, sizeof(title), "%s  %u/%u", pg->title, S.page + 1u, S.nviews);
-  else snprintf(title, sizeof(title), "%s", pg ? pg->title : S.title);
-  gfx_text(10, (TITLE_H - wl_font_title.height) / 2 + 1, title, &wl_font_title, C_FG);
-  /* status dot: app link */
-  gfx_fill(GFX_W - 14, 11, 8, 8, D.app_connected ? (D.paired ? C_OK : C_WARN) : C_DIM);
-  draw_battery(GFX_W - 48, 9);
+  /* toolbar */
+  gfx_fill(0, 0, GFX_W, TITLE_H, C_BAR);
+  gfx_fill(0, TITLE_H, GFX_W, 2, C_SHADOW);
+  if (tone != WL_TONE_NORMAL) gfx_fill(0, 0, 4, TITLE_H, tone_color(tone));
+  int tx = tone != WL_TONE_NORMAL ? 12 : 10;
+  if (tone != WL_TONE_NORMAL) tx = gfx_text(tx, (TITLE_H - wl_font_title.height) / 2 + 1, "! ", &wl_font_title, tone_color(tone));
+  tx = gfx_text(tx, (TITLE_H - wl_font_title.height) / 2 + 1, pg ? pg->title : S.title, &wl_font_title, tone_color(tone));
+  if (pg && S.nviews > 1) {
+    char pn[12];
+    snprintf(pn, sizeof(pn), "%u/%u", S.page + 1u, S.nviews);
+    gfx_text(tx + 8, (TITLE_H - wl_font_body.height) / 2 + 1, pn, &wl_font_body, C_ACCENT);
+  }
+  draw_battery(GFX_W - 52, 9);
+  draw_link(GFX_W - 18, 10);
 
   int y = BODY_Y;
   uint8_t first = pg ? S.vfirst[S.page] : 0, n = pg ? S.vcount[S.page] : S.nlines;
+  if (pg && n) { /* review pages sit on a highlight pane */
+    int h = 0;
+    for (uint8_t i = 0; i < n; i++) h += line_h(pg->lines[first + i]);
+    gfx_round_rect(4, BODY_Y - 4, GFX_W - 8, h + 8 > FOOT_Y - BODY_Y ? FOOT_Y - BODY_Y : h + 8, 8, C_PANE);
+  }
   for (uint8_t i = 0; i < n; i++) {
     const char *l = pg ? pg->lines[first + i] : S.lines[i];
-    if (l[0] == '\x01') { /* big line (codes, PIN dots) */
-      int w = gfx_text_width(l + 1, &wl_font_big);
-      gfx_text((GFX_W - w) / 2, y, l + 1, &wl_font_big, C_FG);
+    if (l[0] == '\x01') { /* big line (codes, PIN dots, typed prefix): inset box, accent */
+      int w = gfx_text_width(l + 1, &wl_font_big), bw = w + 32 < 160 ? 160 : w + 32;
+      gfx_round_rect((GFX_W - bw) / 2, y - 1, bw, wl_font_big.height + 2, 8, C_DARK);
+      gfx_text((GFX_W - w) / 2, y, l + 1, &wl_font_big, C_ACCENT);
       y += wl_font_big.height + 2;
     } else {
-      gfx_text(8, y, l, &wl_font_body, C_FG);
+      int k = numbered_prefix(l);
+      int x = 12;
+      if (k) {
+        char num[8];
+        snprintf(num, sizeof(num), "%.*s", k, l);
+        gfx_text(x, y, num, &wl_font_body, C_ACCENT);
+        x += gfx_text_width("00. ", &wl_font_body);
+        gfx_text(x, y, l + k + 1, &wl_font_bold, C_FG);
+      } else {
+        gfx_text(x, y, l, &wl_font_body, pg ? C_FG : (i == 0 && S.kind == K_MENU ? C_DIM : C_FG));
+      }
       y += LINE_H;
     }
   }
   draw_items(y + 6);
-  if (S.hint[0]) {
-    int w = gfx_text_width(S.hint, &wl_font_body);
-    gfx_text((GFX_W - w) / 2, FOOT_Y + 2, S.hint, &wl_font_body, C_DIM);
-  }
+  draw_legend();
 }
 
 void ui_render(void) {
@@ -248,17 +333,17 @@ static void show_info(const char *title, wl_tone_t tone, const char *const *line
   show_pages(&local_rv, false, on);
 }
 
+/* Fixed keys (1 2 3 4 5 6 / 7 8 9 0 ← ✓), but the cursor starts on a random digit and jumps to a
+   random digit after every entry. Someone watching the ▲▼ presses learns nothing (the moves
+   depend on an unseen start), and the keys themselves never move: easier to type than the old
+   shuffled pad, which the user found too annoying. */
 static void pin_layout(void) {
-  uint8_t d[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
-  shuffle_u8(d, 10); /* randomised digit positions: a shoulder-surfer learns nothing from cursor moves */
+  static const char *const KEYS[] = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "←", "✓"};
   S.nitems = 0;
-  for (int i = 0; i < 10; i++) {
-    char s[2] = {(char)('0' + d[i]), 0};
-    item(s);
-  }
-  item("←");
-  item("✓");
+  for (unsigned i = 0; i < sizeof(KEYS) / sizeof(KEYS[0]); i++) item(KEYS[i]);
 }
+
+static void pin_random_cursor(void) { S.cursor = (uint8_t)(random32() % 10u); /* one of the digits */ }
 
 static void pin_lines(void) {
   char dots[2 * VAULT_PIN_MAX + 2] = "\x01";
@@ -274,8 +359,9 @@ static void show_pin(const char *title, const char *info, result_fn on) {
   line("");
   S.cols = 6;
   pin_layout();
+  pin_random_cursor();
   pin_lines();
-  hint("Digit positions shuffle");
+  hint("▲▼ move  ✓ digit  ✗ delete");
 }
 
 /* ---------------------------------------------------------------- word picker */
@@ -360,7 +446,7 @@ void ui_button(uint8_t b) {
         }
       } else if (S.pinlen < VAULT_PIN_MAX) {
         S.pin[S.pinlen++] = it[0];
-        pin_layout(); /* reshuffle after every digit */
+        pin_random_cursor(); /* new random start for the next digit */
       }
       pin_lines();
     }
