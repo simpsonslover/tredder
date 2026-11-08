@@ -6,6 +6,7 @@ import {
   encodeFunctionData,
   erc20Abi,
   hexToBytes,
+  fallback,
   http,
   isAddress,
   serializeTransaction,
@@ -27,7 +28,12 @@ export function evmClient(chain: ChainId, net: Net): PublicClient {
   let c = clients.get(key);
   if (!c) {
     const cfg = CHAINS[chain].net[net];
-    c = createPublicClient({ transport: http(cfg.rpc, { timeout: 15_000 }) }) as PublicClient;
+    // Several public RPCs per chain: one being down, rate-limited or blocked on this network does
+    // not take the chain's balance with it. The chain id that gets signed comes from config, never
+    // from an RPC.
+    const urls = [cfg.rpc!, ...(cfg.rpcFallbacks ?? [])];
+    const transport = urls.length > 1 ? fallback(urls.map((u) => http(u, { timeout: 12_000, retryCount: 0 })), { retryCount: 0 }) : http(urls[0], { timeout: 15_000 });
+    c = createPublicClient({ transport }) as PublicClient;
     clients.set(key, c);
   }
   return c;
