@@ -78,6 +78,7 @@ static struct {
   uint8_t hash[32];
   uint8_t peer[32];   /* this session's app static key */
   bool peer_paired;   /* ... and it is the paired one */
+  bool pair_asked;    /* the pairing prompt was shown for this connection (no repeats) */
 } NZ;
 static uint8_t dev_static[32]; /* device identity (demo: RAM, new at every start) */
 static uint8_t paired_key[32]; /* the one paired app */
@@ -91,6 +92,7 @@ static void noise_begin(void) {
   NZ.state = NZ_WAIT1;
 }
 static bool session_paired(void) { return NZ.state == NZ_OPEN && NZ.peer_paired; }
+static bool was_unlocked;
 #else
 static bool session_paired(void) { return paired; }
 #endif
@@ -645,8 +647,10 @@ static void dispatch(void) {
 
 static void pairing_done(bool ok) {
   P.pairing = false;
+  bool standalone = P.type[0] == 0; /* asked on connect, no request waiting behind it */
   if (!ok) {
-    send_error(P.id, "USER_REJECTED", "pairing rejected on device");
+    if (standalone) send_event("pair-rejected", false, 0);
+    else send_error(P.id, "USER_REJECTED", "pairing rejected on device");
     end_request();
     return;
   }
@@ -655,9 +659,37 @@ static void pairing_done(bool ok) {
   memcpy(paired_key, NZ.peer, 32); /* replaces any previously paired app */
   NZ.peer_paired = true;
 #endif
-  ui_set_status(connected, paired);
+  ui_set_status(connected, true);
   hal_log("phone paired");
+  if (standalone) {
+    send_event("paired", false, 0);
+    end_request();
+    return;
+  }
   dispatch();
+}
+
+/* The pairing question with the 6-digit code from the handshake (the app shows the same code). */
+static void ask_pairing(void) {
+#ifdef WL_PROTO_NOISE
+  uint32_t code = noise_pair_code(NZ.hash);
+  NZ.pair_asked = true;
+#else
+  uint32_t code = 100000 + random32() % 900000;
+#endif
+  wl_review_init(&P.rv);
+  wl_page_t *p = wl_review_page(&P.rv, "Pair phone?", WL_TONE_NORMAL);
+  wl_page_line(p, "Allow this phone app to");
+  wl_page_line(p, "use the wallet?");
+  wl_page_line(p, " ");
+  wl_page_line(p, "Code:");
+  wl_page_line(p, "\x01%06lu", (unsigned long)code);
+  wl_page_line(p, "Accept only if the phone");
+  wl_page_line(p, "shows the same code.");
+  wl_page_line(p, "One phone at a time.");
+  P.pairing = true;
+  hal_log("pairing request, code %06lu", (unsigned long)code);
+  ask(true, pairing_done);
 }
 
 /* ---------------------------------------------------------------- request entry */
@@ -719,24 +751,7 @@ static void handle(const uint8_t *msg, size_t len) {
   snprintf(P.type, sizeof(P.type), "%s", type);
 
   if (!session_paired()) {
-#ifdef WL_PROTO_NOISE
-    uint32_t code = noise_pair_code(NZ.hash);
-#else
-    uint32_t code = 100000 + random32() % 900000;
-#endif
-    wl_review_init(&P.rv);
-    wl_page_t *p = wl_review_page(&P.rv, "Pair phone?", WL_TONE_NORMAL);
-    wl_page_line(p, "Allow this phone app to");
-    wl_page_line(p, "use the wallet?");
-    wl_page_line(p, " ");
-    wl_page_line(p, "Code:");
-    wl_page_line(p, "\x01%06lu", (unsigned long)code);
-    wl_page_line(p, "Accept only if the phone");
-    wl_page_line(p, "shows the same code.");
-    wl_page_line(p, "One phone at a time.");
-    P.pairing = true;
-    hal_log("pairing request, code %06lu", (unsigned long)code);
-    ask(true, pairing_done);
+    ask_pairing();
     return;
   }
   dispatch();
@@ -761,6 +776,7 @@ static void deliver(uint8_t *msg, size_t len) {
       NZ.state = NZ_OPEN;
       NZ.peer_paired = paired && wl_ct_equal(NZ.peer, paired_key, 32);
       hal_log("secure channel open (%s app)", NZ.peer_paired ? "paired" : "unpaired");
+      ui_set_status(connected, NZ.peer_paired);
     } else {
       hal_log("secure channel: handshake failed, reset");
       noise_begin();
@@ -837,6 +853,20 @@ void proto_poll(void) {
   uint8_t f[MAX_FRAME];
   size_t n;
   while ((n = hal_link_recv(f, sizeof(f))) > 0) rx_frame(f, n);
+#ifdef WL_PROTO_NOISE
+  /* A new (unpaired) app on an open channel: ask on the device right away, without waiting for a
+     request, once per connection. Locked: the lock screen says so, and the question comes as
+     soon as the wallet is unlocked. Pairing still needs the PIN (ask(true, ...)). */
+  if (NZ.state == NZ_OPEN && !NZ.peer_paired && !NZ.pair_asked && !P.active && vault_unlocked() && ui_idle()) {
+    memset(&P, 0, sizeof(P));
+    P.active = true;
+    ask_pairing();
+  }
+  /* Tell the app when the wallet gets unlocked, so it can reload without a button press. */
+  bool u = vault_unlocked();
+  if (u && !was_unlocked && NZ.state == NZ_OPEN) send_event("unlocked", false, 0);
+  was_unlocked = u;
+#endif
 }
 
 void proto_link_changed(bool up) {
@@ -849,7 +879,7 @@ void proto_link_changed(bool up) {
     ui_cancel_prompt();
     wl_wipe(&P, sizeof(P));
   }
-  ui_set_status(connected, paired);
+  ui_set_status(connected, session_paired()); /* this connection's app, not "some app" */
 }
 
 void proto_locked(void) {

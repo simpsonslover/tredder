@@ -99,7 +99,7 @@ export default function DeviceScreen() {
       </Pane>
 
       {d && (d.info.locked || !d.info.initialized) ? (
-        <Notice icon="lock-closed">{d.info.initialized ? 'Unlock the device with your PIN, then tap Reload.' : 'Set up the device first (create a wallet on it), then tap Reload.'}</Notice>
+        <Notice icon="lock-closed">{d.info.initialized ? 'Unlock the device with your PIN: the app updates by itself (or tap Reload).' : 'Set up the device first (create a wallet on it), then tap Reload.'}</Notice>
       ) : null}
       {d?.kind === 'mock' ? <Notice icon="flask">Mock device: the PUBLIC test wallet “abandon … about”. No keys, cannot sign. Never send funds to it.</Notice> : null}
       {err ? <Notice kind="error">{err}</Notice> : null}
