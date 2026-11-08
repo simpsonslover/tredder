@@ -8,11 +8,13 @@
  */
 #include <stdarg.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "app/hal.h"
 #include "board_pins.h"
 #include "hardware/gpio.h"
 #include "hardware/spi.h"
+#include "pico/stdio_usb.h"
 #include "pico/stdlib.h"
 
 /* 2 MHz for breadboard jumper wires: at 10 MHz a ringing clock edge on the breadboard corrupted
@@ -108,10 +110,41 @@ void hal_lcd_data(const uint8_t *d, size_t n) {
 
 void hal_lcd_backlight(bool on) { out_pin(PIN_LCD_BL_N, !on); /* Q4 is a PMOS: low = on */ }
 
+/* Every log line also goes into a small RAM ring with a timestamp, replayed when a serial console
+   connects (hal_log_replay_if_connected): lines printed before the PC opened the port, e.g.
+   during a cold start, are otherwise lost. Never log secrets (hal.h). */
+#define RING 2048u
+static char ring[RING];
+static size_t ring_len;
+
+static void ring_add(const char *s) {
+  size_t n = strlen(s);
+  if (n >= RING) return;
+  if (ring_len + n > RING) { /* drop the oldest half */
+    memmove(ring, ring + RING / 2, ring_len - RING / 2);
+    ring_len -= RING / 2;
+  }
+  memcpy(ring + ring_len, s, n);
+  ring_len += n;
+}
+
 void hal_log(const char *fmt, ...) {
+  char line[200];
+  int k = snprintf(line, sizeof(line), "[%6lu ms] ", (unsigned long)hal_millis());
   va_list ap;
   va_start(ap, fmt);
-  vprintf(fmt, ap);
+  vsnprintf(line + k, sizeof(line) - (size_t)k - 1, fmt, ap);
   va_end(ap);
-  printf("\n");
+  strcat(line, "\n");
+  ring_add(line);
+  fputs(line, stdout);
+}
+
+void hal_log_replay_if_connected(void) {
+  static bool was;
+  bool now = stdio_usb_connected();
+  if (now && !was) {
+    printf("---- log since boot ----\n%.*s---- live ----\n", (int)ring_len, ring);
+  }
+  was = now;
 }

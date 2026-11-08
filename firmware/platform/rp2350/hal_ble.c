@@ -33,6 +33,7 @@ typedef struct {
 } slot_t;
 
 static struct {
+  bool ready; /* cyw43_arch_init done: only then may anything poll the radio */
   bool up;
   hci_con_handle_t con;
   bool notify;
@@ -121,6 +122,7 @@ bool hal_ble_init(void) {
     hal_log("CYW43 radio init failed");
     return false;
   }
+  B.ready = true;
   B.con = HCI_CON_HANDLE_INVALID;
   link_reset();
   l2cap_init();
@@ -162,7 +164,7 @@ size_t hal_link_recv(uint8_t *buf, size_t max) {
 bool hal_link_send(const uint8_t *frame, size_t n) {
   if (!B.up || n > hal_link_frame_size()) return false;
   uint32_t t0 = to_ms_since_boot(get_absolute_time());
-  while (B.tx_head - B.tx_tail >= TX_SLOTS) { /* queue full: let the radio drain it */
+  while (B.ready && B.tx_head - B.tx_tail >= TX_SLOTS) { /* queue full: let the radio drain it */
     cyw43_arch_poll();
     if (!B.up || to_ms_since_boot(get_absolute_time()) - t0 > SEND_TIMEOUT_MS) return false;
   }
@@ -176,6 +178,10 @@ bool hal_link_send(const uint8_t *frame, size_t n) {
 
 /* ---------------------------------------------------------------- idle / sleep (radio stays serviced) */
 void hal_idle(uint32_t max_ms) {
+  if (!B.ready) { /* radio not started yet (the display comes up first): plain sleep */
+    sleep_ms(max_ms < 1 ? 1 : (max_ms > 5 ? 5 : max_ms));
+    return;
+  }
   cyw43_arch_poll();
   if (B.rx_head != B.rx_tail) return; /* work waiting */
   cyw43_arch_wait_for_work_until(make_timeout_time_ms(max_ms < 1 ? 1 : max_ms));
