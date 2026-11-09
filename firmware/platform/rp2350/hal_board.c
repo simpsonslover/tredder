@@ -51,11 +51,16 @@ void hal_power(hal_power_t *out) {
   uint32_t sum = up + down;              /* the two pulls' small errors cancel */
   /* mV = raw/4096 * 3300 * divider (uncalibrated: firmware README rule, per-device gain later) */
   uint32_t mv = sum * 3300u / 16u / 4096u * BOARD_VBAT_DIVIDER_NUM / BOARD_VBAT_DIVIDER_DEN;
-  out->vbat_mv = floating || mv < 2500u ? 0 : (uint16_t)mv; /* 0 = no cell connected */
-  static int8_t had = -1; /* log only when a battery appears or goes away */
-  if (had != (out->vbat_mv != 0)) {
-    had = out->vbat_mv != 0;
-    if (had) hal_log("battery: %u mV", out->vbat_mv);
+  /* A 1S LiPo never exceeds 4.2 V: more means GP28 sees the whole battery voltage (R11, the lower half
+     of the divider, missing) or the ADC is at full scale. Treat as "no reading", say why. */
+  bool implausible = !floating && mv > 4600u;
+  out->vbat_mv = floating || implausible || mv < 2500u ? 0 : (uint16_t)mv; /* 0 = no cell connected */
+  static int8_t had = -1; /* log only when the state changes */
+  int8_t now = out->vbat_mv ? 1 : implausible ? 2 : 0;
+  if (had != now) {
+    had = now;
+    if (now == 1) hal_log("battery: %u mV", out->vbat_mv);
+    else if (now == 2) hal_log("battery: reading %lu mV is impossible: check the divider (R11 missing? GP28 must get HALF the battery voltage)", (unsigned long)mv);
     else hal_log("battery: none (GP28 %s)", floating ? "not connected" : "below 2.5 V");
   }
   out->charging = !gpio_get(PIN_CHG_STAT);
