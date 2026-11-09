@@ -145,7 +145,15 @@ static struct {
   bool charging, have;
 } B;
 
-static int steady_percent(const hal_power_t *p) {
+/* While charging, the charge current lifts the cell's terminal voltage ~0.1-0.2 V above its real state
+   (seen on the breadboard: 49 % charging, 11 % moments after unplugging). Subtract that before turning
+   voltage into percent; the shown value then only goes up while charging. */
+#define CHARGE_LIFT_MV 150u
+
+static int steady_percent(const hal_power_t *p_in) {
+  hal_power_t adj = *p_in;
+  if (adj.charging && adj.vbat_mv > 3000u + CHARGE_LIFT_MV) adj.vbat_mv = (uint16_t)(adj.vbat_mv - CHARGE_LIFT_MV);
+  const hal_power_t *p = &adj;
   if (!p->vbat_mv) {
     B.have = false;
     B.shown = -1;
@@ -161,7 +169,7 @@ static int steady_percent(const hal_power_t *p) {
   B.avg16 = B.avg16 - B.avg16 / 8u + (uint32_t)p->vbat_mv * 2u; /* avg += (new - avg) / 8 */
   int pct = fw_battery_percent((uint16_t)(B.avg16 / 16u));
   int d = pct - B.shown;
-  if (p->charging ? (d >= 3 || d <= -3) : d <= -3) B.shown = pct;
+  if (p->charging ? d >= 3 : d <= -3) B.shown = pct; /* charging: only up; on battery: only down */
   return B.shown;
 }
 
