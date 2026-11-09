@@ -203,6 +203,9 @@ describe('REAL FIRMWARE: on-device flows (buttons only)', { skip }, () => {
     const dir = mkdtempSync(join(tmpdir(), 'tredder-emu-'));
     try {
       let t = await startEmu({ seed: ABANDON, pin: '1234', stateDir: dir });
+      // the emulator creates the wallet (and writes flash.bin) after it starts: wait for it, or the
+      // test can stop it first (that was the flaky failure)
+      await waitFor(t.debug!, (x) => x.initialized);
       await t.close();
       // the emulator writes flash.bin while it shuts down: wait for it (was flaky)
       for (let i = 0; i < 50 && !existsSync(join(dir, 'flash.bin')); i++) await new Promise((ok) => setTimeout(ok, 100));
