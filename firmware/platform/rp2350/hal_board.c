@@ -82,7 +82,14 @@ void hal_power(hal_power_t *out) {
   out->usb = vbus < 0 ? tud_mounted() : vbus == 1;
   /* PCB: the MCP73831's STAT pin is low while charging. Breadboard: the charger has no STAT pin
      (reads high through the pull-up), so: USB power present and the cell not yet full. */
-  out->charging = !gpio_get(PIN_CHG_STAT) || (out->usb && out->vbat_mv && out->vbat_mv < 4150u);
+  /* With a hysteresis band: the reading on USB is the charger's output, which sits right around
+     4.15-4.29 V near the end of charge (or with no usable cell at all); one threshold made the state
+     flip between "Charging" and "On USB power" every few seconds. */
+  static bool chg;
+  if (!out->usb || !out->vbat_mv) chg = false;
+  else if (out->vbat_mv < 4100u) chg = true;
+  else if (out->vbat_mv > 4200u) chg = false;
+  out->charging = !gpio_get(PIN_CHG_STAT) || chg;
 }
 
 /* ---------------------------------------------------------------- entropy
