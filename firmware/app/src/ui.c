@@ -93,6 +93,7 @@ static struct {
   char balance[20]; /* total value as the phone app reported it (display only, not verified) */
   uint16_t batt_mv;
   uint8_t batt_state; /* hal_vbat_state_t */
+  bool usb_power;
   uint16_t batt_raw_mv;
   uint8_t batt_mode; /* top-right battery: BATT_BAR / BATT_PCT / BATT_BOTH (RAM: the demo saves nothing) */
 } D;
@@ -451,7 +452,8 @@ static void draw_battery_screen(void) {
     draw_rows(y + h + (b ? 42 : 30), b ? 28 : 30);
     return;
   }
-  snprintf(t, sizeof(t), "%s  •  %u.%02u V", D.charging ? "Charging" : "On battery", D.batt_mv / 1000u, (D.batt_mv % 1000u) / 10u);
+  snprintf(t, sizeof(t), "%s  •  %u.%02u V", D.charging ? "Charging" : D.usb_power ? "On USB power" : "On battery", D.batt_mv / 1000u,
+           (D.batt_mv % 1000u) / 10u);
   tw = gfx_text_width(t, &wl_font_body);
   gfx_text((GFX_W - tw) / 2, y + h + 6, t, &wl_font_body, D.charging ? C_OK : C_DIM);
   draw_rows(y + h + 30, 30);
@@ -1758,6 +1760,12 @@ void ui_tick(uint32_t now) {
   if (D.charging && D.battery >= 0 && now / 450u != D.now / 450u) S.dirty = true;
   if (S.layout == L_LOG && now / 2000u != D.now / 2000u) S.dirty = true;
   D.now = now;
+}
+
+void ui_set_usb_power(bool usb) {
+  if (usb == D.usb_power) return;
+  D.usb_power = usb;
+  if (S.layout == L_BATTERY) S.dirty = true;
 }
 
 void ui_set_battery_diag(uint8_t state, uint16_t raw_mv) {

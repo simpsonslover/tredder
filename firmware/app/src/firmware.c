@@ -173,6 +173,7 @@ static void power(uint32_t now) {
   ui_set_battery(steady_percent(&p), p.charging);
   ui_set_battery_mv(p.vbat_mv ? (uint16_t)(B.avg16 / 16u) : 0);
   ui_set_battery_diag(p.vbat_state, p.raw_mv);
+  ui_set_usb_power(p.usb);
   bool low = !p.usb && p.vbat_mv && p.vbat_mv < FW_BATTERY_LOW_MV;
   if (!low) {
     M.low_warned = false;
