@@ -10,6 +10,7 @@
 #include "app/ui.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "app/firmware.h"
@@ -163,7 +164,7 @@ static uint8_t item_icon(const char *s) {
       {"Cancel", IC_UNDO},         {"Enter it again", IC_REFRESH}, {"Import & sweep", IC_SWAP},  {"Import as-is", IC_DOWNLOAD},
       {"tredder-", IC_DOC},        {"✓ ", IC_CHECK},           {"New wallet", IC_ADD},       {"Import wallet", IC_DOWNLOAD},
       {"Restore from", IC_SAVE},   {"Backup", IC_SAVE},           {"Unpair", IC_BLUETOOTH},     {"Settings", IC_SETTINGS},
-      {"Battery", IC_BATTERY},     {"Show: ", IC_BATTERY},
+      {"Battery", IC_BATTERY},     {"Show: ", IC_BATTERY},        {"Log", IC_DOC},
       {"About", IC_INFO},
   };
   for (unsigned i = 0; i < sizeof(MAP) / sizeof(MAP[0]); i++)
@@ -363,7 +364,61 @@ static void page_dots(void) {
 }
 
 /* ---- special layouts (same screen data, drawn as a proper screen instead of a list) */
-enum { L_LIST = 0, L_WELCOME, L_LOCKED, L_HOME, L_BATTERY };
+enum { L_LIST = 0, L_WELCOME, L_LOCKED, L_HOME, L_BATTERY, L_LOG };
+
+/* Settings > Log: the device log on its own screen (no PC needed), refreshed every 2 s; the top line
+   is the live battery reading. The log never holds secrets (hal.h). */
+static void draw_log(void) {
+  static char buf[1600];
+  char top[48];
+  if (D.battery >= 0) snprintf(top, sizeof(top), "Battery %d%%, %u mV%s", D.battery, D.batt_mv, D.charging ? ", charging" : "");
+  else if (D.batt_state == 1) snprintf(top, sizeof(top), "Battery: pin 34 not connected");
+  else if (D.batt_state == 2) snprintf(top, sizeof(top), "Battery: pin 34 too high (%u mV)", D.batt_raw_mv);
+  else if (D.batt_state == 3) snprintf(top, sizeof(top), "Battery: below 2.5 V (%u mV)", D.batt_raw_mv);
+  else snprintf(top, sizeof(top), "Battery: no reading yet");
+  gfx_round_rect(4, BODY_Y - 4, GFX_W - 8, 22, 6, C_PANE);
+  gfx_text(10, BODY_Y - 2, top, &wl_font_body, D.battery >= 0 ? C_OK : C_WARN);
+
+  size_t n = hal_log_recent(buf, sizeof(buf));
+  /* wrap into rows of 34 characters (the body font is 9 px wide), keep the newest rows */
+  enum { COLS = 34, ROWS = 9 };
+  static char rows[40][COLS + 1];
+  int nr = 0;
+  for (size_t i = 0; i < n;) {
+    size_t e = i;
+    while (e < n && buf[e] != '\n') e++;
+    const char *l = buf + i;
+    size_t len = e - i;
+    if (len > 3 && l[0] == '[') { /* "[  12345 ms] text" -> "12s text" */
+      const char *rb = memchr(l, ']', len);
+      if (rb) {
+        unsigned long ms = strtoul(l + 1, NULL, 10);
+        char pre[12];
+        int k = snprintf(pre, sizeof(pre), "%lus ", ms / 1000ul);
+        size_t skip = (size_t)(rb + 2 - l) < len ? (size_t)(rb + 2 - l) : len;
+        static char line[200];
+        size_t body = len - skip > sizeof(line) - 13 ? sizeof(line) - 13 : len - skip;
+        memcpy(line, pre, (size_t)k);
+        memcpy(line + k, l + skip, body);
+        l = line, len = (size_t)k + body;
+      }
+    }
+    for (size_t o = 0; o < len || o == 0; o += COLS) {
+      if (nr == 40) memmove(rows, rows + 1, sizeof(rows[0]) * 39), nr = 39;
+      size_t c = len - o > COLS ? COLS : len - o;
+      memcpy(rows[nr], l + o, c);
+      rows[nr][c] = 0;
+      nr++;
+      if (len == 0) break;
+    }
+    i = e + 1;
+  }
+  int first = nr > ROWS ? nr - ROWS : 0;
+  for (int r = first, y = BODY_Y + 22; r < nr; r++, y += LINE_H) {
+    bool warn = strstr(rows[r], "impossible") || strstr(rows[r], "fail") || strstr(rows[r], "FAULT") || strstr(rows[r], "low");
+    gfx_text(6, y, rows[r], &wl_font_body, warn ? C_WARN : C_FG);
+  }
+}
 
 /* Settings > Battery: a big bar with the percentage, voltage and state, then the display choice. */
 static void draw_battery_screen(void) {
@@ -492,6 +547,7 @@ static void draw(void) {
   else if (S.kind == K_MENU && S.layout == L_LOCKED) draw_locked();
   else if (S.kind == K_MENU && S.layout == L_HOME) draw_home();
   else if (S.kind == K_MENU && S.layout == L_BATTERY) draw_battery_screen();
+  else if (S.kind == K_MENU && S.layout == L_LOG) draw_log();
   else {
     int y = S.kind == K_PIN ? BODY_Y - 2 : BODY_Y;
     uint8_t first = pg ? S.vfirst[S.page] : 0, n = pg ? S.vcount[S.page] : S.nlines;
@@ -1426,6 +1482,7 @@ static void blind_r(int r) {
 
 static void settings(void);
 static void battery_screen(bool from_setup);
+static void log_screen(bool from_setup);
 static void setup_settings(void);
 static void unpair_r(int r) {
   if (r) {
@@ -1493,7 +1550,10 @@ static void settings_r(int r) {
     case 3:
       battery_screen(false);
       break;
-    case 4: {
+    case 4:
+      log_screen(false);
+      break;
+    case 5: {
 #ifdef TREDDER_DEMO_NO_SE
       const char *b = "Demo build: no security";
       const char *c = "chip, nothing is saved.";
@@ -1516,6 +1576,7 @@ static void settings(void) {
   item("Import seed phrase");
   item("Wipe device");
   item("Battery");
+  item("Log");
   item("About");
 }
 
@@ -1556,15 +1617,31 @@ static void about(void) {
 #endif
 }
 
+static bool log_from_setup;
+static void log_r(int r) {
+  (void)r; /* the only input is Back */
+  if (log_from_setup) setup_settings();
+  else settings();
+}
+
+static void log_screen(bool from_setup) {
+  log_from_setup = from_setup;
+  show_menu("Log", WL_TONE_NORMAL, log_r);
+  S.layout = L_LOG;
+  hint("✗ back");
+}
+
 static void setup_settings_r(int r) {
   if (r == 0) battery_screen(true);
-  else if (r == 1) about();
+  else if (r == 1) log_screen(true);
+  else if (r == 2) about();
   else flow_end(); /* back to Setup */
 }
 
 static void setup_settings(void) {
   show_menu("Settings", WL_TONE_NORMAL, setup_settings_r);
   item("Battery");
+  item("Log");
   item("About");
 }
 
@@ -1679,6 +1756,7 @@ void ui_set_status(bool app_connected, bool paired) {
 void ui_tick(uint32_t now) {
   /* charging animation: redraw every step (only the changed rows go to the panel) */
   if (D.charging && D.battery >= 0 && now / 450u != D.now / 450u) S.dirty = true;
+  if (S.layout == L_LOG && now / 2000u != D.now / 2000u) S.dirty = true;
   D.now = now;
 }
 

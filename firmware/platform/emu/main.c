@@ -107,6 +107,26 @@ void emu_log_lines(char out[LOG_LINES][160], int *n) {
   emu_unlock();
 }
 
+size_t hal_log_recent(char *out, size_t max) {
+  static char lines[LOG_LINES][160];
+  int n = 0;
+  emu_log_lines(lines, &n);
+  if (!max) return 0;
+  /* the newest lines that fit, oldest of them first */
+  int first = n;
+  size_t need = 1;
+  while (first > 0 && need + strlen(lines[first - 1]) + 1 <= max) need += strlen(lines[--first]) + 1;
+  size_t len = 0;
+  for (int i = first; i < n; i++) {
+    size_t l = strlen(lines[i]);
+    memcpy(out + len, lines[i], l);
+    len += l;
+    out[len++] = 10;
+  }
+  out[len] = 0;
+  return len;
+}
+
 void hal_log(const char *fmt, ...) {
   char msg[280];
   va_list ap;

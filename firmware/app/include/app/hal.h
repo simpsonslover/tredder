@@ -89,5 +89,8 @@ bool hal_link_send(const uint8_t *frame, size_t n);
 /* ---------------------------------------------------------------- diagnostics
    Debug console. Production builds compile this to nothing. Never log secrets. */
 void hal_log(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
+/* The newest log text ('\n'-separated lines, oldest first), for the on-device log screen. Returns
+   its length; out is NUL-terminated. The log never holds secrets (rule above). */
+size_t hal_log_recent(char *out, size_t max);
 
 #endif
