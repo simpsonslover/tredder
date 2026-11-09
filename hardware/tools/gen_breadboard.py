@@ -412,7 +412,7 @@ def self_test():
     lay = layout()
     lay.wires = [w for w in lay.wires if "BAT.-" not in (w["a"], w["b"])]
     errs = check_layout(lay)
-    assert any("BAT.-" in e for e in errs), errs
+    assert any("BAT_MINUS" in e or "BAT.-" in e for e in errs), errs  # either end may be named (set order)
 
 
 # ------------------------------------------------------------------ drawing
@@ -515,7 +515,7 @@ def draw(lay):
     # parts on the breadboard
     a, k = leg["D1.A"], leg["D1.K"]
     d.rectangle([a[0] + 6, a[1] - 8, k[0] - 6, k[1] + 8], fill=(30, 30, 30))
-    d.rectangle([k[0] - 16, k[1] - 8, k[0] - 10, k[1] + 8], fill=(225, 225, 225))      # cathode band
+    d.rectangle([k[0] - 22, k[1] - 10, k[0] - 8, k[1] + 10], fill=(215, 215, 220), outline=(90, 90, 90), width=2)  # cathode band (stripe), big on purpose
     d.line([a, (a[0] + 6, a[1])], fill=(120, 120, 120), width=3)
     d.line([k, (k[0] - 6, k[1])], fill=(120, 120, 120), width=3)
     dx, dy = hole(A_COL, "c")
@@ -549,6 +549,19 @@ def draw(lay):
 
     for w in lay.wires:
         route(d, xy(w["a"]), xy(w["b"]), w["lane"], w["colour"], w["width"])
+    # the diode's direction, spelled out (a reversed diode cost a long debugging session on the
+    # user's breadboard): which wire goes on which end
+    def tag(x, y, text, colour=(20, 20, 20)):
+        tw = d.textlength(text, font=F)
+        d.rounded_rectangle([x - 4, y - 2, x + tw + 4, y + 22], 4, fill=(255, 250, 220), outline=(140, 120, 60))
+        d.text((x, y), text, fill=colour, font=F)
+    ax_, ay_ = hole(A_COL, "a")
+    kx_, ky_ = hole(K_COL, "a")
+    tag(ax_ - 200, ay_ - 52, "from charger OUT+")
+    tag(kx_ + 14, ay_ - 52, "to Pico pin 39 (VSYS)")
+    cx_, cy_ = hole(K_COL, "c")
+    tag(hole(A_COL, "d")[0] - 330, cy_ + 26, "diode: STRIPE end -> pin 39", (170, 20, 20))
+
     # resistor labels last, on top of the wires: PCB reference + value
     for ref, value, what in RESISTORS:
         (ax, ay), (bx, by) = leg[f"{ref}.1"], leg[f"{ref}.2"]
@@ -628,7 +641,7 @@ def markdown(lay):
                  f"the diagonally opposite leg (e{c + 2}) goes to GND (a{c + 2} -> top - rail) | BTN_{b} |")
     L += [f"| 9 | GP6 | nothing (the module has no card-detect pin; the firmware pulls GP6 up inside the Pico) | SD_DET |",
           f"| 37 | 3V3_EN | SW1 middle leg (c{SW1_COLS[1]}); its outer leg c{SW1_COLS[2]} goes to the - rail, c{SW1_COLS[0]} stays free | on/off: knob towards c{SW1_COLS[2]} = OFF |",
-          f"| 39 | VSYS | D1 1N5817 cathode (c{K_COL}; band towards the cathode) | battery power into the Pico |",
+          f"| 39 | VSYS | D1 1N5817 **stripe end** (cathode, c{K_COL}). The end WITHOUT the stripe goes in column {A_COL} with the charger's OUT+ and R10. Reversed, the battery cannot power the Pico and USB back-feeds the battery | battery power into the Pico |",
           f"| 34 | GP28 | middle of the R10 + R11 4.7 k divider (column {TAP_COL}: battery + column {A_COL} -> {TAP_COL} -> "
           f"{GND_COL} -> - rail) | VBAT_SENSE (ADC) |", ""]
     L += ["| Module pin | Goes to |", "|---|---|"]

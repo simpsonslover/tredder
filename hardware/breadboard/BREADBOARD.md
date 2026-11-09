@@ -49,7 +49,7 @@ Power rails: Pico pin 36 (3V3) -> **+ rail**, pin 38 (GND) -> **- rail**; the to
 | 20 | GP15 | hole j42: DOWN button's bottom-left leg (f42); the diagonally opposite leg (e44) goes to GND (a44 -> top - rail) | BTN_DOWN |
 | 9 | GP6 | nothing (the module has no card-detect pin; the firmware pulls GP6 up inside the Pico) | SD_DET |
 | 37 | 3V3_EN | SW1 middle leg (c26); its outer leg c27 goes to the - rail, c25 stays free | on/off: knob towards c27 = OFF |
-| 39 | VSYS | D1 1N5817 cathode (c51; band towards the cathode) | battery power into the Pico |
+| 39 | VSYS | D1 1N5817 **stripe end** (cathode, c51). The end WITHOUT the stripe goes in column 48 with the charger's OUT+ and R10. Reversed, the battery cannot power the Pico and USB back-feeds the battery | battery power into the Pico |
 | 34 | GP28 | middle of the R10 + R11 4.7 k divider (column 54: battery + column 48 -> 54 -> 58 -> - rail) | VBAT_SENSE (ADC) |
 
 | Module pin | Goes to |
