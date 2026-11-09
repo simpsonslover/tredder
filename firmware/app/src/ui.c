@@ -90,7 +90,10 @@ static struct {
   uint32_t lockout_until;
   uint32_t now;
   char balance[20]; /* total value as the phone app reported it (display only, not verified) */
+  uint16_t batt_mv;
+  uint8_t batt_mode; /* top-right battery: BATT_BAR / BATT_PCT / BATT_BOTH (RAM: the demo saves nothing) */
 } D;
+enum { BATT_BAR = 0, BATT_PCT, BATT_BOTH };
 
 /* ---------------------------------------------------------------- screen setup */
 static void screen(kind_t k, const char *title, wl_tone_t tone, result_fn on) {
@@ -128,7 +131,7 @@ static wl_review_t local_rv; /* pages built by flows (not protocol prompts) */
 enum {
   IC_LOCK, IC_UNLOCK, IC_ADD, IC_DOWNLOAD, IC_SAVE, IC_SHIELD, IC_TRASH, IC_KEY, IC_BLUETOOTH, IC_EYE_OFF,
   IC_WALLET, IC_PHONE, IC_CHECK, IC_WARNING, IC_CLOSE, IC_INFO, IC_HOURGLASS, IC_REFRESH, IC_UNDO, IC_SWAP,
-  IC_DOC, IC_ALERT, IC_LOGO, IC_NONE = 255
+  IC_DOC, IC_ALERT, IC_BATTERY, IC_SETTINGS, IC_LOGO, IC_NONE = 255
 };
 
 #ifndef FW_VERSION
@@ -157,7 +160,8 @@ static uint8_t item_icon(const char *s) {
       {"Lock", IC_LOCK},           {"Blind signing", IC_EYE_OFF}, {"Back up", IC_SAVE},          {"Wipe", IC_TRASH},
       {"Cancel", IC_UNDO},         {"Enter it again", IC_REFRESH}, {"Import & sweep", IC_SWAP},  {"Import as-is", IC_DOWNLOAD},
       {"tredder-", IC_DOC},        {"✓ ", IC_CHECK},           {"New wallet", IC_ADD},       {"Import wallet", IC_DOWNLOAD},
-      {"Restore from", IC_SAVE},   {"Backup", IC_SAVE},           {"Unpair", IC_BLUETOOTH},     {"Settings", IC_KEY},
+      {"Restore from", IC_SAVE},   {"Backup", IC_SAVE},           {"Unpair", IC_BLUETOOTH},     {"Settings", IC_SETTINGS},
+      {"Battery", IC_BATTERY},     {"Show: ", IC_BATTERY},
       {"About", IC_INFO},
   };
   for (unsigned i = 0; i < sizeof(MAP) / sizeof(MAP[0]); i++)
@@ -245,17 +249,45 @@ static void draw_items(int y) {
   }
 }
 
-/* Battery outline + nub, fill by level; green while charging. */
-static void draw_battery(int x, int y) {
+/* Level to draw: while charging the fill climbs from the real level to full in steps (phone-style). */
+static int shown_level(void) {
+  int lvl = D.battery > 100 ? 100 : D.battery;
+  if (D.charging && lvl < 100) lvl += (100 - lvl) * (int)((D.now / 450u) % 5u) / 4;
+  return lvl;
+}
+
+/* A battery of any size: outline, nub, fill, a bolt while charging. */
+static void battery_shape(int x, int y, int w, int h, int lvl, uint16_t fill, uint16_t bg) {
+  int r = h / 4 > 2 ? h / 4 : 2;
+  gfx_round_rect(x, y, w, h, r, C_DIM);
+  gfx_round_rect(x + 1, y + 1, w - 2, h - 2, r - 1, bg);
+  gfx_fill(x + w, y + h / 4, h / 6 > 2 ? h / 6 : 2, h - h / 2, C_DIM);
+  int fw = (w - 4) * lvl / 100;
+  if (fw < 1 && lvl > 0) fw = 1;
+  gfx_fill(x + 2, y + 2, fw, h - 4, fill);
+  if (D.charging) { /* bolt: two slanted bars, in the background colour so it shows on the fill */
+    int cx = x + w / 2, cy = y + h / 2, s = h / 3 > 2 ? h / 3 : 2;
+    for (int i = 0; i < s; i++) {
+      gfx_fill(cx - i / 2, cy - s + i, 2 + s / 3, 1, bg);
+      gfx_fill(cx - s / 3 + i / 2 - 1, cy + i, 2 + s / 3, 1, bg);
+    }
+    gfx_fill(cx - s / 2, cy - 1, s + 1, 2, bg);
+  }
+}
+
+/* Top right: bar, percent or both (Settings > Battery). Green while charging, red at <= 15 %. */
+static void draw_battery(int right, int y) {
   if (D.battery < 0) return;
   const int w = 22, h = 12;
   uint16_t c = D.charging ? C_OK : D.battery <= 15 ? C_DANGER : C_FG;
-  gfx_round_rect(x, y, w, h, 3, C_DIM);
-  gfx_round_rect(x + 1, y + 1, w - 2, h - 2, 2, C_BAR);
-  gfx_fill(x + w, y + 3, 2, h - 6, C_DIM);
-  int fw = (w - 4) * (D.battery > 100 ? 100 : D.battery) / 100;
-  if (fw < 1 && D.battery > 0) fw = 1;
-  gfx_fill(x + 2, y + 2, fw, h - 4, c);
+  int x = right - w - 2;
+  if (D.batt_mode != BATT_PCT) battery_shape(x, y, w, h, shown_level(), c, C_BAR);
+  if (D.batt_mode != BATT_BAR) {
+    char t[8];
+    snprintf(t, sizeof(t), "%d%%", D.battery);
+    int tw = gfx_text_width(t, &wl_font_body);
+    gfx_text((D.batt_mode == BATT_BOTH ? x - 4 : right) - tw, y - 3, t, &wl_font_body, c);
+  }
 }
 
 /* Phone link: Bluetooth mark, green = paired app connected, yellow = unpaired app, grey = none. */
@@ -316,7 +348,7 @@ static void toolbar(const char *title, uint8_t tone, const char *suffix, bool lo
   }
   tx = gfx_text(tx, (TITLE_H - wl_font_title.height) / 2 + 1, title, &wl_font_title, tone_color(tone));
   if (suffix) gfx_text(tx + 8, (TITLE_H - wl_font_body.height) / 2 + 1, suffix, &wl_font_body, C_ACCENT);
-  draw_battery(GFX_W - 54, 9);
+  draw_battery(GFX_W - 28, 9);
   draw_link(GFX_W - 24, 6);
 }
 
@@ -329,7 +361,27 @@ static void page_dots(void) {
 }
 
 /* ---- special layouts (same screen data, drawn as a proper screen instead of a list) */
-enum { L_LIST = 0, L_WELCOME, L_LOCKED, L_HOME };
+enum { L_LIST = 0, L_WELCOME, L_LOCKED, L_HOME, L_BATTERY };
+
+/* Settings > Battery: a big bar with the percentage, voltage and state, then the display choice. */
+static void draw_battery_screen(void) {
+  int x = 40, y = BODY_Y + 4, w = 228, h = 50;
+  int lvl = D.battery < 0 ? 0 : shown_level();
+  uint16_t c = D.battery < 0 ? C_DIM : D.charging ? C_OK : D.battery <= 15 ? C_DANGER : C_ACCENT;
+  battery_shape(x, y, w, h, lvl, c, C_DARK);
+  char t[32];
+  if (D.battery < 0) snprintf(t, sizeof(t), "-");
+  else snprintf(t, sizeof(t), "%d%%", D.battery);
+  int tw = gfx_text_width(t, &wl_font_big);
+  /* the number on a dark plate so it reads on any fill */
+  gfx_round_rect(x + (w - tw) / 2 - 8, y + (h - wl_font_big.height) / 2 - 1, tw + 16, wl_font_big.height + 2, 6, C_DARK);
+  gfx_text(x + (w - tw) / 2, y + (h - wl_font_big.height) / 2, t, &wl_font_big, C_FG);
+  if (D.battery < 0) snprintf(t, sizeof(t), "No battery connected");
+  else snprintf(t, sizeof(t), "%s  •  %u.%02u V", D.charging ? "Charging" : "On battery", D.batt_mv / 1000u, (D.batt_mv % 1000u) / 10u);
+  tw = gfx_text_width(t, &wl_font_body);
+  gfx_text((GFX_W - tw) / 2, y + h + 6, t, &wl_font_body, D.charging ? C_OK : C_DIM);
+  draw_rows(y + h + 30, 30);
+}
 
 static void draw_welcome(void) {
   int y = BODY_Y;
@@ -337,7 +389,8 @@ static void draw_welcome(void) {
     if (i == 0) icon(10, y, IC_WARNING, &wl_icons, C_WARN);
     gfx_text(32, y, S.lines[i], &wl_font_body, C_WARN);
   }
-  draw_rows(S.nlines ? y + 4 : BODY_Y + 4, S.nlines ? 40 : 52);
+  int y0 = S.nlines ? y + 4 : BODY_Y + 4, rh = (FOOT_Y - 2 - y0) / (S.nitems ? S.nitems : 1);
+  draw_rows(y0, rh > 52 ? 52 : rh); /* every card fits, however many there are */
 }
 
 static void draw_locked(void) {
@@ -419,6 +472,7 @@ static void draw(void) {
   if (S.kind == K_MENU && S.layout == L_WELCOME) draw_welcome();
   else if (S.kind == K_MENU && S.layout == L_LOCKED) draw_locked();
   else if (S.kind == K_MENU && S.layout == L_HOME) draw_home();
+  else if (S.kind == K_MENU && S.layout == L_BATTERY) draw_battery_screen();
   else {
     int y = S.kind == K_PIN ? BODY_Y - 2 : BODY_Y;
     uint8_t first = pg ? S.vfirst[S.page] : 0, n = pg ? S.vcount[S.page] : S.nlines;
@@ -1330,10 +1384,12 @@ static void restore_decrypt(void) {
 }
 
 /* ---------------------------------------------------------------- top-level screens */
+static void setup_settings(void);
 static void setup_r(int r) {
   if (r == 0) create_flow(false);
   else if (r == 1) import_flow();
   else if (r == 2) restore_flow();
+  else if (r == 3) setup_settings();
 }
 
 static void locked_r(int r) {
@@ -1350,6 +1406,8 @@ static void blind_r(int r) {
 }
 
 static void settings(void);
+static void battery_screen(bool from_setup);
+static void setup_settings(void);
 static void unpair_r(int r) {
   if (r) {
     bool had = proto_paired();
@@ -1413,7 +1471,10 @@ static void settings_r(int r) {
     case 2:
       danger_confirm(AFTER_WIPE, "Wipe device?", "Erases the seed.", "Only your written backup", "can restore the funds.");
       break;
-    case 3: {
+    case 3:
+      battery_screen(false);
+      break;
+    case 4: {
 #ifdef TREDDER_DEMO_NO_SE
       const char *b = "Demo build: no security";
       const char *c = "chip, nothing is saved.";
@@ -1435,6 +1496,56 @@ static void settings(void) {
   item(vault_blind_signing() ? "Blind signing: ON" : "Blind signing: off");
   item("Import seed phrase");
   item("Wipe device");
+  item("Battery");
+  item("About");
+}
+
+/* ---- Settings > Battery (from the Setup page or the main page's Settings) */
+static bool batt_from_setup;
+static void setup_settings(void);
+
+static void battery_r(int r) {
+  if (r >= BATT_BAR && r <= BATT_BOTH) {
+    D.batt_mode = (uint8_t)r;
+    battery_screen(batt_from_setup);
+    S.cursor = (uint8_t)r;
+    return;
+  }
+  if (batt_from_setup) setup_settings();
+  else settings();
+}
+
+static void battery_screen(bool from_setup) {
+  batt_from_setup = from_setup;
+  show_menu("Battery", WL_TONE_NORMAL, battery_r);
+  S.layout = L_BATTERY;
+  hint("▲▼ choose  ✓ select  ✗ back");
+  static const char *const MODES[] = {"Show: bar", "Show: percent", "Show: both"};
+  for (int i = 0; i < 3; i++) {
+    char s[ITEM_LEN];
+    snprintf(s, sizeof(s), "%s%s", i == D.batt_mode ? "✓ " : "", MODES[i]);
+    item(s);
+  }
+  S.cursor = D.batt_mode;
+}
+
+static void about(void) {
+#ifdef TREDDER_DEMO_NO_SE
+  status_info("About", WL_TONE_NORMAL, "tredder " FW_VERSION, "Demo build: no security", "chip, nothing is saved.");
+#else
+  status_info("About", WL_TONE_NORMAL, "tredder " FW_VERSION, "Keys in the NXP SE050", "secure element.");
+#endif
+}
+
+static void setup_settings_r(int r) {
+  if (r == 0) battery_screen(true);
+  else if (r == 1) about();
+  else flow_end(); /* back to Setup */
+}
+
+static void setup_settings(void) {
+  show_menu("Settings", WL_TONE_NORMAL, setup_settings_r);
+  item("Battery");
   item("About");
 }
 
@@ -1454,6 +1565,7 @@ void ui_home(void) {
     item("New wallet");
     item("Import wallet");
     item("Restore from microSD");
+    item("Settings");
   } else if (!vault_unlocked()) {
     show_menu("tredder", WL_TONE_NORMAL, locked_r);
     S.layout = L_LOCKED;
@@ -1545,7 +1657,17 @@ void ui_set_status(bool app_connected, bool paired) {
   }
 }
 
-void ui_tick(uint32_t now) { D.now = now; }
+void ui_tick(uint32_t now) {
+  /* charging animation: redraw every step (only the changed rows go to the panel) */
+  if (D.charging && D.battery >= 0 && now / 450u != D.now / 450u) S.dirty = true;
+  D.now = now;
+}
+
+void ui_set_battery_mv(uint16_t mv) {
+  if (mv / 10u == D.batt_mv / 10u) return;
+  D.batt_mv = mv;
+  if (S.layout == L_BATTERY) S.dirty = true;
+}
 
 void ui_set_battery(int percent, bool charging) {
   int8_t p = (int8_t)(percent < 0 ? -1 : percent > 100 ? 100 : percent);

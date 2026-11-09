@@ -23,6 +23,8 @@
 #error "Real flash storage and the SE050 driver are not written yet: only TREDDER_DEMO_NO_SE builds exist"
 #endif
 
+int hal_vbus(void); /* hal_ble.c */
+
 /* ---------------------------------------------------------------- power */
 void hal_power(hal_power_t *out) {
   static bool init;
@@ -63,8 +65,11 @@ void hal_power(hal_power_t *out) {
     else if (now == 2) hal_log("battery: reading %lu mV is impossible: check the divider (R11 missing? GP28 must get HALF the battery voltage)", (unsigned long)mv);
     else hal_log("battery: none (GP28 %s)", floating ? "not connected" : "below 2.5 V");
   }
-  out->charging = !gpio_get(PIN_CHG_STAT);
-  out->usb = tud_mounted();
+  int vbus = hal_vbus();
+  out->usb = vbus < 0 ? tud_mounted() : vbus == 1;
+  /* PCB: the MCP73831's STAT pin is low while charging. Breadboard: the charger has no STAT pin
+     (reads high through the pull-up), so: USB power present and the cell not yet full. */
+  out->charging = !gpio_get(PIN_CHG_STAT) || (out->usb && out->vbat_mv && out->vbat_mv < 4150u);
 }
 
 /* ---------------------------------------------------------------- entropy

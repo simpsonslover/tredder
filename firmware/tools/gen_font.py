@@ -28,7 +28,7 @@ ICONS = [
     "lock-closed", "lock-open", "add-circle-outline", "download-outline", "save-outline", "shield-checkmark",
     "trash-outline", "key-outline", "bluetooth", "eye-off-outline", "wallet-outline", "phone-portrait-outline",
     "checkmark-circle", "warning", "close-circle", "information-circle", "hourglass-outline", "refresh",
-    "arrow-undo", "swap-horizontal", "document-text-outline", "alert-circle",
+    "arrow-undo", "swap-horizontal", "document-text-outline", "alert-circle", "battery-half", "settings-outline",
 ]
 ICON_FONTS = [("wl_icons", 18), ("wl_icons_big", 48)]
 # + one more glyph after ICONS: the tredder logo, from the app icon (white strokes on #373737)

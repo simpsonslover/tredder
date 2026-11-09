@@ -142,6 +142,13 @@ bool hal_ble_init(void) {
   return true;
 }
 
+/* USB power present? On the Pico 2 W VBUS is read through the radio chip (WL_GPIO 2), so only
+   after cyw43_arch_init: -1 = unknown yet. Works on a wall charger too (tud_mounted does not). */
+int hal_vbus(void) {
+  if (!B.ready) return -1;
+  return cyw43_arch_gpio_get(CYW43_WL_GPIO_VBUS_PIN) ? 1 : 0;
+}
+
 /* ---------------------------------------------------------------- hal.h link API */
 bool hal_link_connected(void) { return B.up; }
 uint32_t hal_link_session(void) { return B.session; }
