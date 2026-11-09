@@ -23,6 +23,9 @@ void ui_set_status(bool app_connected, bool paired);
 /* Battery icon in the title bar: percent 0..100 or -1 (unknown / no cell). */
 void ui_set_battery(int percent, bool charging);
 void ui_set_battery_mv(uint16_t mv); /* battery screen: 0 = no battery */
+/* Why there is no reading (hal_vbat_state_t) and the raw value: shown on the battery screen, so a
+   wiring fault can be found without a PC. */
+void ui_set_battery_diag(uint8_t state, uint16_t raw_mv);
 /* "Battery low" warning page (the firmware sleeps shortly after). */
 void ui_battery_low(void);
 /* Redraw everything (after the display was unpowered in sleep). */

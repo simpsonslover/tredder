@@ -91,6 +91,8 @@ static struct {
   uint32_t now;
   char balance[20]; /* total value as the phone app reported it (display only, not verified) */
   uint16_t batt_mv;
+  uint8_t batt_state; /* hal_vbat_state_t */
+  uint16_t batt_raw_mv;
   uint8_t batt_mode; /* top-right battery: BATT_BAR / BATT_PCT / BATT_BOTH (RAM: the demo saves nothing) */
 } D;
 enum { BATT_BAR = 0, BATT_PCT, BATT_BOTH };
@@ -376,8 +378,25 @@ static void draw_battery_screen(void) {
   /* the number on a dark plate so it reads on any fill */
   gfx_round_rect(x + (w - tw) / 2 - 8, y + (h - wl_font_big.height) / 2 - 1, tw + 16, wl_font_big.height + 2, 6, C_DARK);
   gfx_text(x + (w - tw) / 2, y + (h - wl_font_big.height) / 2, t, &wl_font_big, C_FG);
-  if (D.battery < 0) snprintf(t, sizeof(t), "No battery connected");
-  else snprintf(t, sizeof(t), "%s  •  %u.%02u V", D.charging ? "Charging" : "On battery", D.batt_mv / 1000u, (D.batt_mv % 1000u) / 10u);
+  if (D.battery < 0) {
+    /* no reading: say why, so the wiring can be fixed without a PC (hal_vbat_state_t) */
+    const char *a = "No battery connected", *b = NULL;
+    char raw[32];
+    if (D.batt_state == 1) a = "No battery wiring", b = "Pin 34 is not connected";
+    else if (D.batt_state == 2) {
+      snprintf(raw, sizeof(raw), "Pin 34 reads %u.%02u V: too high", D.batt_raw_mv / 1000u, (D.batt_raw_mv % 1000u) / 10u);
+      a = raw, b = "R11 or its GND is missing";
+    } else if (D.batt_state == 3) a = "Battery below 2.5 V", b = "or R10 not connected";
+    tw = gfx_text_width(a, &wl_font_body);
+    gfx_text((GFX_W - tw) / 2, y + h + 4, a, &wl_font_body, D.batt_state >= 2 ? C_WARN : C_DIM);
+    if (b) {
+      tw = gfx_text_width(b, &wl_font_body);
+      gfx_text((GFX_W - tw) / 2, y + h + 4 + LINE_H, b, &wl_font_body, C_WARN);
+    }
+    draw_rows(y + h + (b ? 42 : 30), b ? 28 : 30);
+    return;
+  }
+  snprintf(t, sizeof(t), "%s  •  %u.%02u V", D.charging ? "Charging" : "On battery", D.batt_mv / 1000u, (D.batt_mv % 1000u) / 10u);
   tw = gfx_text_width(t, &wl_font_body);
   gfx_text((GFX_W - tw) / 2, y + h + 6, t, &wl_font_body, D.charging ? C_OK : C_DIM);
   draw_rows(y + h + 30, 30);
@@ -1661,6 +1680,13 @@ void ui_tick(uint32_t now) {
   /* charging animation: redraw every step (only the changed rows go to the panel) */
   if (D.charging && D.battery >= 0 && now / 450u != D.now / 450u) S.dirty = true;
   D.now = now;
+}
+
+void ui_set_battery_diag(uint8_t state, uint16_t raw_mv) {
+  if (state == D.batt_state && raw_mv / 50u == D.batt_raw_mv / 50u) return;
+  D.batt_state = state;
+  D.batt_raw_mv = raw_mv;
+  if (S.layout == L_BATTERY) S.dirty = true;
 }
 
 void ui_set_battery_mv(uint16_t mv) {

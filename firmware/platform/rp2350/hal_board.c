@@ -57,6 +57,8 @@ void hal_power(hal_power_t *out) {
      of the divider, missing) or the ADC is at full scale. Treat as "no reading", say why. */
   bool implausible = !floating && mv > 4600u;
   out->vbat_mv = floating || implausible || mv < 2500u ? 0 : (uint16_t)mv; /* 0 = no cell connected */
+  out->vbat_state = floating ? HAL_VBAT_NOT_CONNECTED : implausible ? HAL_VBAT_TOO_HIGH : mv < 2500u ? HAL_VBAT_TOO_LOW : HAL_VBAT_OK;
+  out->raw_mv = (uint16_t)(mv > 65535u ? 65535u : mv);
   static int8_t had = -1; /* log only when the state changes */
   int8_t now = out->vbat_mv ? 1 : implausible ? 2 : 0;
   if (had != now) {
