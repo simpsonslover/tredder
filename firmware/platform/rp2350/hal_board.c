@@ -41,18 +41,29 @@ void hal_power(hal_power_t *out) {
      R10/R11 divider (2.35 kohm source) barely moves under a ~50 kohm pull; a floating pin (the
      breadboard built without battery, divider and diode) follows the pull. Without this check a
      floating pin could read as a low battery and send a device on a wall charger to sleep. */
-  uint32_t up = 0, down = 0;
-  gpio_pull_up(PIN_VBAT_ADC);
-  sleep_us(200);
-  for (int i = 0; i < 8; i++) up += adc_read();
-  gpio_pull_down(PIN_VBAT_ADC);
-  sleep_us(200);
-  for (int i = 0; i < 8; i++) down += adc_read();
-  gpio_disable_pulls(PIN_VBAT_ADC);
-  bool floating = up > down + 8u * 600u; /* > ~0.5 V apart (raw 600 of 4096) */
-  uint32_t sum = up + down;              /* the two pulls' small errors cancel */
+  /* The pull test runs every 8th reading only (it disturbs the pin for a moment); the voltage itself
+     is 64 samples with the pulls off, spread over ~1 ms to average out noise. */
+  static uint32_t calls;
+  static bool floating;
+  if (calls++ % 8u == 0) {
+    uint32_t up = 0, down = 0;
+    gpio_pull_up(PIN_VBAT_ADC);
+    sleep_us(200);
+    for (int i = 0; i < 8; i++) up += adc_read();
+    gpio_pull_down(PIN_VBAT_ADC);
+    sleep_us(200);
+    for (int i = 0; i < 8; i++) down += adc_read();
+    gpio_disable_pulls(PIN_VBAT_ADC);
+    floating = up > down + 8u * 600u; /* > ~0.5 V apart (raw 600 of 4096) */
+    sleep_us(300);                    /* let the pin settle back */
+  }
+  uint32_t sum = 0;
+  for (int i = 0; i < 64; i++) {
+    sum += adc_read();
+    busy_wait_us(15);
+  }
   /* mV = raw/4096 * 3300 * divider (uncalibrated: firmware README rule, per-device gain later) */
-  uint32_t mv = sum * 3300u / 16u / 4096u * BOARD_VBAT_DIVIDER_NUM / BOARD_VBAT_DIVIDER_DEN;
+  uint32_t mv = sum * 3300u / 64u / 4096u * BOARD_VBAT_DIVIDER_NUM / BOARD_VBAT_DIVIDER_DEN;
   /* A 1S LiPo never exceeds 4.2 V: more means GP28 sees the whole battery voltage (R11, the lower half
      of the divider, missing) or the ADC is at full scale. Treat as "no reading", say why. */
   bool implausible = !floating && mv > 4600u;

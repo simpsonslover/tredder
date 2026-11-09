@@ -133,13 +133,45 @@ static void fw_sleep(const char *why) {
   M.last_activity = M.power_at = hal_millis();
 }
 
+/* Steady battery level. A LiPo's voltage dips while the radio transmits or the display redraws, and a
+   breadboard adds noise: one reading at face value made the level jump (52 % -> 21 % -> 39 %). So:
+   - the voltage is a running average (1/8 of each new reading, every 2 s: ~30 s to settle)
+   - the shown percentage only moves when the average has moved by 3 % or more, and on battery it
+     never goes up (a voltage rebound after a load is not charging); a change of charging state or
+     of the battery being there restarts the average. */
+static struct {
+  uint32_t avg16; /* mV x 16 */
+  int shown;      /* -1 = none */
+  bool charging, have;
+} B;
+
+static int steady_percent(const hal_power_t *p) {
+  if (!p->vbat_mv) {
+    B.have = false;
+    B.shown = -1;
+    return -1;
+  }
+  if (!B.have || p->charging != B.charging) { /* (re)start */
+    B.avg16 = (uint32_t)p->vbat_mv * 16u;
+    B.charging = p->charging;
+    B.have = true;
+    B.shown = fw_battery_percent(p->vbat_mv);
+    return B.shown;
+  }
+  B.avg16 = B.avg16 - B.avg16 / 8u + (uint32_t)p->vbat_mv * 2u; /* avg += (new - avg) / 8 */
+  int pct = fw_battery_percent((uint16_t)(B.avg16 / 16u));
+  int d = pct - B.shown;
+  if (p->charging ? (d >= 3 || d <= -3) : d <= -3) B.shown = pct;
+  return B.shown;
+}
+
 static void power(uint32_t now) {
   if (now - M.power_at < POWER_POLL_MS) return;
   M.power_at = now;
   hal_power_t p;
   hal_power(&p);
-  ui_set_battery(fw_battery_percent(p.vbat_mv), p.charging);
-  ui_set_battery_mv(p.vbat_mv);
+  ui_set_battery(steady_percent(&p), p.charging);
+  ui_set_battery_mv(p.vbat_mv ? (uint16_t)(B.avg16 / 16u) : 0);
   ui_set_battery_diag(p.vbat_state, p.raw_mv);
   bool low = !p.usb && p.vbat_mv && p.vbat_mv < FW_BATTERY_LOW_MV;
   if (!low) {
