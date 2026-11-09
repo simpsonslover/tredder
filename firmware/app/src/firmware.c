@@ -140,36 +140,51 @@ static void fw_sleep(const char *why) {
      never goes up (a voltage rebound after a load is not charging); a change of charging state or
      of the battery being there restarts the average. */
 static struct {
-  uint32_t avg16; /* mV x 16 */
-  int shown;      /* -1 = none */
+  uint32_t avg16;     /* percent basis: mV x 16 (while charging: minus the learned lift) */
+  uint32_t raw16;     /* measured mV x 16, for the battery screen */
+  uint32_t since;     /* when the state last changed (settling window) */
+  uint16_t lift;      /* learned: how far the voltage falls when charging stops */
+  int shown;          /* -1 = none */
   bool charging, have;
-} B;
+} B = {.lift = 300};
 
-/* While charging, the charge current lifts the cell's terminal voltage ~0.1-0.2 V above its real state
-   (seen on the breadboard: 49 % charging, 11 % moments after unplugging). Subtract that before turning
-   voltage into percent; the shown value then only goes up while charging. */
-#define CHARGE_LIFT_MV 150u
-
-static int steady_percent(const hal_power_t *p_in) {
-  hal_power_t adj = *p_in;
-  if (adj.charging && adj.vbat_mv > 3000u + CHARGE_LIFT_MV) adj.vbat_mv = (uint16_t)(adj.vbat_mv - CHARGE_LIFT_MV);
-  const hal_power_t *p = &adj;
+/* While charging, the charge current lifts the cell's terminal voltage above its real state, by an
+   amount that depends on the cell and the wiring (breadboard: 49 % charging -> 11 % on battery; with a
+   fixed 150 mV correction still 68 % -> 22 %). So the lift is learned: every time charging stops, the
+   drop from the charging average to the first battery reading updates it (half old, half new, kept
+   to 50-600 mV; it starts at 300 mV). Percent while charging = voltage minus the lift.
+   For 60 s after a change the shown value may move both ways (the voltage settles), after that it
+   only rises while charging and only falls on battery. */
+static int steady_percent(const hal_power_t *p, uint32_t now) {
   if (!p->vbat_mv) {
     B.have = false;
     B.shown = -1;
     return -1;
   }
+  uint32_t mv = p->vbat_mv;
+  if (B.have && B.charging && !p->charging) { /* charging just stopped: learn the lift */
+    uint32_t before = B.raw16 / 16u;
+    if (before > mv) {
+      uint32_t drop = before - mv;
+      if (drop >= 50u && drop <= 600u) B.lift = (uint16_t)((B.lift + drop) / 2u);
+    }
+  }
+  uint32_t basis = p->charging && mv > 3000u + B.lift ? mv - B.lift : mv;
   if (!B.have || p->charging != B.charging) { /* (re)start */
-    B.avg16 = (uint32_t)p->vbat_mv * 16u;
+    B.avg16 = basis * 16u;
+    B.raw16 = mv * 16u;
     B.charging = p->charging;
     B.have = true;
-    B.shown = fw_battery_percent(p->vbat_mv);
+    B.since = now;
+    B.shown = fw_battery_percent((uint16_t)basis);
     return B.shown;
   }
-  B.avg16 = B.avg16 - B.avg16 / 8u + (uint32_t)p->vbat_mv * 2u; /* avg += (new - avg) / 8 */
+  B.avg16 = B.avg16 - B.avg16 / 8u + basis * 2u; /* avg += (new - avg) / 8 */
+  B.raw16 = B.raw16 - B.raw16 / 8u + mv * 2u;
   int pct = fw_battery_percent((uint16_t)(B.avg16 / 16u));
   int d = pct - B.shown;
-  if (p->charging ? d >= 3 : d <= -3) B.shown = pct; /* charging: only up; on battery: only down */
+  bool settling = now - B.since < 60000u;
+  if (settling ? (d >= 3 || d <= -3) : p->charging ? d >= 3 : d <= -3) B.shown = pct;
   return B.shown;
 }
 
@@ -178,8 +193,8 @@ static void power(uint32_t now) {
   M.power_at = now;
   hal_power_t p;
   hal_power(&p);
-  ui_set_battery(steady_percent(&p), p.charging);
-  ui_set_battery_mv(p.vbat_mv ? (uint16_t)(B.avg16 / 16u) : 0);
+  ui_set_battery(steady_percent(&p, now), p.charging);
+  ui_set_battery_mv(p.vbat_mv ? (uint16_t)(B.raw16 / 16u) : 0);
   ui_set_battery_diag(p.vbat_state, p.raw_mv);
   ui_set_usb_power(p.usb);
   bool low = !p.usb && p.vbat_mv && p.vbat_mv < FW_BATTERY_LOW_MV;
