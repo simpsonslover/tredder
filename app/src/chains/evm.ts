@@ -53,14 +53,24 @@ interface BlockscoutTokenBalance {
   };
 }
 
-export async function evmHoldings(chain: ChainId, net: Net, scheme: Scheme, account: number, owner: Address): Promise<Holding[]> {
+/** Native coin balance (one RPC call: fast). */
+export async function evmNative(chain: ChainId, net: Net, scheme: Scheme, account: number, owner: Address): Promise<Holding> {
   const cfg = CHAINS[chain];
+  const amount = await evmClient(chain, net).getBalance({ address: owner });
+  return { chain, net, scheme, account, owner, asset: { kind: 'native' }, kind: 'native', symbol: cfg.symbol, name: cfg.net[net].label, decimals: cfg.decimals, amount };
+}
+
+export async function evmHoldings(chain: ChainId, net: Net, scheme: Scheme, account: number, owner: Address): Promise<Holding[]> {
+  const [native, tokens] = await Promise.all([evmNative(chain, net, scheme, account, owner), evmTokens(chain, net, scheme, account, owner)]);
+  return [native, ...tokens];
+}
+
+/** ERC-20 / NFT balances from the chain's Blockscout indexer (often slow: seconds). Best effort:
+ *  no indexer, or the indexer failing, gives an empty list. */
+export async function evmTokens(chain: ChainId, net: Net, scheme: Scheme, account: number, owner: Address): Promise<Holding[]> {
   const base = { chain, net, scheme, account, owner };
-  const native = await evmClient(chain, net).getBalance({ address: owner });
-  const out: Holding[] = [
-    { ...base, asset: { kind: 'native' }, kind: 'native', symbol: cfg.symbol, name: cfg.net[net].label, decimals: cfg.decimals, amount: native },
-  ];
-  const bs = cfg.net[net].blockscout;
+  const out: Holding[] = [];
+  const bs = CHAINS[chain].net[net].blockscout;
   if (!bs) return out; // no indexer: native only (user can add tokens manually later)
   try {
     const toks = await getJson<BlockscoutTokenBalance[]>(`${bs}/api/v2/addresses/${owner}/token-balances`);
@@ -80,7 +90,7 @@ export async function evmHoldings(chain: ChainId, net: Net, scheme: Scheme, acco
       });
     }
   } catch {
-    // indexer down: still show native balance
+    // indexer down: the native balance is still shown
   }
   return out;
 }

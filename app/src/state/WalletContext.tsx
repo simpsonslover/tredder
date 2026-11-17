@@ -7,6 +7,7 @@ import { pairCode as codeOf } from '../protocol/noise';
 import { handshake } from '../protocol/secure';
 import type { DeviceInfo, Net } from '../protocol/types';
 import { BleTransport, requestBlePermissions } from '../transport/ble';
+import { DEMO_ACCOUNTS, DEMO_PORTFOLIO, DEMO_PORTFOLIO_ENABLED } from '../dev/demoPortfolio';
 import { MockTransport } from '../transport/mock';
 import { DEFAULT_SIM_URL, SimTransport } from '../transport/sim';
 import { IdentityChangedError, appStaticKey, pinDeviceKey, pinnedDeviceKey } from './pairing';
@@ -270,20 +271,28 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     })();
   }, [ready, connectBle]);
 
+  const refreshGen = useRef(0);
   const refresh = useCallback(async () => {
     if (!accounts.length) return;
+    const gen = ++refreshGen.current; // a newer refresh (or a network switch) wins over this one
     setLoading(true);
     setError(null);
     try {
-      const p = await loadPortfolio(accounts, settings.net);
+      const p = await loadPortfolio(accounts, settings.net, {
+        // the total fills in as each network answers, instead of after the slowest one
+        onProgress: (part) => {
+          if (gen === refreshGen.current) setPortfolio((prev) => ({ ...part, updatedAt: prev?.updatedAt ?? part.updatedAt }));
+        },
+      });
+      if (gen !== refreshGen.current) return;
       setPortfolio(p);
       // real logos for listed tokens, downloaded in the background hidden among decoys
       void ensureLogos(p.holdings.map((h) => assetSeed(h)).filter((k): k is string => !!k));
       setHistory(await loadHistory(accounts, settings.net, p));
     } catch (e) {
-      setError((e as Error).message);
+      if (gen === refreshGen.current) setError((e as Error).message);
     } finally {
-      setLoading(false);
+      if (gen === refreshGen.current) setLoading(false);
     }
   }, [accounts, settings.net]);
 
@@ -291,9 +300,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   // the portfolio changes and the device is unlocked; a device that does not know the request (or is
   // locked / unpaired) answers with an error, which is ignored.
   useEffect(() => {
-    if (!device || device.info.locked || !portfolio) return;
+    if (!device || device.info.locked || !portfolio || loading) return; // only the finished total
     void device.client.request({ type: 'set-balance', text: balanceText(portfolio.totalUsd) }).catch(() => undefined);
-  }, [device, portfolio]);
+  }, [device, portfolio, loading]);
 
   // Load balances once accounts are known (deferred: not during render/effect body).
   useEffect(() => {
@@ -304,7 +313,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }, [ready, accounts, settings.net]);
 
   const value = useMemo<Ctx>(
-    () => ({ ready, settings, updateSettings, device, awaitingUser, awaitingKind, pairCode, pairing, connectMock, connectBle, connectSim, reloadDevice, disconnect, accounts, setAccounts, portfolio, history, loading, error, refresh }),
+    () => {
+      const real: Ctx = { ready, settings, updateSettings, device, awaitingUser, awaitingKind, pairCode, pairing, connectMock, connectBle, connectSim, reloadDevice, disconnect, accounts, setAccounts, portfolio, history, loading, error, refresh };
+      // screenshot builds only (EXPO_PUBLIC_DEMO_PORTFOLIO=1): fake balances, no network
+      return DEMO_PORTFOLIO_ENABLED
+        ? { ...real, ready: true, settings: { ...settings, net: 'main', mainnetEnabled: true }, accounts: DEMO_ACCOUNTS, portfolio: DEMO_PORTFOLIO, loading: false, error: null, refresh: async () => undefined }
+        : real;
+    },
     [ready, settings, updateSettings, device, awaitingUser, awaitingKind, pairCode, pairing, connectMock, connectBle, connectSim, reloadDevice, disconnect, accounts, setAccounts, portfolio, history, loading, error, refresh],
   );
   return <WalletCtx.Provider value={value}>{children}</WalletCtx.Provider>;

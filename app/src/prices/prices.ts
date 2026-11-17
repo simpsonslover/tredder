@@ -117,6 +117,17 @@ export async function priceHoldings(holdings: Holding[], fetchJson: PriceFetcher
   return out;
 }
 
+/** Prices already known (no network): for partial totals while balances are still loading. */
+export function cachedPrices(holdings: Holding[]): Map<string, PriceQuote> {
+  const out = new Map<string, PriceQuote>();
+  const now = Date.now();
+  for (const h of holdings) {
+    const c = cache.get(assetKey(h));
+    if (h.net === 'main' && c && now - c.at < TTL_MS) out.set(assetKey(h), { usd: c.usd, source: c.source });
+  }
+  return out;
+}
+
 export function applyPrices(holdings: Holding[], prices: Map<string, PriceQuote>): Holding[] {
   return holdings.map((h) => {
     const q = prices.get(assetKey(h));

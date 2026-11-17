@@ -24,6 +24,8 @@ export interface ChainConfig {
       /** EVM: more RPCs tried in order when the first fails (all checked: same chain id). */
       rpcFallbacks?: string[];
       esplora?: string; // BTC REST API
+      /** BTC: more Esplora servers tried in order when the first fails (same data, other operator). */
+      esploraFallbacks?: string[];
       blockscout?: string; // EVM token balances + history (no API key)
       explorerTx: string; // prefix, tx hash appended
       explorerAddr: string;
@@ -31,6 +33,9 @@ export interface ChainConfig {
   >;
 }
 
+// 2026-11-16: polygon-rpc.com answers every call with 401 "API key disabled", and
+// polygon.blockscout.com sits behind a Cloudflare bot check: Polygon shows POL only (no token list).
+// mempool.space failed TLS on some networks: Blockstream's Esplora (same API) is the fallback.
 const EVM_SCHEMES: Scheme[] = ['evm-bip44', 'evm-ledger-live'];
 
 export const CHAINS: Record<ChainId, ChainConfig> = {
@@ -38,8 +43,8 @@ export const CHAINS: Record<ChainId, ChainConfig> = {
     id: 'btc', family: 'btc', name: 'Bitcoin', symbol: 'BTC', decimals: 8, coingeckoId: 'bitcoin',
     schemes: ['btc-p2wpkh', 'btc-p2tr', 'btc-p2sh-p2wpkh', 'btc-p2pkh'],
     net: {
-      main: { label: 'Bitcoin', esplora: 'https://mempool.space/api', explorerTx: 'https://mempool.space/tx/', explorerAddr: 'https://mempool.space/address/' },
-      test: { label: 'Bitcoin testnet4', esplora: 'https://mempool.space/testnet4/api', explorerTx: 'https://mempool.space/testnet4/tx/', explorerAddr: 'https://mempool.space/testnet4/address/' },
+      main: { label: 'Bitcoin', esplora: 'https://mempool.space/api', esploraFallbacks: ['https://blockstream.info/api'], explorerTx: 'https://mempool.space/tx/', explorerAddr: 'https://mempool.space/address/' },
+      test: { label: 'Bitcoin testnet4', esplora: 'https://mempool.space/testnet4/api', esploraFallbacks: ['https://blockstream.info/testnet4/api'], explorerTx: 'https://mempool.space/testnet4/tx/', explorerAddr: 'https://mempool.space/testnet4/address/' },
     },
   },
   eth: {
@@ -70,7 +75,7 @@ export const CHAINS: Record<ChainId, ChainConfig> = {
     id: 'polygon', family: 'evm', name: 'Polygon', symbol: 'POL', decimals: 18, coingeckoId: 'polygon-ecosystem-token',
     cgPlatform: 'polygon-pos', dexChain: 'polygon', schemes: EVM_SCHEMES,
     net: {
-      main: { label: 'Polygon', evmChainId: 137, rpc: 'https://polygon-rpc.com', blockscout: 'https://polygon.blockscout.com', explorerTx: 'https://polygonscan.com/tx/', explorerAddr: 'https://polygonscan.com/address/' },
+      main: { label: 'Polygon', evmChainId: 137, rpc: 'https://polygon-bor-rpc.publicnode.com', rpcFallbacks: ['https://polygon.drpc.org'], explorerTx: 'https://polygonscan.com/tx/', explorerAddr: 'https://polygonscan.com/address/' },
       test: { label: 'Polygon Amoy', evmChainId: 80002, rpc: 'https://polygon-amoy-bor-rpc.publicnode.com', rpcFallbacks: ['https://polygon-amoy.drpc.org'], explorerTx: 'https://amoy.polygonscan.com/tx/', explorerAddr: 'https://amoy.polygonscan.com/address/' },
     },
   },
