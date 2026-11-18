@@ -2,6 +2,7 @@ import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
 import { WalletProvider, useWallet } from '../state/WalletContext';
+import { CrashGuard } from '../ui/CrashScreen';
 import { ConfirmOnDevice, PairWithCode, useTheme } from '../ui/components';
 
 function Overlay() {
@@ -15,6 +16,7 @@ export default function RootLayout() {
   const t = useTheme();
   const nav = { ...DarkTheme, colors: { ...DarkTheme.colors, background: t.bg, card: t.bg, text: t.text, border: t.border, primary: t.accent } };
   return (
+    <CrashGuard>
     <ThemeProvider value={nav}>
       <WalletProvider>
         <StatusBar style="light" />
@@ -35,5 +37,6 @@ export default function RootLayout() {
         <Overlay />
       </WalletProvider>
     </ThemeProvider>
+    </CrashGuard>
   );
 }
