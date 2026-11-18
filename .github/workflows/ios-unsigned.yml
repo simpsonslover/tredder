@@ -78,6 +78,19 @@ jobs:
             test -s "$APP/main.jsbundle" || { echo "::error::main.jsbundle missing from the Release app"; exit 1; }
             echo "embedded JS bundle: $(du -h "$APP/main.jsbundle" | cut -f1)"
           fi
+          # every framework the app or its frameworks link to (@rpath) must be inside the app, or iOS
+          # stops it at launch ("Library missing"), as a sideloaded build once did on the iPhone
+          missing=0
+          for bin in "$APP/$(basename "$APP" .app)" "$APP"/Frameworks/*.framework/*; do
+            [ -f "$bin" ] && file "$bin" | grep -q Mach-O || continue
+            chmod 755 "$bin"
+            for lib in $(otool -L "$bin" | awk 'NR>1 && $1 ~ /^@rpath\// {print $1}'); do
+              f="$APP/Frameworks/${lib#@rpath/}"
+              [ -f "$f" ] || { echo "::error::$(basename "$bin") links $lib, not in the app"; missing=1; }
+            done
+          done
+          [ "$missing" = 0 ]
+          echo "frameworks in the app:"; ls "$APP/Frameworks"
           rm -rf Payload && mkdir Payload && cp -R "$APP" Payload/
           zip -qry "tredder-$CONF-unsigned.ipa" Payload
           ls -lh "tredder-$CONF-unsigned.ipa"
