@@ -69,7 +69,7 @@ export default function Settings() {
 
       <ListGroup
         title="Privacy"
-        footer="This app stores only public data (account public keys and addresses) in the phone’s secure storage, excluded from backups. Balances come from public APIs (mempool.space, Blockscout, public RPC nodes, CoinGecko, DexScreener, Jupiter), which can see which addresses you look up."
+        footer="This app stores only public data (account public keys and addresses) in the phone’s secure storage, excluded from backups. Balances come from public APIs (mempool.space, Blockscout, public RPC nodes), which can see which addresses you look up. Prices come from Coinbase, Kraken and Pyth (read on Solana), always asked for the same full list so they reveal nothing about what you hold; meme coins none of them lists are priced by DexScreener, which sees those tokens."
       >
         <ListItem icon="trash" danger title="Forget all accounts on this phone" onPress={forget} />
       </ListGroup>

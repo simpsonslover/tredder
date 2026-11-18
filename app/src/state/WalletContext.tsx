@@ -1,5 +1,6 @@
 import { bytesToHex } from '@noble/hashes/utils.js';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { AppState } from 'react-native';
 
 import type { TxRecord } from '../chains/types';
 import { DeviceClient } from '../protocol/client';
@@ -14,7 +15,7 @@ import { IdentityChangedError, appStaticKey, pinDeviceKey, pinnedDeviceKey } fro
 import { assetSeed } from '../ui/coinLogos';
 import { ensureLogos } from '../ui/logoStore';
 import { loadJson, saveJson, secureKV } from './storage';
-import { DEFAULT_SCHEMES, accountId, fetchAccounts, loadHistory, loadPortfolio, type Portfolio, type WalletAccount } from './wallet';
+import { DEFAULT_SCHEMES, accountId, fetchAccounts, loadHistory, loadPortfolio, repricePortfolio, type Portfolio, type WalletAccount } from './wallet';
 
 export interface Settings {
   net: Net;
@@ -61,6 +62,7 @@ interface Ctx {
 
 const WalletCtx = createContext<Ctx | null>(null);
 const LAST_BLE = 'ble.last';
+const PRICE_EVERY_MS = 15_000; // prices.ts reads its sources at most this often
 
 /** "$1,234.56", compact for large totals ("$12.3M"); only characters the device accepts. */
 export function balanceText(usd: number): string {
@@ -272,6 +274,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }, [ready, connectBle]);
 
   const refreshGen = useRef(0);
+  const sentBalance = useRef<{ client: unknown; text: string } | null>(null);
   const refresh = useCallback(async () => {
     if (!accounts.length) return;
     const gen = ++refreshGen.current; // a newer refresh (or a network switch) wins over this one
@@ -301,8 +304,45 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   // locked / unpaired) answers with an error, which is ignored.
   useEffect(() => {
     if (!device || device.info.locked || !portfolio || loading) return; // only the finished total
-    void device.client.request({ type: 'set-balance', text: balanceText(portfolio.totalUsd) }).catch(() => undefined);
+    const text = balanceText(portfolio.totalUsd);
+    if (sentBalance.current?.client === device.client && sentBalance.current.text === text) return; // price ticks: only when it changes
+    sentBalance.current = { client: device.client, text };
+    void device.client.request({ type: 'set-balance', text }).catch(() => undefined);
   }, [device, portfolio, loading]);
+
+  // Prices update by themselves: every 15 s while the app is open, and right away when it comes
+  // back to the foreground. Only prices are read (prices.ts: Coinbase, Kraken, Pyth, DexScreener
+  // for meme coins); balances still update on refresh. Mainnet only.
+  const portfolioRef = useRef(portfolio);
+  useEffect(() => {
+    portfolioRef.current = portfolio;
+  }, [portfolio]);
+  const pricing = !!portfolio && !loading && settings.net === 'main';
+  useEffect(() => {
+    if (!pricing) return;
+    let busy = false;
+    const tick = async () => {
+      const p = portfolioRef.current;
+      if (busy || !p || AppState.currentState !== 'active') return;
+      busy = true;
+      const gen = refreshGen.current;
+      try {
+        const next = await repricePortfolio(p);
+        // a refresh or network switch since then wins; so does a newer portfolio
+        if (gen === refreshGen.current) setPortfolio((cur) => (cur === p ? next : cur));
+      } catch {
+        /* offline: keep the last prices */
+      } finally {
+        busy = false;
+      }
+    };
+    const id = setInterval(() => void tick(), PRICE_EVERY_MS);
+    const sub = AppState.addEventListener('change', (s) => s === 'active' && void tick());
+    return () => {
+      clearInterval(id);
+      sub.remove();
+    };
+  }, [pricing]);
 
   // Load balances once accounts are known (deferred: not during render/effect body).
   useEffect(() => {

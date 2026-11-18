@@ -63,7 +63,7 @@ export async function loadPortfolio(
   const btc: Record<string, BtcAccountState> = {};
   const errors: string[] = [];
   const jobs: Promise<void>[] = [];
-  // Coin prices for every chain in use, in parallel with the balances (one CoinGecko call).
+  // Prices (prices.ts: fixed-list sources) in parallel with the balances.
   const families = new Set(accounts.map((a) => a.family));
   const coinStubs: Holding[] = CHAIN_LIST.filter((c) => families.has(c.family)).map((c) => ({
     chain: c.id, net, scheme: DEFAULT_SCHEMES[0]!, account: 0, owner: '', asset: { kind: 'native' }, kind: 'native', symbol: c.symbol, name: c.name, decimals: c.decimals, amount: 0n,
@@ -104,6 +104,12 @@ export async function loadPortfolio(
   await Promise.all(jobs);
   await coinPrices;
   return assemble(holdings, await priceHoldings(holdings), btc, errors);
+}
+
+/** Fresh USD prices for the holdings already loaded (no balance requests). updatedAt stays the
+ *  balances' time; a coin whose price can't be fetched keeps its last price. */
+export async function repricePortfolio(p: Portfolio): Promise<Portfolio> {
+  return { ...assemble(p.holdings, await priceHoldings(p.holdings), p.btc, p.errors), updatedAt: p.updatedAt };
 }
 
 export async function loadHistory(accounts: WalletAccount[], net: Net, portfolio: Portfolio | null): Promise<TxRecord[]> {
