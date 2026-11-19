@@ -79,7 +79,7 @@ export default function Receive() {
       <StepScreen title="Receive" onBack={back}>
         {!w.accounts.length ? (
           <Card style={{ alignItems: 'center', gap: 12, paddingVertical: 28 }}>
-            <Ionicons name="hardware-chip-outline" size={34} color={t.muted} />
+            <Ionicons name="shield-checkmark-outline" size={34} color={t.muted} />
             <T kind="h2" center>Connect your tredder</T>
             <T kind="muted" center>Your addresses come from the device.</T>
             <Button kind="secondary" title="Go to Device" onPress={() => router.navigate('/device')} />
@@ -163,7 +163,7 @@ export default function Receive() {
         <View style={{ gap: 16, paddingTop: 10 }}>
           <View style={{ alignItems: 'center', gap: 12 }}>
             <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: t.accent + '26', alignItems: 'center', justifyContent: 'center' }}>
-              <Ionicons name="hardware-chip-outline" size={34} color={t.accent} />
+              <Ionicons name="shield-checkmark-outline" size={34} color={t.accent} />
             </View>
             <T kind="h2" center>Compare with your tredder</T>
             <T kind="muted" center>Your tredder is showing your address. It must match this one exactly.</T>
@@ -186,7 +186,7 @@ export default function Receive() {
       ) : (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, paddingTop: 30 }}>
           <View style={{ width: 84, height: 84, borderRadius: 42, backgroundColor: t.accent + '26', alignItems: 'center', justifyContent: 'center' }}>
-            <Ionicons name="hardware-chip-outline" size={40} color={t.accent} />
+            <Ionicons name="shield-checkmark-outline" size={40} color={t.accent} />
           </View>
           <T kind="h2" center>{!w.device ? 'Connect your tredder' : busy ? 'Check your tredder' : err ? 'Not confirmed' : 'Preparing…'}</T>
           <T kind="muted" center>

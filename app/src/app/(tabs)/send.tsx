@@ -431,7 +431,7 @@ export default function Send() {
           <>
             {err ? <T kind="error">{err}</T> : null}
             {w.device ? (
-              <Button title="Confirm on tredder" icon="hardware-chip-outline" loading={busy} onPress={() => void confirm()} />
+              <Button title="Confirm on tredder" icon="shield-checkmark-outline" loading={busy} onPress={() => void confirm()} />
             ) : (
               <Button title="Connect your tredder to sign" icon="bluetooth" onPress={() => router.navigate('/device')} />
             )}

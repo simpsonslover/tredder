@@ -22,10 +22,11 @@ export default function RootLayout() {
         <StatusBar style="light" />
         <Stack
           screenOptions={{
-            headerStyle: { backgroundColor: t.card2 },
+            /* the top stop of the page gradient, so the native header blends into the screen */
+            headerStyle: { backgroundColor: t.bgGrad[0] },
             headerTintColor: t.text,
             headerShadowVisible: false,
-            headerTitleStyle: { fontWeight: '700', fontSize: 16 },
+            headerTitleStyle: { fontWeight: '700', fontSize: 18 },
             contentStyle: { backgroundColor: t.bg },
           }}
         >

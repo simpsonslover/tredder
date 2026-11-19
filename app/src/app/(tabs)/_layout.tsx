@@ -3,17 +3,18 @@ import type { BottomTabBarProps } from 'expo-router/tabs';
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { ActionButton, ButtonBar, useTheme, type IconName } from '../../ui/components';
+import { GradientView } from '../../ui/gradient';
+import { ActionButton, ButtonBar, shadow, useTheme, type IconName } from '../../ui/components';
 
 const TABS: { route: string; label: string; icon: IconName }[] = [
   { route: 'index', label: 'Wallet', icon: 'wallet-outline' },
   { route: 'activity', label: 'History', icon: 'time-outline' },
   { route: 'receive', label: 'Receive', icon: 'arrow-down-circle-outline' },
   { route: 'send', label: 'Send', icon: 'arrow-up-circle-outline' },
-  { route: 'device', label: 'Device', icon: 'hardware-chip-outline' },
+  { route: 'device', label: 'Device', icon: 'shield-checkmark-outline' },
 ];
 
-/** Electrum's bottom ButtonContainer (Receive | Send), extended into the app's tabs + Device. */
+/** Floating rounded tab bar, lifted clear of the home indicator. */
 function TabBar({ state, navigateToTab }: BottomTabBarProps) {
   const t = useTheme();
   const insets = useSafeAreaInsets();
@@ -23,12 +24,14 @@ function TabBar({ state, navigateToTab }: BottomTabBarProps) {
     if (r) navigateToTab(r.key);
   };
   return (
-    <View style={{ backgroundColor: t.card, paddingBottom: insets.bottom }}>
-      <ButtonBar>
-        {TABS.map((it) => (
-          <ActionButton key={it.route} icon={it.icon} label={it.label} selected={current === it.route} onPress={() => go(it.route)} />
-        ))}
-      </ButtonBar>
+    <View style={{ paddingHorizontal: 12, paddingBottom: Math.max(insets.bottom, 10), paddingTop: 6, backgroundColor: 'transparent' }}>
+      <GradientView colors={t.card2Grad} radius={t.r.xl} border={t.lineStrong} style={[{ paddingHorizontal: 6, paddingVertical: 4 }, shadow(3)]}>
+        <ButtonBar>
+          {TABS.map((it) => (
+            <ActionButton key={it.route} icon={it.icon} label={it.label} selected={current === it.route} onPress={() => go(it.route)} />
+          ))}
+        </ButtonBar>
+      </GradientView>
     </View>
   );
 }
