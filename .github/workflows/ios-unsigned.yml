@@ -20,7 +20,7 @@ on:
         type: boolean
         default: false
       project_files:
-        description: "Instead of the .ipa: only generate the native iOS project (expo prebuild + CocoaPods) and upload the app/ios folder as a zip."
+        description: "Instead of the .ipa: only generate the native iOS project (expo prebuild + CocoaPods) and upload the app folder with ios/ as a zip."
         type: boolean
         default: false
 
@@ -206,14 +206,21 @@ jobs:
       - name: Generate the native iOS project (expo prebuild + CocoaPods)
         run: npx expo prebuild --platform ios --clean
 
-      - name: Zip app/ios
+      # The whole app folder (JS source, package.json/lock, assets) plus the generated ios/, so the zip
+      # builds on its own after `npm ci` and `pod install`. Left out: node_modules, Pods, build output
+      # and ios/.xcode.env.local (it holds this runner's node path; pod install writes the Mac's own).
+      - name: Zip the app folder with ios/
         run: |
           set -euo pipefail
           test -f ios/Podfile.lock
           ls -d ios/*.xcworkspace ios/*.xcodeproj
-          zip -qry tredder-ios-project.zip ios -x 'ios/Pods/*' 'ios/build/*'
-          ls -lh tredder-ios-project.zip
-          unzip -l tredder-ios-project.zip | tail -1
+          cd ..
+          { git ls-files app | grep -v '^app/\.claude/'
+            find app/ios -type f -not -path 'app/ios/Pods/*' -not -path 'app/ios/build/*' -not -name '.xcode.env.local'
+          } | sort -u > files.txt
+          zip -q -y app/tredder-ios-project.zip -@ < files.txt
+          ls -lh app/tredder-ios-project.zip
+          unzip -l app/tredder-ios-project.zip | tail -1
 
       - uses: actions/upload-artifact@v4
         with:
