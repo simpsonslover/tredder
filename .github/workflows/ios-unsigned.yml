@@ -19,6 +19,10 @@ on:
         description: "Instead of the .ipa: build for the iOS Simulator, launch it, and keep its log and crash report (to debug a crash on start)."
         type: boolean
         default: false
+      project_files:
+        description: "Instead of the .ipa: only generate the native iOS project (expo prebuild + CocoaPods) and upload the app/ios folder as a zip."
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -29,7 +33,7 @@ concurrency:
 
 jobs:
   build:
-    if: ${{ !inputs.simulator_test }}
+    if: ${{ !inputs.simulator_test && !inputs.project_files }}
     runs-on: macos-latest
     timeout-minutes: 60
     defaults:
@@ -108,7 +112,7 @@ jobs:
   # Launch test: same app, built for the Simulator. A JavaScript error during start-up, which a
   # Release build turns into a crash, shows up in the log with its message.
   simulator:
-    if: ${{ inputs.simulator_test }}
+    if: ${{ inputs.simulator_test && !inputs.project_files }}
     runs-on: macos-latest
     timeout-minutes: 60
     defaults:
@@ -172,3 +176,48 @@ jobs:
           name: tredder-simulator-test-logs
           path: app/sim-logs
           retention-days: 7
+
+  # The generated Xcode project (app/ios), which Windows cannot produce: expo prebuild needs macOS or
+  # Linux. Pods/ and build output are left out (pod install recreates Pods/ from Podfile.lock); the
+  # project expects to sit in app/ next to node_modules, as it was generated.
+  project:
+    if: ${{ inputs.project_files }}
+    runs-on: macos-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Install JavaScript dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Generate the native iOS project (expo prebuild + CocoaPods)
+        run: npx expo prebuild --platform ios --clean
+
+      - name: Zip app/ios
+        run: |
+          set -euo pipefail
+          test -f ios/Podfile.lock
+          ls -d ios/*.xcworkspace ios/*.xcodeproj
+          zip -qry tredder-ios-project.zip ios -x 'ios/Pods/*' 'ios/build/*'
+          ls -lh tredder-ios-project.zip
+          unzip -l tredder-ios-project.zip | tail -1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tredder-ios-project
+          path: app/tredder-ios-project.zip
+          retention-days: 14
+          if-no-files-found: error
