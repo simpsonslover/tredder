@@ -5,10 +5,10 @@ import type { Address } from 'viem';
 import { buildPsbt, broadcast as btcBroadcast, feeRates, finalizeSigned, history as btcHistory, planSend, scanAccount, txConfirmed, type BtcAccountState } from '../chains/btc';
 import { btcAddress, type XpubKey } from '../chains/btcDerive';
 import { CHAINS, CHAIN_LIST, type ChainId, type Family } from '../chains/config';
-import { broadcastEvm, evmConfirmed, evmHistory, evmHoldings, prepareEvmTransfer, signedEvmTx, type EvmPrepared } from '../chains/evm';
+import { broadcastEvm, evmConfirmed, evmHistory, evmNative, evmTokens, prepareEvmTransfer, signedEvmTx, type EvmPrepared } from '../chains/evm';
 import { broadcastSol, prepareSolTransfer, solConfirmed, solHistory, solHoldings, type SolPrepared } from '../chains/sol';
 import type { Holding, TxRecord } from '../chains/types';
-import { applyPrices, priceHoldings } from '../prices/prices';
+import { applyPrices, cachedPrices, priceHoldings, type PriceQuote } from '../prices/prices';
 import { friendlyError } from '../util/http';
 import type { DeviceClient } from '../protocol/client';
 import type { AccountKey, Net, Scheme, WalletRef } from '../protocol/types';
@@ -44,16 +44,38 @@ export interface Portfolio {
   updatedAt: number;
 }
 
-/** Balances for every account on every chain of its family, priced in USD. */
-export async function loadPortfolio(accounts: WalletAccount[], net: Net, opts: { btcGap?: number } = {}): Promise<Portfolio> {
+function assemble(holdings: Holding[], prices: Map<string, PriceQuote>, btc: Record<string, BtcAccountState>, errors: string[]): Portfolio {
+  const priced = applyPrices(holdings, prices);
+  priced.sort((x, y) => (y.usdValue ?? 0) - (x.usdValue ?? 0) || x.chain.localeCompare(y.chain));
+  return { holdings: priced, btc: { ...btc }, errors: [...errors], totalUsd: priced.reduce((s, h) => s + (h.kind === 'staked' || h.kind === 'nft' ? 0 : h.usdValue ?? 0), 0), updatedAt: Date.now() };
+}
+
+/** Balances for every account on every chain of its family, priced in USD.
+ *  onProgress gets a partial portfolio each time a network answers (coin balances come before the
+ *  slower token indexers), priced with the coin prices fetched up front; the returned portfolio is
+ *  complete, with token prices. */
+export async function loadPortfolio(
+  accounts: WalletAccount[],
+  net: Net,
+  opts: { btcGap?: number; onProgress?: (p: Portfolio) => void } = {},
+): Promise<Portfolio> {
   const holdings: Holding[] = [];
   const btc: Record<string, BtcAccountState> = {};
   const errors: string[] = [];
   const jobs: Promise<void>[] = [];
+  // Prices (prices.ts: fixed-list sources) in parallel with the balances.
+  const families = new Set(accounts.map((a) => a.family));
+  const coinStubs: Holding[] = CHAIN_LIST.filter((c) => families.has(c.family)).map((c) => ({
+    chain: c.id, net, scheme: DEFAULT_SCHEMES[0]!, account: 0, owner: '', asset: { kind: 'native' }, kind: 'native', symbol: c.symbol, name: c.name, decimals: c.decimals, amount: 0n,
+  }));
+  const coinPrices = net === 'main' ? priceHoldings(coinStubs).catch(() => undefined) : Promise.resolve(undefined);
+  const progress = () => opts.onProgress?.(assemble(holdings, cachedPrices(holdings), btc, errors));
+  void coinPrices.then(() => holdings.length && progress());
+  const track = (p: Promise<void>) => jobs.push(p.then(progress));
   for (const a of accounts) {
     if (a.family === 'btc' && a.key.kind === 'xpub') {
       const key = a.key;
-      jobs.push(
+      track(
         scanAccount(key, a.scheme, net, opts.btcGap)
           .then((st) => {
             btc[accountId(a)] = st;
@@ -62,14 +84,17 @@ export async function loadPortfolio(accounts: WalletAccount[], net: Net, opts: {
           .catch((e) => void errors.push(`Bitcoin (${a.scheme}): ${friendlyError(e)}`)),
       );
     } else if (a.family === 'evm') {
-      for (const c of CHAIN_LIST.filter((x) => x.family === 'evm'))
-        jobs.push(
-          evmHoldings(c.id, net, a.scheme, a.account, addressOf(a) as Address)
-            .then((hs) => void holdings.push(...hs))
+      for (const c of CHAIN_LIST.filter((x) => x.family === 'evm')) {
+        const owner = addressOf(a) as Address;
+        track(
+          evmNative(c.id, net, a.scheme, a.account, owner)
+            .then((h) => void holdings.push(h))
             .catch((e) => void errors.push(`${c.net[net].label}: ${friendlyError(e)}`)),
         );
+        track(evmTokens(c.id, net, a.scheme, a.account, owner).then((hs) => void holdings.push(...hs)));
+      }
     } else if (a.family === 'sol') {
-      jobs.push(
+      track(
         solHoldings(net, a.scheme, a.account, addressOf(a))
           .then((hs) => void holdings.push(...hs))
           .catch((e) => void errors.push(`Solana: ${friendlyError(e)}`)),
@@ -77,9 +102,14 @@ export async function loadPortfolio(accounts: WalletAccount[], net: Net, opts: {
     }
   }
   await Promise.all(jobs);
-  const priced = applyPrices(holdings, await priceHoldings(holdings));
-  priced.sort((x, y) => (y.usdValue ?? 0) - (x.usdValue ?? 0) || x.chain.localeCompare(y.chain));
-  return { holdings: priced, btc, errors, totalUsd: priced.reduce((s, h) => s + (h.kind === 'staked' || h.kind === 'nft' ? 0 : h.usdValue ?? 0), 0), updatedAt: Date.now() };
+  await coinPrices;
+  return assemble(holdings, await priceHoldings(holdings), btc, errors);
+}
+
+/** Fresh USD prices for the holdings already loaded (no balance requests). updatedAt stays the
+ *  balances' time; a coin whose price can't be fetched keeps its last price. */
+export async function repricePortfolio(p: Portfolio): Promise<Portfolio> {
+  return { ...assemble(p.holdings, await priceHoldings(p.holdings), p.btc, p.errors), updatedAt: p.updatedAt };
 }
 
 export async function loadHistory(accounts: WalletAccount[], net: Net, portfolio: Portfolio | null): Promise<TxRecord[]> {

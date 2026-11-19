@@ -6,7 +6,7 @@
  * Constants.qml / main.qml; the icons are Ionicons, not Electrum's PNGs.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import type { ComponentProps, ReactNode } from 'react';
+import { useState, type ComponentProps, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -513,6 +513,69 @@ export function ConfirmOnDevice({ visible, what, code }: { visible: boolean; wha
           ) : null}
           <T>{what ?? 'Check every detail on the device screen, then press Confirm. Press Back to cancel.'}</T>
           <ActivityIndicator color={t.accent} />
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+/**
+ * Pairing: the user types the code the tredder shows; the app checks it against the code of its
+ * own secure session (both come from the Noise handshake, so a device-in-the-middle shows a
+ * different one). A match only tells the user it is safe to accept ON THE DEVICE (✓ + PIN): the
+ * device itself decides, because any phone knows its own code.
+ */
+export function PairWithCode({ visible, code, onCancel }: { visible: boolean; code: string | null; onCancel: () => void }) {
+  const t = useTheme();
+  const [typed, setTyped] = useState('');
+  const done = typed.length === 6;
+  const ok = done && !!code && typed === code;
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
+      <View style={{ flex: 1, backgroundColor: '#000B', justifyContent: 'center', padding: 24 }}>
+        <View style={{ backgroundColor: t.card2, borderRadius: 8, padding: 20, gap: 14 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <Ionicons name="link" size={22} color={t.accent} />
+            <Text style={{ color: t.text, fontSize: 18, fontWeight: '700' }}>Pair with your tredder</Text>
+          </View>
+          <T>Type the 6-digit code shown on your tredder.</T>
+          <TextInput
+            value={typed}
+            onChangeText={(v) => setTyped(v.replace(/\D/g, '').slice(0, 6))}
+            keyboardType="number-pad"
+            maxLength={6}
+            autoFocus
+            textContentType="oneTimeCode"
+            placeholder="000000"
+            placeholderTextColor={t.muted}
+            style={{ backgroundColor: t.darker, borderRadius: 8, paddingVertical: 12, color: ok ? t.ok : done ? t.danger : t.accent, fontSize: 32, fontFamily: MONO, letterSpacing: 8, textAlign: 'center' }}
+          />
+          {!done ? null : ok ? (
+            <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+              <Ionicons name="checkmark-circle" size={22} color={t.ok} />
+              <View style={{ flex: 1 }}>
+                <T>Code is correct. Now press ✓ accept on your tredder and enter your PIN.</T>
+              </View>
+            </View>
+          ) : (
+            <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+              <Ionicons name="close-circle" size={22} color={t.danger} />
+              <View style={{ flex: 1 }}>
+                <T>That is not this connection's code. Check it, or press ✗ reject on the tredder: something may be between your phone and the device.</T>
+              </View>
+            </View>
+          )}
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            {done && !ok ? (
+              <View style={{ flex: 1 }}>
+                <Button kind="secondary" title="Type again" onPress={() => setTyped('')} />
+              </View>
+            ) : null}
+            <View style={{ flex: 1 }}>
+              <Button kind="secondary" title="Cancel" onPress={onCancel} />
+            </View>
+          </View>
+          {ok ? <ActivityIndicator color={t.accent} /> : null}
         </View>
       </View>
     </Modal>

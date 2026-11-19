@@ -140,6 +140,19 @@ void hal_log(const char *fmt, ...) {
   fputs(line, stdout);
 }
 
+size_t hal_log_recent(char *out, size_t max) {
+  if (!max) return 0;
+  size_t n = ring_len < max - 1 ? ring_len : max - 1;
+  const char *src = ring + ring_len - n;
+  if (n < ring_len) { /* start at a line boundary */
+    const char *nl = memchr(src, '\n', n);
+    if (nl) n -= (size_t)(nl + 1 - src), src = nl + 1;
+  }
+  memcpy(out, src, n);
+  out[n] = 0;
+  return n;
+}
+
 void hal_log_replay_if_connected(void) {
   static bool was;
   bool now = stdio_usb_connected();

@@ -2,7 +2,7 @@
 // buttons (debug link -> robot finger), exactly as a person would use the device.
 // Skipped if the emulator has not been built (python firmware/tools/build_emu.py).
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, test } from 'node:test';
@@ -52,7 +52,7 @@ describe('REAL FIRMWARE: on-device flows (buttons only)', { skip }, () => {
     const s = await waitFor(d, (x) => x.kind === 'pin');
     assert.equal(s.title, 'Enter PIN');
     await enterPin(d, '2580');
-    await waitFor(d, (x) => !x.locked && x.title === 'tredder');
+    await waitFor(d, (x) => !x.locked && x.title.startsWith('tredder'));
     await t.close();
   });
 
@@ -89,7 +89,7 @@ describe('REAL FIRMWARE: on-device flows (buttons only)', { skip }, () => {
       }
       await d.press('ok');
     }
-    const s = await waitFor(d, (x) => x.title === 'Welcome');
+    const s = await waitFor(d, (x) => x.title === 'Setup');
     assert.equal(s.initialized, false);
     await t.close();
   });
@@ -97,7 +97,7 @@ describe('REAL FIRMWARE: on-device flows (buttons only)', { skip }, () => {
   test('import 12 words with the letter picker, choose PIN, pair the app on the device', async () => {
     const t = await startEmu();
     const d = t.debug!;
-    await selectItem(d, 'Import seed phrase');
+    await selectItem(d, 'Import wallet');
     await selectItem(d, '12 words');
     for (const w of ABANDON.split(' ')) await enterWord(d, w);
     let s = await waitFor(d, (x) => x.title === 'Review words');
@@ -115,7 +115,7 @@ describe('REAL FIRMWARE: on-device flows (buttons only)', { skip }, () => {
     // First request from the app: pairing prompt + PIN on the device.
     const c = new DeviceClient(await SimTransport.connect(`ws://localhost:${t.port}`));
     const r = c.request({ type: 'get-accounts', wallet: 'active', net: 'test', scheme: 'evm-bip44', accounts: [0] });
-    s = await waitFor(d, (x) => x.kind === 'pages' && x.title === 'Pair phone?');
+    s = await waitFor(d, (x) => x.kind === 'pages' && x.title === 'Allow pairing?');
     assert.ok(s.lines.some((l) => /^\d{6}$/.test(l)), 'pairing code shown');
     await d.press('ok');
     await enterPin(d, '4321');
@@ -129,7 +129,7 @@ describe('REAL FIRMWARE: on-device flows (buttons only)', { skip }, () => {
   test('wrong checksum is caught and one word can be fixed', async () => {
     const t = await startEmu();
     const d = t.debug!;
-    await selectItem(d, 'Import seed phrase');
+    await selectItem(d, 'Import wallet');
     await selectItem(d, '12 words');
     const words = ABANDON.split(' ');
     words[11] = 'abandon';
@@ -145,7 +145,7 @@ describe('REAL FIRMWARE: on-device flows (buttons only)', { skip }, () => {
   test('create wallet: write down words, pass the 3-word check, set PIN', async () => {
     const t = await startEmu();
     const d = t.debug!;
-    await selectItem(d, 'Create new wallet');
+    await selectItem(d, 'New wallet');
     await selectItem(d, '12 words');
     const words: string[] = [];
     let s = await waitFor(d, (x) => x.kind === 'pages');
@@ -177,7 +177,7 @@ describe('REAL FIRMWARE: on-device flows (buttons only)', { skip }, () => {
     const d = t.debug!;
     await d.press('ok');
     await enterPin(d, '1234');
-    await waitFor(d, (x) => !x.locked && x.title === 'tredder');
+    await waitFor(d, (x) => !x.locked && x.title.startsWith('tredder'));
     const s = await waitFor(d, (x) => x.sleeping, 8000);
     assert.equal(s.locked, true, 'sleeping wipes the seed from RAM (locked)');
     await d.press('ok'); // wakes the device only
@@ -203,7 +203,12 @@ describe('REAL FIRMWARE: on-device flows (buttons only)', { skip }, () => {
     const dir = mkdtempSync(join(tmpdir(), 'tredder-emu-'));
     try {
       let t = await startEmu({ seed: ABANDON, pin: '1234', stateDir: dir });
+      // the emulator creates the wallet (and writes flash.bin) after it starts: wait for it, or the
+      // test can stop it first (that was the flaky failure)
+      await waitFor(t.debug!, (x) => x.initialized);
       await t.close();
+      // the emulator writes flash.bin while it shuts down: wait for it (was flaky)
+      for (let i = 0; i < 50 && !existsSync(join(dir, 'flash.bin')); i++) await new Promise((ok) => setTimeout(ok, 100));
       const flash = readFileSync(join(dir, 'flash.bin'));
       assert.ok(!flash.includes(Buffer.from('abandon')), 'no plaintext words in flash');
       assert.ok(!flash.includes(Buffer.alloc(24, 0)), 'word indices (abandon = 0) are not stored in clear');

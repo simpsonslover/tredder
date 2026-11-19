@@ -2,25 +2,21 @@ import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
 import { WalletProvider, useWallet } from '../state/WalletContext';
-import { ConfirmOnDevice, useTheme } from '../ui/components';
+import { CrashGuard } from '../ui/CrashScreen';
+import { ConfirmOnDevice, PairWithCode, useTheme } from '../ui/components';
 
 function Overlay() {
-  const { awaitingUser, awaitingKind, pairCode } = useWallet();
+  const { awaitingUser, awaitingKind, pairCode, pairing, disconnect } = useWallet();
+  if (pairing) return <PairWithCode visible code={pairCode} onCancel={() => void disconnect()} />;
   // Receive draws its own prompt: the address must stay visible to compare with the device
-  const pairing = awaitingKind === 'pair';
-  return (
-    <ConfirmOnDevice
-      visible={awaitingUser && awaitingKind !== 'show-address'}
-      code={pairing ? pairCode ?? '------' : undefined}
-      what={pairing ? 'Approve on your tredder only if it shows exactly this code. If the codes differ, reject it: something is between your phone and the device.' : undefined}
-    />
-  );
+  return <ConfirmOnDevice visible={awaitingUser && awaitingKind !== 'show-address'} />;
 }
 
 export default function RootLayout() {
   const t = useTheme();
   const nav = { ...DarkTheme, colors: { ...DarkTheme.colors, background: t.bg, card: t.bg, text: t.text, border: t.border, primary: t.accent } };
   return (
+    <CrashGuard>
     <ThemeProvider value={nav}>
       <WalletProvider>
         <StatusBar style="light" />
@@ -41,5 +37,6 @@ export default function RootLayout() {
         <Overlay />
       </WalletProvider>
     </ThemeProvider>
+    </CrashGuard>
   );
 }

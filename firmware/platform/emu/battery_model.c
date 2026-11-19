@@ -95,4 +95,6 @@ void hal_power(hal_power_t *out) {
   out->vbat_mv = s.vbat_mv;
   out->charging = s.charging;
   out->usb = s.usb;
+  out->vbat_state = HAL_VBAT_OK;
+  out->raw_mv = s.vbat_mv;
 }

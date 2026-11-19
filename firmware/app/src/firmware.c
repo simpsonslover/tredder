@@ -133,12 +133,92 @@ static void fw_sleep(const char *why) {
   M.last_activity = M.power_at = hal_millis();
 }
 
+/* Steady battery level. A LiPo's voltage dips while the radio transmits or the display redraws, and a
+   breadboard adds noise: one reading at face value made the level jump (52 % -> 21 % -> 39 %). So:
+   - the voltage is a running average (1/8 of each new reading, every 2 s: ~30 s to settle)
+   - the shown percentage only moves when the average has moved by 3 % or more, and on battery it
+     never goes up (a voltage rebound after a load is not charging); a change of charging state or
+     of the battery being there restarts the average. */
+/* Battery percent.
+   On battery: from the voltage, a running average (1/8 per 2 s reading); after a 60 s settling window
+   it only falls, in steps of 3 % or more.
+   While charging the voltage says little: the charge current lifts it by 0.3-0.4 V on the breadboard
+   (68 % shown while charging became 22 % on battery). So while charging the level is COUNTED instead:
+   it starts from the last on-battery level and adds the charge put in, at the charger's current
+   (FW_CHARGE_MA into FW_BATTERY_MAH), up to 99 %; 100 % once the voltage has reached the charger's
+   end voltage (4.18 V) for a minute. Unplugging goes back to the voltage, settling for 60 s.
+   (Proper answer: a fuel-gauge chip such as the MAX17048; this is the best a plain voltage divider
+   can do.) */
+static struct {
+  uint32_t avg16;   /* on battery: mV x 16 */
+  uint32_t raw16;   /* measured mV x 16, for the battery screen */
+  uint32_t since;   /* when the state last changed */
+  uint32_t last;    /* time of the previous reading */
+  uint32_t milli;   /* while charging: level in 1/1000 % */
+  uint32_t full_since;
+  int shown;        /* -1 = none */
+  int last_batt;    /* last settled on-battery level, -1 = unknown */
+  bool charging, have;
+} B = {.last_batt = -1};
+
+static int steady_percent(const hal_power_t *p, uint32_t now) {
+  if (!p->vbat_mv) {
+    B.have = false;
+    B.shown = -1;
+    return -1;
+  }
+  uint32_t mv = p->vbat_mv;
+  if (!B.have || p->charging != B.charging) { /* (re)start */
+    if (B.have && !B.charging) B.last_batt = B.shown; /* keep the on-battery level for counting */
+    B.avg16 = B.raw16 = mv * 16u;
+    B.charging = p->charging;
+    B.have = true;
+    B.since = B.last = now;
+    B.full_since = 0;
+    if (p->charging) {
+      /* start counting from the last on-battery level; unknown: a conservative voltage guess */
+      int start = B.last_batt >= 0 ? B.last_batt : fw_battery_percent((uint16_t)(mv > 3400u ? mv - 350u : 3050u));
+      B.milli = (uint32_t)start * 1000u;
+      B.shown = start;
+    } else {
+      B.shown = fw_battery_percent((uint16_t)mv);
+    }
+    return B.shown;
+  }
+  uint32_t dt = now - B.last;
+  B.last = now;
+  B.raw16 = B.raw16 - B.raw16 / 8u + mv * 2u;
+  if (p->charging) {
+    /* charge in: FW_CHARGE_MA for dt ms, as a share of FW_BATTERY_MAH, in 1/1000 % */
+    B.milli += (uint32_t)((uint64_t)FW_CHARGE_MA * dt * 100000ull / ((uint64_t)FW_BATTERY_MAH * 3600000ull));
+    if (B.milli > 99000u) B.milli = 99000u;
+    if (B.raw16 / 16u >= 4180u) { /* at the charger's end voltage */
+      if (!B.full_since) B.full_since = now;
+      if (now - B.full_since > 60000u) B.milli = 100000u;
+    } else {
+      B.full_since = 0;
+    }
+    B.shown = (int)(B.milli / 1000u);
+    return B.shown;
+  }
+  B.avg16 = B.avg16 - B.avg16 / 8u + mv * 2u;
+  int pct = fw_battery_percent((uint16_t)(B.avg16 / 16u));
+  int d = pct - B.shown;
+  bool settling = now - B.since < 60000u;
+  if (settling ? (d >= 3 || d <= -3) : d <= -3) B.shown = pct;
+  if (!settling) B.last_batt = B.shown;
+  return B.shown;
+}
+
 static void power(uint32_t now) {
   if (now - M.power_at < POWER_POLL_MS) return;
   M.power_at = now;
   hal_power_t p;
   hal_power(&p);
-  ui_set_battery(fw_battery_percent(p.vbat_mv), p.charging);
+  ui_set_battery(steady_percent(&p, now), p.charging);
+  ui_set_battery_mv(p.vbat_mv ? (uint16_t)(B.raw16 / 16u) : 0);
+  ui_set_battery_diag(p.vbat_state, p.raw_mv);
+  ui_set_usb_power(p.usb);
   bool low = !p.usb && p.vbat_mv && p.vbat_mv < FW_BATTERY_LOW_MV;
   if (!low) {
     M.low_warned = false;

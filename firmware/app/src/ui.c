@@ -10,11 +10,13 @@
 #include "app/ui.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "app/firmware.h"
 #include "app/gfx.h"
 #include "app/hal.h"
+#include "app/proto.h"
 #include "app/rng.h"
 #include "app/sdbackup.h"
 #include "app/se.h"
@@ -41,6 +43,7 @@
 #define C_DANGER RGB565(255, 128, 128)
 #define C_OK RGB565(128, 255, 128)
 #define C_CELL C_PANE
+#define C_EDGE RGB565(96, 96, 96)      /* card outlines */
 
 #define TITLE_H 30
 #define BODY_Y 38
@@ -78,6 +81,7 @@ static struct {
   char prefix[9];
   int picked;
   bool dirty;
+  uint8_t layout; /* L_*: welcome / locked / home drawn as screens, else a list */
 } S;
 
 static struct {
@@ -86,7 +90,14 @@ static struct {
   bool charging;
   uint32_t lockout_until;
   uint32_t now;
+  char balance[20]; /* total value as the phone app reported it (display only, not verified) */
+  uint16_t batt_mv;
+  uint8_t batt_state; /* hal_vbat_state_t */
+  bool usb_power;
+  uint16_t batt_raw_mv;
+  uint8_t batt_mode; /* top-right battery: BATT_BAR / BATT_PCT / BATT_BOTH (RAM: the demo saves nothing) */
 } D;
+enum { BATT_BAR = 0, BATT_PCT, BATT_BOTH };
 
 /* ---------------------------------------------------------------- screen setup */
 static void screen(kind_t k, const char *title, wl_tone_t tone, result_fn on) {
@@ -117,9 +128,51 @@ static void shuffle_u8(uint8_t *a, size_t n) {
 }
 
 static int line_h(const char *l);
+static wl_review_t local_rv; /* pages built by flows (not protocol prompts) */
 
 /* ---------------------------------------------------------------- drawing */
+/* Icons: Ionicons glyphs U+E000 + index (tools/gen_font.py ICONS, same order). */
+enum {
+  IC_LOCK, IC_UNLOCK, IC_ADD, IC_DOWNLOAD, IC_SAVE, IC_SHIELD, IC_TRASH, IC_KEY, IC_BLUETOOTH, IC_EYE_OFF,
+  IC_WALLET, IC_PHONE, IC_CHECK, IC_WARNING, IC_CLOSE, IC_INFO, IC_HOURGLASS, IC_REFRESH, IC_UNDO, IC_SWAP,
+  IC_DOC, IC_ALERT, IC_BATTERY, IC_SETTINGS, IC_LOGO, IC_NONE = 255
+};
+
+#ifndef FW_VERSION
+#define FW_VERSION "dev"
+#endif
+
+static void icon(int x, int y, uint8_t ic, const wl_font_t *f, uint16_t color) {
+  if (ic == IC_NONE) return;
+  unsigned cp = 0xE000u + ic;
+  char s[4] = {(char)(0xE0 | (cp >> 12)), (char)(0x80 | ((cp >> 6) & 0x3F)), (char)(0x80 | (cp & 0x3F)), 0};
+  gfx_text(x, y, s, f, color);
+}
+
+/* Filled circle (rounded square with radius = half the size). */
+static void disc(int cx, int cy, int r, uint16_t color) { gfx_round_rect(cx - r, cy - r, 2 * r, 2 * r, r, color); }
+
 static uint16_t tone_color(uint8_t t) { return t == WL_TONE_DANGER ? C_DANGER : t == WL_TONE_WARN ? C_WARN : C_FG; }
+
+/* Icon for a menu entry, by its text (the texts are the firmware's own, see the flows below). */
+static uint8_t item_icon(const char *s) {
+  static const struct {
+    const char *prefix;
+    uint8_t ic;
+  } MAP[] = {
+      {"Create new wallet", IC_ADD}, {"Import seed", IC_DOWNLOAD}, {"Restore microSD", IC_SAVE}, {"Unlock", IC_UNLOCK},
+      {"Lock", IC_LOCK},           {"Blind signing", IC_EYE_OFF}, {"Back up", IC_SAVE},          {"Wipe", IC_TRASH},
+      {"Cancel", IC_UNDO},         {"Enter it again", IC_REFRESH}, {"Import & sweep", IC_SWAP},  {"Import as-is", IC_DOWNLOAD},
+      {"tredder-", IC_DOC},        {"✓ ", IC_CHECK},           {"New wallet", IC_ADD},       {"Import wallet", IC_DOWNLOAD},
+      {"Restore from", IC_SAVE},   {"Backup", IC_SAVE},           {"Unpair", IC_BLUETOOTH},     {"Settings", IC_SETTINGS},
+      {"Battery", IC_BATTERY},     {"Show: ", IC_BATTERY},        {"Log", IC_DOC},
+      {"About", IC_INFO},
+  };
+  for (unsigned i = 0; i < sizeof(MAP) / sizeof(MAP[0]); i++)
+    if (!strncmp(s, MAP[i].prefix, strlen(MAP[i].prefix))) return MAP[i].ic;
+  if (strstr(s, " words")) return IC_KEY;
+  return IC_NONE;
+}
 
 /* "12. word" style lines: the number in accent, the rest in white. */
 static int numbered_prefix(const char *l) {
@@ -130,84 +183,127 @@ static int numbered_prefix(const char *l) {
   return i > d && l[i] == '.' && l[i + 1] == ' ' ? i + 1 : 0;
 }
 
+static void chevron(int cx, int cy, uint16_t c) { /* the fonts have no U+203A: drawn */
+  for (int d = 0; d < 5; d++) {
+    gfx_fill(cx + d, cy - 4 + d, 2, 1, c);
+    gfx_fill(cx + d, cy + 4 - d, 2, 1, c);
+  }
+}
+
+/* List rows: icon, text, chevron on the selected one (a rounded "pill" with an accent edge). */
+static void draw_rows(int y, int row_h) {
+  int rows = (FOOT_Y - 2 - y) / row_h;
+  if (rows < 1) rows = 1;
+  if (S.cursor < S.scroll) S.scroll = S.cursor;
+  if (S.cursor >= S.scroll + rows) S.scroll = (uint8_t)(S.cursor - rows + 1);
+  for (int i = S.scroll; i < S.nitems && i < S.scroll + rows; i++) {
+    int ry = y + (i - S.scroll) * row_h;
+    bool sel = i == S.cursor;
+    const char *txt = S.items[i];
+    uint8_t ic = item_icon(txt);
+    bool danger = !strncmp(txt, "Wipe", 4);
+    if (!strncmp(txt, "✓ ", 4)) txt += 4; /* the icon says it */
+    /* a card per entry: outlined, filled + accent outline when selected */
+    uint16_t edge = sel ? (danger ? C_DANGER : C_ACCENT) : C_EDGE;
+    gfx_round_rect(6, ry + 2, GFX_W - 12, row_h - 4, 9, edge);
+    gfx_round_rect(sel ? 8 : 7, ry + (sel ? 4 : 3), GFX_W - (sel ? 16 : 14), row_h - (sel ? 8 : 6), 8, sel ? C_SEL : C_BG);
+    uint16_t fg = danger ? C_DANGER : sel ? C_ACCENT : C_FG;
+    int tx = 18;
+    if (ic != IC_NONE) {
+      icon(18, ry + (row_h - wl_icons.height) / 2, ic, &wl_icons, danger ? C_DANGER : sel ? C_ACCENT : C_DIM);
+      tx = 44;
+    }
+    gfx_text(tx, ry + (row_h - wl_font_bold.height) / 2, txt, &wl_font_bold, fg);
+    chevron(GFX_W - 24, ry + row_h / 2, sel ? (danger ? C_DANGER : C_ACCENT) : C_DIM);
+  }
+  if (S.scroll > 0) gfx_text(GFX_W - 18, y - 2, "▲", &wl_font_body, C_DIM);
+  if (S.scroll + rows < S.nitems) gfx_text(GFX_W - 18, FOOT_Y - 17, "▼", &wl_font_body, C_DIM);
+}
+
 static void draw_items(int y) {
   if (!S.nitems) return;
   if (S.cols == 1) {
-    int rows = (FOOT_Y - 2 - y) / ROW_H;
-    if (rows < 1) rows = 1;
-    if (S.cursor < S.scroll) S.scroll = S.cursor;
-    if (S.cursor >= S.scroll + rows) S.scroll = (uint8_t)(S.cursor - rows + 1);
-    for (int i = S.scroll; i < S.nitems && i < S.scroll + rows; i++) {
-      int ry = y + (i - S.scroll) * ROW_H;
-      bool sel = i == S.cursor;
-      if (i > S.scroll) gfx_fill(8, ry, GFX_W - 16, 1, C_DARK); /* separator */
-      if (sel) {
-        gfx_round_rect(4, ry + 2, GFX_W - 8, ROW_H - 3, 6, C_SEL);
-        gfx_fill(4, ry + 5, 3, ROW_H - 9, C_ACCENT);
-      }
-      gfx_text(16, ry + (ROW_H - wl_font_body.height) / 2, S.items[i], sel ? &wl_font_bold : &wl_font_body, sel ? C_ACCENT : C_FG);
-      if (sel) { /* chevron, drawn (the fonts have no U+203A) */
-        int cx = GFX_W - 20, cy = ry + ROW_H / 2;
-        for (int d = 0; d < 5; d++) {
-          gfx_fill(cx + d, cy - 4 + d, 2, 1, C_ACCENT);
-          gfx_fill(cx + d, cy + 4 - d, 2, 1, C_ACCENT);
-        }
-      }
-    }
-    if (S.scroll > 0) gfx_text(GFX_W / 2 - 5, y - 15, "▲", &wl_font_body, C_DIM);
-    if (S.scroll + rows < S.nitems) gfx_text(GFX_W / 2 - 5, FOOT_Y - 16, "▼", &wl_font_body, C_DIM);
+    draw_rows(y, ROW_H);
     return;
   }
   /* grid: PIN pad (digits, ←, ✓) and the word picker's letters */
   int first = 0;
   if (S.wide_first) {
     bool sel = S.cursor == 0;
-    gfx_round_rect(6, y, GFX_W - 12, 28, 6, sel ? C_OK : C_PANE);
-    gfx_text(16, y + (28 - wl_font_bold.height) / 2, S.items[0], &wl_font_bold, sel ? C_ON_ACCENT : C_OK);
+    gfx_round_rect(6, y, GFX_W - 12, 28, 8, sel ? C_OK : C_PANE);
+    icon(14, y + 5, IC_CHECK, &wl_icons, sel ? C_ON_ACCENT : C_OK);
+    gfx_text(38, y + (28 - wl_font_bold.height) / 2, S.items[0] + 4, &wl_font_bold, sel ? C_ON_ACCENT : C_OK);
     y += 32;
     first = 1;
   }
   bool pin = S.kind == K_PIN;
-  int cw = (GFX_W - 12) / S.cols, ch = pin ? 42 : 28;
+  /* the PIN pad: two rows, 1 2 3 4 5 6 / 7 8 9 0 ← ✓ (the user preferred it to a phone-style pad) */
+  int cw = (GFX_W - 12) / S.cols, ch = pin ? 44 : 28;
   const wl_font_t *f = pin ? &wl_font_title : &wl_font_bold;
   for (int i = first; i < S.nitems; i++) {
     int k = i - first, cx = 6 + (k % S.cols) * cw, cy = y + (k / S.cols) * ch;
     bool sel = i == S.cursor;
     bool enter = pin && !strcmp(S.items[i], "✓"), del = pin && !strcmp(S.items[i], "←");
-    uint16_t bg = sel ? C_ACCENT : C_PANE;
+    uint16_t bg = sel ? (enter ? C_OK : del ? C_DANGER : C_ACCENT) : C_PANE;
     uint16_t fg = sel ? C_ON_ACCENT : enter ? C_OK : del ? C_DANGER : C_FG;
-    gfx_round_rect(cx + 2, cy + 2, cw - 4, ch - 4, pin ? 8 : 5, bg);
+    gfx_round_rect(cx + 2, cy + 2, cw - 4, ch - 4, pin ? 10 : 6, bg);
+    if (pin && !sel) gfx_fill(cx + 8, cy + ch - 4, cw - 16, 1, C_DARK); /* key "depth" */
     int tw = gfx_text_width(S.items[i], f);
     gfx_text(cx + (cw - tw) / 2, cy + (ch - f->height) / 2, S.items[i], f, fg);
   }
 }
 
-/* Battery outline + nub, fill by level; green while charging. */
-static void draw_battery(int x, int y) {
+/* Level to draw: while charging the fill climbs from the real level to full in steps (phone-style). */
+static int shown_level(void) {
+  int lvl = D.battery > 100 ? 100 : D.battery;
+  if (D.charging && lvl < 100) lvl += (100 - lvl) * (int)((D.now / 450u) % 5u) / 4;
+  return lvl;
+}
+
+/* A battery of any size: outline, nub, fill, a bolt while charging. */
+static void battery_shape(int x, int y, int w, int h, int lvl, uint16_t fill, uint16_t bg) {
+  int r = h / 4 > 2 ? h / 4 : 2;
+  gfx_round_rect(x, y, w, h, r, C_DIM);
+  gfx_round_rect(x + 1, y + 1, w - 2, h - 2, r - 1, bg);
+  gfx_fill(x + w, y + h / 4, h / 6 > 2 ? h / 6 : 2, h - h / 2, C_DIM);
+  int fw = (w - 4) * lvl / 100;
+  if (fw < 1 && lvl > 0) fw = 1;
+  gfx_fill(x + 2, y + 2, fw, h - 4, fill);
+  if (D.charging) { /* bolt: two slanted bars, in the background colour so it shows on the fill */
+    int cx = x + w / 2, cy = y + h / 2, s = h / 3 > 2 ? h / 3 : 2;
+    for (int i = 0; i < s; i++) {
+      gfx_fill(cx - i / 2, cy - s + i, 2 + s / 3, 1, bg);
+      gfx_fill(cx - s / 3 + i / 2 - 1, cy + i, 2 + s / 3, 1, bg);
+    }
+    gfx_fill(cx - s / 2, cy - 1, s + 1, 2, bg);
+  }
+}
+
+/* Top right: bar, percent or both (Settings > Battery). Green while charging, red at <= 15 %. */
+static void draw_battery(int right, int y) {
   if (D.battery < 0) return;
   const int w = 22, h = 12;
   uint16_t c = D.charging ? C_OK : D.battery <= 15 ? C_DANGER : C_FG;
-  gfx_fill(x, y, w, 1, C_DIM);
-  gfx_fill(x, y + h - 1, w, 1, C_DIM);
-  gfx_fill(x, y, 1, h, C_DIM);
-  gfx_fill(x + w - 1, y, 1, h, C_DIM);
-  gfx_fill(x + w, y + 3, 2, h - 6, C_DIM);
-  int fw = (w - 4) * (D.battery > 100 ? 100 : D.battery) / 100;
-  if (fw < 1 && D.battery > 0) fw = 1;
-  gfx_fill(x + 2, y + 2, fw, h - 4, c);
+  int x = right - w - 2;
+  if (D.batt_mode != BATT_PCT) battery_shape(x, y, w, h, shown_level(), c, C_BAR);
+  if (D.batt_mode != BATT_BAR) {
+    char t[8];
+    snprintf(t, sizeof(t), "%d%%", D.battery);
+    int tw = gfx_text_width(t, &wl_font_body);
+    gfx_text((D.batt_mode == BATT_BOTH ? x - 4 : right) - tw, y - 3, t, &wl_font_body, c);
+  }
 }
 
-/* Phone-link marker: ring, filled green when the paired app is connected. */
+/* Phone link: Bluetooth mark, green = paired app connected, yellow = unpaired app, grey = none. */
 static void draw_link(int x, int y) {
-  uint16_t c = D.app_connected ? (D.paired ? C_OK : C_WARN) : C_DIM;
-  gfx_round_rect(x, y, 10, 10, 5, c);
-  if (!D.app_connected) gfx_round_rect(x + 2, y + 2, 6, 6, 3, C_BAR);
+  icon(x, y, IC_BLUETOOTH, &wl_icons, D.app_connected ? (D.paired ? C_OK : C_WARN) : C_DIM);
 }
 
-/* Bottom legend bar: segments of the hint (split at double spaces) between thin separators. */
+/* Bottom bar: "key caps" for the buttons (▲▼ ✓ ✗) with their meaning. */
 static void draw_legend(void) {
   if (!S.hint[0]) return;
-  gfx_fill(0, FOOT_Y, GFX_W, GFX_H - FOOT_Y, C_PANE);
+  gfx_fill(0, FOOT_Y, GFX_W, GFX_H - FOOT_Y, C_BAR);
+  gfx_fill(0, FOOT_Y, GFX_W, 1, C_SHADOW);
   char seg[3][24];
   int n = 0;
   const char *p = S.hint;
@@ -221,12 +317,222 @@ static void draw_legend(void) {
     p = e;
     while (*p == ' ') p++;
   }
-  int sw = GFX_W / n;
+  int sw = GFX_W / n, fy = FOOT_Y + (GFX_H - FOOT_Y - wl_font_body.height) / 2 + 1;
   for (int i = 0; i < n; i++) {
-    if (i) gfx_fill(i * sw, FOOT_Y + 5, 2, GFX_H - FOOT_Y - 10, C_DARK);
-    int w = gfx_text_width(seg[i], &wl_font_body);
-    gfx_text(i * sw + (sw - w) / 2, FOOT_Y + (GFX_H - FOOT_Y - wl_font_body.height) / 2, seg[i], &wl_font_body, C_FG);
+    char *label = strchr(seg[i], ' ');
+    const char *key = seg[i];
+    if (label) *label++ = 0;
+    bool symbol = (unsigned char)key[0] >= 0xE2; /* ▲ ▼ ✓ ✗: a key cap */
+    int kw = symbol ? gfx_text_width(key, &wl_font_bold) + 10 : 0;
+    int lw = gfx_text_width(label && symbol ? label : seg[i], &wl_font_body);
+    int x = i * sw + (sw - kw - (symbol ? 6 : 0) - lw) / 2;
+    if (symbol) {
+      gfx_round_rect(x, FOOT_Y + 3, kw, GFX_H - FOOT_Y - 6, 4, C_DARK);
+      uint16_t kc = !strcmp(key, "✓") ? C_OK : !strcmp(key, "✗") ? C_DANGER : C_ACCENT;
+      gfx_text(x + 5, fy, key, &wl_font_bold, kc);
+      x += kw + 6;
+    }
+    gfx_text(x, fy, label && symbol ? label : seg[i], &wl_font_body, C_FG);
   }
+}
+
+static void toolbar(const char *title, uint8_t tone, const char *suffix, bool logo) {
+  gfx_fill(0, 0, GFX_W, TITLE_H, C_BAR);
+  gfx_fill(0, TITLE_H, GFX_W, 2, C_SHADOW);
+  int tx = 10;
+  if (logo) {
+    gfx_round_rect(6, 3, 24, 24, 5, C_DARK);
+    icon(9, 6, IC_LOGO, &wl_icons, C_FG);
+    tx = 38;
+  }
+  if (tone != WL_TONE_NORMAL) {
+    gfx_fill(0, 0, 4, TITLE_H, tone_color(tone));
+    icon(10, (TITLE_H - wl_icons.height) / 2, tone == WL_TONE_DANGER ? IC_ALERT : IC_WARNING, &wl_icons, tone_color(tone));
+    tx = 34;
+  }
+  tx = gfx_text(tx, (TITLE_H - wl_font_title.height) / 2 + 1, title, &wl_font_title, tone_color(tone));
+  if (suffix) gfx_text(tx + 8, (TITLE_H - wl_font_body.height) / 2 + 1, suffix, &wl_font_body, C_ACCENT);
+  draw_battery(GFX_W - 28, 9);
+  draw_link(GFX_W - 24, 6);
+}
+
+/* Page dots under the title bar (multi-page reviews, word lists). */
+static void page_dots(void) {
+  if (S.nviews < 2 || S.nviews > 12) return;
+  int gap = 12, x = GFX_W / 2 - (S.nviews - 1) * gap / 2;
+  int dy = S.final_ok ? FOOT_Y - 4 : FOOT_Y - 7;
+  for (int i = 0; i < S.nviews; i++) disc(x + i * gap, dy, i == S.page ? 4 : 3, i == S.page ? C_ACCENT : C_DARK);
+}
+
+/* ---- special layouts (same screen data, drawn as a proper screen instead of a list) */
+enum { L_LIST = 0, L_WELCOME, L_LOCKED, L_HOME, L_BATTERY, L_LOG };
+
+/* Settings > Log: the device log on its own screen (no PC needed), refreshed every 2 s; the top line
+   is the live battery reading. The log never holds secrets (hal.h). */
+static void draw_log(void) {
+  static char buf[1600];
+  char top[48];
+  if (D.battery >= 0) snprintf(top, sizeof(top), "Battery %d%%, %u mV%s", D.battery, D.batt_mv, D.charging ? ", charging" : "");
+  else if (D.batt_state == 1) snprintf(top, sizeof(top), "Battery: pin 34 not connected");
+  else if (D.batt_state == 2) snprintf(top, sizeof(top), "Battery: pin 34 too high (%u mV)", D.batt_raw_mv);
+  else if (D.batt_state == 3) snprintf(top, sizeof(top), "Battery: below 2.5 V (%u mV)", D.batt_raw_mv);
+  else snprintf(top, sizeof(top), "Battery: no reading yet");
+  gfx_round_rect(4, BODY_Y - 4, GFX_W - 8, 22, 6, C_PANE);
+  gfx_text(10, BODY_Y - 2, top, &wl_font_body, D.battery >= 0 ? C_OK : C_WARN);
+
+  size_t n = hal_log_recent(buf, sizeof(buf));
+  /* wrap into rows of 34 characters (the body font is 9 px wide), keep the newest rows */
+  enum { COLS = 34, ROWS = 9 };
+  static char rows[40][COLS + 1];
+  int nr = 0;
+  for (size_t i = 0; i < n;) {
+    size_t e = i;
+    while (e < n && buf[e] != '\n') e++;
+    const char *l = buf + i;
+    size_t len = e - i;
+    if (len > 3 && l[0] == '[') { /* "[  12345 ms] text" -> "12s text" */
+      const char *rb = memchr(l, ']', len);
+      if (rb) {
+        unsigned long ms = strtoul(l + 1, NULL, 10);
+        char pre[12];
+        int k = snprintf(pre, sizeof(pre), "%lus ", ms / 1000ul);
+        size_t skip = (size_t)(rb + 2 - l) < len ? (size_t)(rb + 2 - l) : len;
+        static char line[200];
+        size_t body = len - skip > sizeof(line) - 13 ? sizeof(line) - 13 : len - skip;
+        memcpy(line, pre, (size_t)k);
+        memcpy(line + k, l + skip, body);
+        l = line, len = (size_t)k + body;
+      }
+    }
+    for (size_t o = 0; o < len || o == 0; o += COLS) {
+      if (nr == 40) memmove(rows, rows + 1, sizeof(rows[0]) * 39), nr = 39;
+      size_t c = len - o > COLS ? COLS : len - o;
+      memcpy(rows[nr], l + o, c);
+      rows[nr][c] = 0;
+      nr++;
+      if (len == 0) break;
+    }
+    i = e + 1;
+  }
+  int first = nr > ROWS ? nr - ROWS : 0;
+  for (int r = first, y = BODY_Y + 22; r < nr; r++, y += LINE_H) {
+    bool warn = strstr(rows[r], "impossible") || strstr(rows[r], "fail") || strstr(rows[r], "FAULT") || strstr(rows[r], "low");
+    gfx_text(6, y, rows[r], &wl_font_body, warn ? C_WARN : C_FG);
+  }
+}
+
+/* Settings > Battery: a big bar with the percentage, voltage and state, then the display choice. */
+static void draw_battery_screen(void) {
+  int x = 40, y = BODY_Y + 4, w = 228, h = 50;
+  int lvl = D.battery < 0 ? 0 : shown_level();
+  uint16_t c = D.battery < 0 ? C_DIM : D.charging ? C_OK : D.battery <= 15 ? C_DANGER : C_ACCENT;
+  battery_shape(x, y, w, h, lvl, c, C_DARK);
+  char t[32];
+  if (D.battery < 0) snprintf(t, sizeof(t), "-");
+  else snprintf(t, sizeof(t), "%d%%", D.battery);
+  int tw = gfx_text_width(t, &wl_font_big);
+  /* the number on a dark plate so it reads on any fill */
+  gfx_round_rect(x + (w - tw) / 2 - 8, y + (h - wl_font_big.height) / 2 - 1, tw + 16, wl_font_big.height + 2, 6, C_DARK);
+  gfx_text(x + (w - tw) / 2, y + (h - wl_font_big.height) / 2, t, &wl_font_big, C_FG);
+  if (D.battery < 0) {
+    /* no reading: say why, so the wiring can be fixed without a PC (hal_vbat_state_t) */
+    const char *a = "No battery connected", *b = NULL;
+    char raw[32];
+    if (D.batt_state == 1) a = "No battery wiring", b = "Pin 34 is not connected";
+    else if (D.batt_state == 2) {
+      snprintf(raw, sizeof(raw), "Pin 34 reads %u.%02u V: too high", D.batt_raw_mv / 1000u, (D.batt_raw_mv % 1000u) / 10u);
+      a = raw, b = "R11 or its GND is missing";
+    } else if (D.batt_state == 3) a = "Battery below 2.5 V", b = "or R10 not connected";
+    tw = gfx_text_width(a, &wl_font_body);
+    gfx_text((GFX_W - tw) / 2, y + h + 4, a, &wl_font_body, D.batt_state >= 2 ? C_WARN : C_DIM);
+    if (b) {
+      tw = gfx_text_width(b, &wl_font_body);
+      gfx_text((GFX_W - tw) / 2, y + h + 4 + LINE_H, b, &wl_font_body, C_WARN);
+    }
+    draw_rows(y + h + (b ? 42 : 30), b ? 28 : 30);
+    return;
+  }
+  snprintf(t, sizeof(t), "%s  •  %u.%02u V", D.charging ? "Charging" : D.usb_power ? "On USB power" : "On battery", D.batt_mv / 1000u,
+           (D.batt_mv % 1000u) / 10u);
+  tw = gfx_text_width(t, &wl_font_body);
+  gfx_text((GFX_W - tw) / 2, y + h + 6, t, &wl_font_body, D.charging ? C_OK : C_DIM);
+  draw_rows(y + h + 30, 30);
+}
+
+static void draw_welcome(void) {
+  int y = BODY_Y;
+  for (uint8_t i = 0; i < S.nlines; i++, y += LINE_H) { /* demo builds: the warning */
+    if (i == 0) icon(10, y, IC_WARNING, &wl_icons, C_WARN);
+    gfx_text(32, y, S.lines[i], &wl_font_body, C_WARN);
+  }
+  int y0 = S.nlines ? y + 4 : BODY_Y + 4, rh = (FOOT_Y - 2 - y0) / (S.nitems ? S.nitems : 1);
+  draw_rows(y0, rh > 52 ? 52 : rh); /* every card fits, however many there are */
+}
+
+static void draw_locked(void) {
+  disc(GFX_W / 2, 82, 38, C_PANE);
+  icon(GFX_W / 2 - 24, 58, IC_LOCK, &wl_icons_big, C_ACCENT);
+  const char *t = "Locked";
+  gfx_text((GFX_W - gfx_text_width(t, &wl_font_title)) / 2, 126, t, &wl_font_title, C_FG);
+  int y = 152;
+  for (uint8_t i = 1; i < S.nlines && y < 186; i++, y += LINE_H) { /* line 0 is "Locked" */
+    uint16_t c = strstr(S.lines[i], "wrong") ? C_DANGER : C_WARN;
+    gfx_text((GFX_W - gfx_text_width(S.lines[i], &wl_font_body)) / 2, y, S.lines[i], &wl_font_body, c);
+  }
+  /* the one action as a big button */
+  int bw = 180, bx = (GFX_W - bw) / 2, by = 188;
+  gfx_round_rect(bx, by, bw, 26, 13, C_ACCENT);
+  int w = gfx_text_width("Unlock", &wl_font_bold) + 26;
+  icon(bx + (bw - w) / 2, by + 4, IC_UNLOCK, &wl_icons, C_ON_ACCENT);
+  gfx_text(bx + (bw - w) / 2 + 26, by + (26 - wl_font_bold.height) / 2, "Unlock", &wl_font_bold, C_ON_ACCENT);
+}
+
+static void draw_home(void) {
+  /* the money, as the phone app reported it (the device has no internet; display only) */
+  int y = BODY_Y - 2;
+  if (D.balance[0]) {
+    gfx_text(14, y, D.balance, &wl_font_big, C_FG);
+    gfx_text(14, y + wl_font_big.height, "total, from your phone", &wl_font_body, C_DIM);
+  } else {
+    gfx_text(14, y, "$ \xe2\x80\x94", &wl_font_big, C_DIM);
+    gfx_text(14, y + wl_font_big.height, D.app_connected ? "waiting for the app" : "open the app to see it", &wl_font_body, C_DIM);
+  }
+  y += wl_font_big.height + LINE_H + 2;
+  for (uint8_t i = 2; i < S.nlines && i < 3; i++, y += LINE_H) { /* e.g. "Imported seed waiting" */
+    icon(12, y, IC_WARNING, &wl_icons, C_WARN);
+    gfx_text(34, y, S.lines[i], &wl_font_body, C_WARN);
+  }
+  draw_rows(y, (FOOT_Y - 2 - y) / 4 > 34 ? 34 : (FOOT_Y - 2 - y) / 4);
+}
+
+/* Approval screens (the last page of a request, "Pair phone?" too): ✗ and ✓ as two buttons. */
+static bool approve_view(void) { return S.kind == K_PAGES && S.final_ok && S.page == S.nviews - 1; }
+
+static void draw_decision(void) {
+  const int y = FOOT_Y - 12, h = GFX_H - y - 3, w = 96;
+  gfx_round_rect(6, y, w, h, 8, C_DANGER);
+  gfx_round_rect(8, y + 2, w - 4, h - 4, 7, C_BG);
+  int tw = gfx_text_width("✗ reject", &wl_font_bold);
+  gfx_text(6 + (w - tw) / 2, y + (h - wl_font_bold.height) / 2, "✗ reject", &wl_font_bold, C_DANGER);
+  gfx_round_rect(GFX_W - 6 - w, y, w, h, 8, C_OK);
+  tw = gfx_text_width("✓ accept", &wl_font_bold);
+  gfx_text(GFX_W - 6 - w + (w - tw) / 2, y + (h - wl_font_bold.height) / 2, "✓ accept", &wl_font_bold, C_ON_ACCENT);
+}
+
+/* Big icon on single result / info screens. */
+static uint8_t info_icon(const wl_page_t *pg) {
+  if (pg->tone == WL_TONE_DANGER) return IC_CLOSE;
+  if (pg->tone == WL_TONE_WARN) return IC_WARNING;
+  if (!strcmp(S.hint, "please wait...")) return IC_HOURGLASS;
+  static const char *const OK[] = {"saved", "Ready", "Restored", "Wiped", "OK", "Imported", "paired", "sweep"};
+  for (unsigned i = 0; i < sizeof(OK) / sizeof(OK[0]); i++)
+    if (strstr(pg->title, OK[i])) return IC_CHECK;
+  if (strstr(pg->title, "microSD") || strstr(pg->title, "Backup") || strstr(pg->title, "backup")) return IC_SAVE;
+  return IC_INFO;
+}
+
+static uint16_t info_icon_color(uint8_t ic) {
+  return ic == IC_CLOSE ? C_DANGER : ic == IC_WARNING ? C_WARN : ic == IC_CHECK ? C_OK : C_ACCENT;
 }
 
 static void draw(void) {
@@ -237,52 +543,85 @@ static void draw(void) {
     pg = &S.rv->pages[S.vpage[S.page]];
     tone = pg->tone;
   }
-  /* toolbar */
-  gfx_fill(0, 0, GFX_W, TITLE_H, C_BAR);
-  gfx_fill(0, TITLE_H, GFX_W, 2, C_SHADOW);
-  if (tone != WL_TONE_NORMAL) gfx_fill(0, 0, 4, TITLE_H, tone_color(tone));
-  int tx = tone != WL_TONE_NORMAL ? 12 : 10;
-  if (tone != WL_TONE_NORMAL) tx = gfx_text(tx, (TITLE_H - wl_font_title.height) / 2 + 1, "! ", &wl_font_title, tone_color(tone));
-  tx = gfx_text(tx, (TITLE_H - wl_font_title.height) / 2 + 1, pg ? pg->title : S.title, &wl_font_title, tone_color(tone));
-  if (pg && S.nviews > 1) {
-    char pn[12];
-    snprintf(pn, sizeof(pn), "%u/%u", S.page + 1u, S.nviews);
-    gfx_text(tx + 8, (TITLE_H - wl_font_body.height) / 2 + 1, pn, &wl_font_body, C_ACCENT);
-  }
-  draw_battery(GFX_W - 52, 9);
-  draw_link(GFX_W - 18, 10);
+  toolbar(pg ? pg->title : S.title, tone, NULL, S.kind == K_MENU && (S.layout == L_WELCOME || S.layout == L_HOME));
 
-  int y = BODY_Y;
-  uint8_t first = pg ? S.vfirst[S.page] : 0, n = pg ? S.vcount[S.page] : S.nlines;
-  if (pg && n) { /* review pages sit on a highlight pane */
-    int h = 0;
-    for (uint8_t i = 0; i < n; i++) h += line_h(pg->lines[first + i]);
-    gfx_round_rect(4, BODY_Y - 4, GFX_W - 8, h + 8 > FOOT_Y - BODY_Y ? FOOT_Y - BODY_Y : h + 8, 8, C_PANE);
-  }
-  for (uint8_t i = 0; i < n; i++) {
-    const char *l = pg ? pg->lines[first + i] : S.lines[i];
-    if (l[0] == '\x01') { /* big line (codes, PIN dots, typed prefix): inset box, accent */
-      int w = gfx_text_width(l + 1, &wl_font_big), bw = w + 32 < 160 ? 160 : w + 32;
-      gfx_round_rect((GFX_W - bw) / 2, y - 1, bw, wl_font_big.height + 2, 8, C_DARK);
-      gfx_text((GFX_W - w) / 2, y, l + 1, &wl_font_big, C_ACCENT);
-      y += wl_font_big.height + 2;
-    } else {
-      int k = numbered_prefix(l);
-      int x = 12;
-      if (k) {
-        char num[8];
-        snprintf(num, sizeof(num), "%.*s", k, l);
-        gfx_text(x, y, num, &wl_font_body, C_ACCENT);
-        x += gfx_text_width("00. ", &wl_font_body);
-        gfx_text(x, y, l + k + 1, &wl_font_bold, C_FG);
-      } else {
-        gfx_text(x, y, l, &wl_font_body, pg ? C_FG : (i == 0 && S.kind == K_MENU ? C_DIM : C_FG));
+  if (S.kind == K_MENU && S.layout == L_WELCOME) draw_welcome();
+  else if (S.kind == K_MENU && S.layout == L_LOCKED) draw_locked();
+  else if (S.kind == K_MENU && S.layout == L_HOME) draw_home();
+  else if (S.kind == K_MENU && S.layout == L_BATTERY) draw_battery_screen();
+  else if (S.kind == K_MENU && S.layout == L_LOG) draw_log();
+  else {
+    int y = S.kind == K_PIN ? BODY_Y - 2 : BODY_Y;
+    uint8_t first = pg ? S.vfirst[S.page] : 0, n = pg ? S.vcount[S.page] : S.nlines;
+    bool words = pg && n > 0;
+    for (uint8_t i = 0; words && i < n; i++) words = numbered_prefix(pg->lines[first + i]) > 0;
+    /* one-screen info / result pages from the device's own flows get a big icon */
+    bool hero = pg && !words && S.nviews == 1 && S.rv == &local_rv && n <= 7;
+    if (words) { /* seed words / backup password: one card per word, large */
+      for (uint8_t i = 0; i < n; i++, y += 42) {
+        const char *l = pg->lines[first + i];
+        int k = numbered_prefix(l);
+        char num[6];
+        snprintf(num, sizeof(num), "%.*s", k - 1, l);
+        const char *num_s = num;
+        while (*num_s == ' ') num_s++;
+        gfx_round_rect(8, y, GFX_W - 16, 38, 8, C_PANE);
+        disc(30, y + 19, 13, C_DARK);
+        gfx_text(30 - gfx_text_width(num_s, &wl_font_bold) / 2, y + 19 - wl_font_bold.height / 2, num_s, &wl_font_bold, C_ACCENT);
+        gfx_text(56, y + (38 - wl_font_title.height) / 2 + 1, l + k + 1, &wl_font_title, C_FG);
       }
-      y += LINE_H;
+    } else {
+      if (hero) {
+        uint8_t ic = info_icon(pg);
+        disc(GFX_W / 2, BODY_Y + 24, 26, C_PANE);
+        icon(GFX_W / 2 - 24, BODY_Y, ic, &wl_icons_big, info_icon_color(ic));
+        y = BODY_Y + 58;
+      } else if (pg && n) { /* review pages sit on a highlight pane */
+        int h = 0;
+        for (uint8_t i = 0; i < n; i++) h += line_h(pg->lines[first + i]);
+        gfx_round_rect(4, BODY_Y - 4, GFX_W - 8, h + 8 > FOOT_Y - BODY_Y - 14 ? FOOT_Y - BODY_Y - 14 : h + 8, 8, C_PANE);
+      }
+      for (uint8_t i = 0; i < n; i++) {
+        const char *l = pg ? pg->lines[first + i] : S.lines[i];
+        if (l[0] == '\x01' && S.kind == K_PIN) { /* PIN: wide entry box, one slot per digit */
+          gfx_round_rect(40, y, 240, 32, 9, C_EDGE);
+          gfx_round_rect(41, y + 1, 238, 30, 8, C_DARK);
+          int slots = S.pinlen > 4 ? S.pinlen : 4;
+          if (S.pinlen < VAULT_PIN_MAX && S.pinlen >= 4) slots++;
+          int sx = GFX_W / 2 - (slots - 1) * 12;
+          for (int d = 0; d < slots; d++) {
+            disc(sx + d * 24, y + 16, 7, d < S.pinlen ? C_ACCENT : C_EDGE);
+            if (d >= S.pinlen) disc(sx + d * 24, y + 16, 5, C_DARK);
+          }
+          y += 36;
+        } else if (l[0] == '\x01') { /* big line (codes, typed prefix): inset box, accent */
+          int w = gfx_text_width(l + 1, &wl_font_big), bw = w + 32 < 160 ? 160 : w + 32;
+          gfx_round_rect((GFX_W - bw) / 2, y - 1, bw, wl_font_big.height + 2, 8, C_DARK);
+          gfx_text((GFX_W - w) / 2, y, l + 1, &wl_font_big, C_ACCENT);
+          y += wl_font_big.height + 2;
+        } else {
+          int k = numbered_prefix(l);
+          int x = hero ? (GFX_W - gfx_text_width(l, &wl_font_body)) / 2 : S.kind == K_PIN ? (GFX_W - gfx_text_width(l, &wl_font_body)) / 2 : 12;
+          if (k && !hero) {
+            char num[8];
+            snprintf(num, sizeof(num), "%.*s", k, l);
+            gfx_text(x, y, num, &wl_font_body, C_ACCENT);
+            x += gfx_text_width("00. ", &wl_font_body);
+            gfx_text(x, y, l + k + 1, &wl_font_bold, C_FG);
+          } else {
+            bool question = !pg && l[0] && l[strlen(l) - 1] == '?'; /* quiz / choices: the question stands out */
+            bool dim = !pg && i == 0 && S.kind == K_MENU && !question;
+            gfx_text(x, y, l, (hero && i == 0) || question ? &wl_font_bold : &wl_font_body, question ? C_ACCENT : dim ? C_DIM : C_FG);
+          }
+          y += LINE_H;
+        }
+      }
     }
+    if (pg) page_dots();
+    else draw_items(S.kind == K_PIN ? y + 8 : y + 6);
   }
-  draw_items(y + 6);
-  draw_legend();
+  if (approve_view()) draw_decision();
+  else draw_legend();
 }
 
 void ui_render(void) {
@@ -298,7 +637,6 @@ static void show_menu(const char *title, wl_tone_t tone, result_fn on) {
   hint("▲▼ choose  ✓ select");
 }
 
-static wl_review_t local_rv; /* pages built by flows (not protocol prompts) */
 
 static int line_h(const char *l) { return l[0] == '\x01' ? wl_font_big.height + 2 : LINE_H; }
 
@@ -312,7 +650,8 @@ static void build_views(void) {
       if (S.nviews >= sizeof(S.vpage)) return; /* cannot happen: every line fits a view */
       uint8_t v = S.nviews++, start = i;
       int h = 0;
-      while (i < pg->n && (i == start || h + line_h(pg->lines[i]) <= FOOT_Y - BODY_Y)) h += line_h(pg->lines[i++]);
+      int room = (S.final_ok ? FOOT_Y - 14 : FOOT_Y - 6) - BODY_Y;
+      while (i < pg->n && (i == start || h + line_h(pg->lines[i]) <= room)) h += line_h(pg->lines[i++]);
       S.vpage[v] = p, S.vfirst[v] = start, S.vcount[v] = (uint8_t)(i - start);
     } while (i < pg->n);
   }
@@ -1122,10 +1461,12 @@ static void restore_decrypt(void) {
 }
 
 /* ---------------------------------------------------------------- top-level screens */
+static void setup_settings(void);
 static void setup_r(int r) {
   if (r == 0) create_flow(false);
   else if (r == 1) import_flow();
   else if (r == 2) restore_flow();
+  else if (r == 3) setup_settings();
 }
 
 static void locked_r(int r) {
@@ -1141,12 +1482,51 @@ static void blind_r(int r) {
   }
 }
 
+static void settings(void);
+static void battery_screen(bool from_setup);
+static void log_screen(bool from_setup);
+static void setup_settings(void);
+static void unpair_r(int r) {
+  if (r) {
+    bool had = proto_paired();
+    proto_forget_pairing();
+    hal_log("phone unpaired by the user");
+    status_info("Unpaired", WL_TONE_NORMAL, had ? "The phone app is no longer" : "No phone was paired.", had ? "paired. To use it again," : NULL,
+                had ? "pair and compare the code." : NULL);
+    return;
+  }
+  flow_end();
+}
+
 static void home_r(int r) {
   switch (r) {
     case 0:
+      F.after_pin = AFTER_BACKUP;
+      show_pin("PIN to confirm", "Back up to microSD", after_pin_r);
+      break;
+    case 1: {
+      wl_review_init(&local_rv);
+      wl_page_t *p = wl_review_page(&local_rv, "Unpair phone?", WL_TONE_WARN);
+      wl_page_line(p, "The phone app loses access.");
+      wl_page_line(p, "Pairing again needs this");
+      wl_page_line(p, "device, the PIN and the code.");
+      show_pages(&local_rv, true, unpair_r);
+      break;
+    }
+    case 2:
       fw_lock("user");
       break;
-    case 1:
+    case 3:
+      settings();
+      break;
+    default:
+      break;
+  }
+}
+
+static void settings_r(int r) {
+  switch (r) {
+    case 0:
       if (vault_blind_signing()) {
         vault_set_blind_signing(false);
         ui_home();
@@ -1163,35 +1543,131 @@ static void home_r(int r) {
         show_pages(&local_rv, true, blind_r);
       }
       break;
-    case 2:
-      F.after_pin = AFTER_BACKUP;
-      show_pin("PIN to confirm", "Back up to microSD", after_pin_r);
-      break;
-    case 3:
+    case 1:
       import_flow();
       break;
-    case 4:
+    case 2:
       danger_confirm(AFTER_WIPE, "Wipe device?", "Erases the seed.", "Only your written backup", "can restore the funds.");
       break;
+    case 3:
+      battery_screen(false);
+      break;
+    case 4:
+      log_screen(false);
+      break;
+    case 5: {
+#ifdef TREDDER_DEMO_NO_SE
+      const char *b = "Demo build: no security";
+      const char *c = "chip, nothing is saved.";
+#else
+      const char *b = "Keys in the NXP SE050";
+      const char *c = "secure element.";
+#endif
+      status_info("About", WL_TONE_NORMAL, "tredder " FW_VERSION, b, c);
+      break;
+    }
     default:
+      flow_end(); /* back */
       break;
   }
 }
 
+static void settings(void) {
+  show_menu("Settings", WL_TONE_NORMAL, settings_r);
+  item(vault_blind_signing() ? "Blind signing: ON" : "Blind signing: off");
+  item("Import seed phrase");
+  item("Wipe device");
+  item("Battery");
+  item("Log");
+  item("About");
+}
+
+/* ---- Settings > Battery (from the Setup page or the main page's Settings) */
+static bool batt_from_setup;
+static void setup_settings(void);
+
+static void battery_r(int r) {
+  if (r >= BATT_BAR && r <= BATT_BOTH) {
+    D.batt_mode = (uint8_t)r;
+    battery_screen(batt_from_setup);
+    S.cursor = (uint8_t)r;
+    return;
+  }
+  if (batt_from_setup) setup_settings();
+  else settings();
+}
+
+static void battery_screen(bool from_setup) {
+  batt_from_setup = from_setup;
+  show_menu("Battery", WL_TONE_NORMAL, battery_r);
+  S.layout = L_BATTERY;
+  hint("▲▼ choose  ✓ select  ✗ back");
+  static const char *const MODES[] = {"Show: bar", "Show: percent", "Show: both"};
+  for (int i = 0; i < 3; i++) {
+    char s[ITEM_LEN];
+    snprintf(s, sizeof(s), "%s%s", i == D.batt_mode ? "✓ " : "", MODES[i]);
+    item(s);
+  }
+  S.cursor = D.batt_mode;
+}
+
+static void about(void) {
+#ifdef TREDDER_DEMO_NO_SE
+  status_info("About", WL_TONE_NORMAL, "tredder " FW_VERSION, "Demo build: no security", "chip, nothing is saved.");
+#else
+  status_info("About", WL_TONE_NORMAL, "tredder " FW_VERSION, "Keys in the NXP SE050", "secure element.");
+#endif
+}
+
+static bool log_from_setup;
+static void log_r(int r) {
+  (void)r; /* the only input is Back */
+  if (log_from_setup) setup_settings();
+  else settings();
+}
+
+static void log_screen(bool from_setup) {
+  log_from_setup = from_setup;
+  show_menu("Log", WL_TONE_NORMAL, log_r);
+  S.layout = L_LOG;
+  hint("✗ back");
+}
+
+static void setup_settings_r(int r) {
+  if (r == 0) battery_screen(true);
+  else if (r == 1) log_screen(true);
+  else if (r == 2) about();
+  else flow_end(); /* back to Setup */
+}
+
+static void setup_settings(void) {
+  show_menu("Settings", WL_TONE_NORMAL, setup_settings_r);
+  item("Battery");
+  item("Log");
+  item("About");
+}
+
+void ui_set_balance(const char *text) {
+  snprintf(D.balance, sizeof(D.balance), "%s", text ? text : "");
+  if (S.layout == L_HOME) S.dirty = true;
+}
+
 void ui_home(void) {
   if (!vault_initialized()) {
-    show_menu("Welcome", WL_TONE_NORMAL, setup_r);
+    show_menu("Setup", WL_TONE_NORMAL, setup_r);
+    S.layout = L_WELCOME;
 #ifdef TREDDER_DEMO_NO_SE
-    line("DEMO: no security chip.");
-    line("Nothing is saved. Test only.");
-#else
-    line("New device");
+    line("DEMO, no security chip:");
+    line("nothing is saved.");
 #endif
-    item("Create new wallet");
-    item("Import seed phrase");
-    item("Restore microSD backup");
+    item("New wallet");
+    item("Import wallet");
+    item("Restore from microSD");
+    item("Settings");
   } else if (!vault_unlocked()) {
     show_menu("tredder", WL_TONE_NORMAL, locked_r);
+    S.layout = L_LOCKED;
+    hint("✓ unlock");
     line("Locked");
     if (D.app_connected && !D.paired) {
       line("A phone wants to pair:");
@@ -1205,18 +1681,19 @@ void ui_home(void) {
     }
     item("Unlock");
   } else {
-    show_menu("tredder", WL_TONE_NORMAL, home_r);
+    char title[28];
+    snprintf(title, sizeof(title), "tredder v%s", FW_VERSION);
+    char *dash = strchr(title, '-'); /* "0.3.0-demo" -> "0.3.0" (the About screen has the rest) */
+    if (dash) *dash = 0;
+    show_menu(title, WL_TONE_NORMAL, home_r);
+    S.layout = L_HOME;
     line("Unlocked");
     line(D.app_connected ? (D.paired ? "App connected, paired" : "App connected") : "No app connected");
-    if (vault_has_sweep()) {
-      line("Imported seed waiting");
-      line("to be swept");
-    }
+    if (vault_has_sweep()) line("Old seed waiting for sweep");
+    item("Backup");
+    item("Unpair");
     item("Lock");
-    item(vault_blind_signing() ? "Blind signing: ON" : "Blind signing: off");
-    item("Back up to microSD");
-    item("Import seed phrase");
-    item("Wipe device");
+    item("Settings");
   }
 }
 
@@ -1278,7 +1755,31 @@ void ui_set_status(bool app_connected, bool paired) {
   }
 }
 
-void ui_tick(uint32_t now) { D.now = now; }
+void ui_tick(uint32_t now) {
+  /* charging animation: redraw every step (only the changed rows go to the panel) */
+  if (D.charging && D.battery >= 0 && now / 450u != D.now / 450u) S.dirty = true;
+  if (S.layout == L_LOG && now / 2000u != D.now / 2000u) S.dirty = true;
+  D.now = now;
+}
+
+void ui_set_usb_power(bool usb) {
+  if (usb == D.usb_power) return;
+  D.usb_power = usb;
+  if (S.layout == L_BATTERY) S.dirty = true;
+}
+
+void ui_set_battery_diag(uint8_t state, uint16_t raw_mv) {
+  if (state == D.batt_state && raw_mv / 50u == D.batt_raw_mv / 50u) return;
+  D.batt_state = state;
+  D.batt_raw_mv = raw_mv;
+  if (S.layout == L_BATTERY) S.dirty = true;
+}
+
+void ui_set_battery_mv(uint16_t mv) {
+  if (mv / 10u == D.batt_mv / 10u) return;
+  D.batt_mv = mv;
+  if (S.layout == L_BATTERY) S.dirty = true;
+}
 
 void ui_set_battery(int percent, bool charging) {
   int8_t p = (int8_t)(percent < 0 ? -1 : percent > 100 ? 100 : percent);

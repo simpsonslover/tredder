@@ -56,6 +56,8 @@ export type Request =
   | { type: 'sign-sol'; wallet: WalletRef; scheme: Scheme; account: number; net: Net; message: Uint8Array; hints?: { tokenSymbol?: string }; planStep?: number }
   | { type: 'sweep-plan'; plan: SweepPlanSummary }
   | { type: 'forget-sweep-source' }
+  // Main-page total for the device screen (display only: the device cannot verify it).
+  | { type: 'set-balance'; text: string }
   | { type: 'lock' };
 
 export interface DeviceInfo {
@@ -78,6 +80,7 @@ export interface ResultMap {
   'sweep-plan': { approved: boolean; planHash: string };
   'forget-sweep-source': { erased: boolean };
   lock: Record<string, never>;
+  'set-balance': Record<string, never>;
 }
 
 export const ERROR_CODES = [

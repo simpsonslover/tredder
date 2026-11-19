@@ -31,7 +31,8 @@ PICO_GND = [p for p in map(str, range(1, 41)) if PICO[p] in ("GND", "AGND")]
 SD, SE, LCD, CHG, BAT = "SD", "SE", "LCD", "CHG", "BAT"
 NAME = {SD: "microSD module", SE: "SE050 kit", LCD: "Display", CHG: "Charger", BAT: "Battery"}
 MODULE_PINS = {SD: ["VCC", "GND", "MISO", "MOSI", "SCK", "CS"], SE: ["3.3V", "GND", "SCL", "SDA"],
-               LCD: ["BL", "CS", "DC", "RST", "SDA", "SCL", "VCC", "GND"], CHG: ["VIN", "GND", "BAT"]}
+               LCD: ["BL", "CS", "DC", "RST", "SDA", "SCL", "VCC", "GND"],
+               CHG: ["IN+", "IN-", "B+", "B-", "OUT+", "OUT-"]}
 # (pico pin, module, module pin, colour, what it is)
 WIRES = [
     ("1", SD, "MISO", "orange", "SD_MISO (SPI0 RX)"),
@@ -45,16 +46,19 @@ WIRES = [
     ("26", LCD, "RST", "purple", "LCD_RST"),
     ("29", LCD, "DC", "purple", "LCD_DC"),
     ("27", LCD, "CS", "purple", "LCD_CS"),
-    ("40", CHG, "VIN", "red", "VBUS: the Pico's USB 5 V feeds the charger"),
+    ("40", CHG, "IN+", "red", "VBUS: the Pico's USB 5 V feeds the charger"),
 ]
 BUTTONS = [("16", "BACK"), ("17", "CONFIRM"), ("19", "UP"), ("20", "DOWN")]   # GP12, GP13, GP14, GP15
 POWER = [  # module pin -> rail
     (SD, "VCC", "3V3"), (SD, "GND", "GND"), (SE, "3.3V", "3V3"), (SE, "GND", "GND"),
-    (LCD, "VCC", "3V3"), (LCD, "GND", "GND"), (LCD, "BL", "3V3"), (CHG, "GND", "GND"),
+    (LCD, "VCC", "3V3"), (LCD, "GND", "GND"), (LCD, "BL", "3V3"), (CHG, "OUT-", "GND"),
 ]
 # copper inside the modules (not wires you place):
 # and all of the Pico's GND pins are one net
-INTERNAL = [("A1.38", f"A1.{p}") for p in PICO_GND if p != "38"]
+INTERNAL = [("A1.38", f"A1.{p}") for p in PICO_GND if p != "38"] + [
+    # TP4056 + DW01 module: B+ and OUT+ are one copper net; IN- and OUT- too (the protection MOSFETs
+    # sit between B- and OUT-, so the battery's minus must NOT touch the GND rail)
+    ("CHG.B+", "CHG.OUT+"), ("CHG.IN-", "CHG.OUT-")]
 
 
 def pcb_net(pin):
@@ -68,13 +72,18 @@ def intended():
     """The netlist the breadboard must make: net -> terminals. Every other terminal stays unconnected.
     Nets that reach a Pico pin carry the PCB's name for that pin (check_layout() compares)."""
     n = {
-        "GND": [f"A1.{p}" for p in PICO_GND] + ["SD.GND", "SE.GND", "LCD.GND", "CHG.GND", "BAT.-",
-                                                "R11.2"] + [f"SW_{b}.4" for _, b in BUTTONS],
+        "GND": [f"A1.{p}" for p in PICO_GND] + ["SD.GND", "SE.GND", "LCD.GND", "CHG.OUT-", "CHG.IN-",
+                                                "R11.2", "SW1.3"] + [f"SW_{b}.4" for _, b in BUTTONS],
         "+3V3": ["A1.36", "SD.VCC", "SE.3.3V", "LCD.VCC", "LCD.BL"],
-        "VBUS": ["A1.40", "CHG.VIN"],
-        "VBAT": ["CHG.BAT", "BAT.+", "D1.A", "R10.1"],
+        "VBUS": ["A1.40", "CHG.IN+"],
+        "VBAT": ["CHG.B+", "CHG.OUT+", "BAT.+", "D1.A", "R10.1"],
+        "BAT_MINUS": ["BAT.-", "CHG.B-"],   # only through the module's protection switch to GND
         "VSYS": ["A1.39", "D1.K"],
         "VBAT_SENSE": ["A1.34", "R10.2", "R11.1"],
+        # on/off: the PCB's SW1 pole B. Slid to the GND leg, 3V3_EN is pulled low and the Pico's 3.3 V
+        # regulator (and everything on the 3.3 V rail) is off, even on USB. No resistor: the Pico has
+        # its own pull-up on 3V3_EN. (SW1.1, the other outer leg, stays unconnected.)
+        "3V3_EN": ["A1.37", "SW1.2"],
     }
     for pin, mod, mpin, _, what in WIRES:
         if mod != CHG:
@@ -176,13 +185,12 @@ MODS = {
                note="Arduino-header pins, jumper wires"),
     LCD: Module(LCD, "2.0in ST7789 display (ZJY200S10Z0TG01)", BX + 520, 150, MODULE_PINS[LCD], "bottom",
                 (40, 40, 60), w=760, note="pin order as printed on the module"),
-    CHG: Module(CHG, "LiPo charger (MCP73831)", BX + 10, 150, MODULE_PINS[CHG], "bottom", (150, 60, 50), w=320,
-                note="e.g. Adafruit Micro-Lipo"),
+    CHG: Module(CHG, "LiPo charger TP4056 + protection", BX + 1300, 150, MODULE_PINS[CHG], "bottom", (40, 80, 150), w=470,
+                note="1 A (R3 1.2k): battery >= 1000 mAh"),
 }
 A_COL, K_COL, TAP_COL, GND_COL = 48, 51, 54, 58   # battery + column (diode anode), cathode, divider tap, divider bottom
-BAT_PLUS_COL, BAT_MINUS_COL = 46, 50               # battery red lead (top strip, jumpered to A_COL), black lead (- rail)
-BAT_BOX = (BX + 1400, 130, BX + 1900, 250)
-BAT_XY = {"+": (hole(BAT_PLUS_COL, "a")[0], BAT_BOX[3]), "-": (hole(BAT_MINUS_COL, "-t")[0], BAT_BOX[3])}
+BAT_BOX = (BX + 1800, 120, BX + 2190, 250)
+BAT_XY = {"+": (BAT_BOX[0] + 60, BAT_BOX[3]), "-": (BAT_BOX[0] + 120, BAT_BOX[3])}
 
 
 def xy(p):
@@ -220,6 +228,7 @@ class Layout:
 
 
 BTN_COL0 = 30
+SW1_COLS = (25, 26, 27)   # on/off switch legs (row c)
 
 
 # breadboard resistors: (layout name, value, what it does)
@@ -251,14 +260,19 @@ def layout():
     L.leg("R11.1", (TAP_COL, "c"))
     L.leg("R11.2", (GND_COL, "c"))
     above = ry("+t") - 46
-    L.wire("CHG.BAT", (A_COL, "b"), "red", above - 30)              # charger BAT pad (= battery +) to the anode column
+    L.wire("CHG.OUT+", (A_COL, "b"), "red", above - 30)             # charger OUT+ (= battery + behind the protection)
     L.wire((K_COL, "b"), wire_end("39"), "red", above)              # cathode to VSYS
     L.wire(wire_end("34"), (TAP_COL, "b"), "white", above - 15)     # divider tap to GP28
     L.wire((GND_COL, "a"), L.rail_hole(GND_COL, "-t"), "black", ry("-t") + 10, 4)
-    # the battery's leads go straight into the breadboard: + into the battery + column, - into the - rail
-    L.wire("BAT.+", (BAT_PLUS_COL, "a"), "red")
-    L.wire((BAT_PLUS_COL, "e"), (A_COL, "e"), "red", width=5)     # short jumper to the battery + column
-    L.wire("BAT.-", L.rail_hole(BAT_MINUS_COL, "-t"), "black")
+    # the battery's leads go to the charger's B+ / B- pads (soldered, or a pigtail with header pins)
+    L.wire("BAT.+", "CHG.B+", "red", 300)
+    L.wire("BAT.-", "CHG.B-", "black", 316)
+
+    # on/off slide switch (SPDT): legs c25 c26 c27, middle to 3V3_EN (pin 37), c27 to the - rail
+    for k, c in enumerate(SW1_COLS, 1):
+        L.leg(f"SW1.{k}", (c, "c"))
+    L.wire(wire_end("37"), (SW1_COLS[1], "a"), "grey", ry("+t") - 100)
+    L.wire((SW1_COLS[2], "b"), L.rail_hole(SW1_COLS[2], "-t"), "black", ry("-t") + 12, 4)
 
     # buttons straddle the channel; signal on the bottom-left leg, GND on the diagonally opposite leg,
     # so the button works whichever way round it goes in. No pull-up resistor: the firmware turns on
@@ -280,7 +294,7 @@ def layout():
             lane, nb = 1220 + nb * 14, nb + 1
         L.wire(wire_end(pin), f"{mod}.{mpin}", colour, lane)
     # module power pins -> nearest free rail hole (not under a signal wire)
-    avoid = {wire_end(w[0])[0] for w in WIRES}
+    avoid = {wire_end(w[0])[0] for w in WIRES} | {c + d for c in (A_COL, K_COL, TAP_COL) for d in (-1, 0, 1)}
     for k, (mod, mpin, rail) in enumerate(POWER):
         bx, by = MODS[mod].pin_xy(mpin)
         top = MODS[mod].side == "bottom"
@@ -398,7 +412,7 @@ def self_test():
     lay = layout()
     lay.wires = [w for w in lay.wires if "BAT.-" not in (w["a"], w["b"])]
     errs = check_layout(lay)
-    assert any("BAT.-" in e for e in errs), errs
+    assert any("BAT_MINUS" in e or "BAT.-" in e for e in errs), errs  # either end may be named (set order)
 
 
 # ------------------------------------------------------------------ drawing
@@ -492,16 +506,16 @@ def draw(lay):
 
     # the battery, wired straight into the breadboard
     d.rounded_rectangle(BAT_BOX, 10, fill=(150, 150, 165), outline=(60, 60, 70), width=3)
-    d.text((BAT_BOX[0] + 120, BAT_BOX[1] + 30), "BT1  LiPo 503035, 500 mAh, with PCM", fill=(20, 20, 20), font=F)
-    d.text((BAT_BOX[0] + 120, BAT_BOX[1] + 56), "leads straight into the breadboard", fill=(20, 20, 20), font=FS)
-    d.text((BAT_BOX[0] + 120, BAT_BOX[1] + 76), "(JST-PH pigtail socket: check red = + first!)", fill=(150, 20, 20), font=FS)
+    d.text((BAT_BOX[0] + 120, BAT_BOX[1] + 30), "BT1  1S LiPo, 1100 mAh", fill=(20, 20, 20), font=F)
+    d.text((BAT_BOX[0] + 160, BAT_BOX[1] + 56), "to the charger's B+ / B-", fill=(20, 20, 20), font=FS)
+    d.text((BAT_BOX[0] + 160, BAT_BOX[1] + 76), "check red = + first!", fill=(150, 20, 20), font=FS)
     for s, p in BAT_XY.items():
         d.text((p[0] + 8, p[1] + 4), s, fill=(20, 20, 20), font=F)
 
     # parts on the breadboard
     a, k = leg["D1.A"], leg["D1.K"]
     d.rectangle([a[0] + 6, a[1] - 8, k[0] - 6, k[1] + 8], fill=(30, 30, 30))
-    d.rectangle([k[0] - 16, k[1] - 8, k[0] - 10, k[1] + 8], fill=(225, 225, 225))      # cathode band
+    d.rectangle([k[0] - 22, k[1] - 10, k[0] - 8, k[1] + 10], fill=(215, 215, 220), outline=(90, 90, 90), width=2)  # cathode band (stripe), big on purpose
     d.line([a, (a[0] + 6, a[1])], fill=(120, 120, 120), width=3)
     d.line([k, (k[0] - 6, k[1])], fill=(120, 120, 120), width=3)
     dx, dy = hole(A_COL, "c")
@@ -521,8 +535,33 @@ def draw(lay):
             d.ellipse([x - 5, y - 5, x + 5, y + 5], fill=(200, 200, 200), outline=(10, 10, 10))
         d.text((tl[0] - 14, br[1] + 14), b, fill=(20, 20, 20), font=F)
 
+    # on/off slide switch
+    l1, l3 = leg["SW1.1"], leg["SW1.3"]
+    d.rounded_rectangle([l1[0] - 16, l1[1] - 16, l3[0] + 16, l3[1] + 16], 5, fill=(30, 30, 30), outline=(10, 10, 10), width=2)
+    d.rectangle([l3[0] - 12, l3[1] - 7, l3[0] + 6, l3[1] + 7], fill=(230, 230, 230))     # knob, slid to the GND end = OFF
+    for k in (1, 2, 3):
+        x, y = leg[f"SW1.{k}"]
+        d.ellipse([x - 4, y - 4, x + 4, y + 4], fill=(200, 200, 200))
+    sx, sy = l1[0] - 16, l1[1] + 22
+    d.rounded_rectangle([sx, sy, sx + 238, sy + 46], 4, fill=(255, 250, 220), outline=(140, 120, 60))
+    d.text((sx + 4, sy + 1), "SW1 on/off switch", fill=(20, 20, 20), font=F)
+    d.text((sx + 4, sy + 24), "knob towards c27 (GND) = OFF", fill=(20, 20, 20), font=FS)
+
     for w in lay.wires:
         route(d, xy(w["a"]), xy(w["b"]), w["lane"], w["colour"], w["width"])
+    # the diode's direction, spelled out (a reversed diode cost a long debugging session on the
+    # user's breadboard): which wire goes on which end
+    def tag(x, y, text, colour=(20, 20, 20)):
+        tw = d.textlength(text, font=F)
+        d.rounded_rectangle([x - 4, y - 2, x + tw + 4, y + 22], 4, fill=(255, 250, 220), outline=(140, 120, 60))
+        d.text((x, y), text, fill=colour, font=F)
+    ax_, ay_ = hole(A_COL, "a")
+    kx_, ky_ = hole(K_COL, "a")
+    tag(ax_ - 200, ay_ - 52, "from charger OUT+")
+    tag(kx_ + 14, ay_ - 52, "to Pico pin 39 (VSYS)")
+    cx_, cy_ = hole(K_COL, "c")
+    tag(hole(A_COL, "d")[0] - 330, cy_ + 26, "diode: STRIPE end -> pin 39", (170, 20, 20))
+
     # resistor labels last, on top of the wires: PCB reference + value
     for ref, value, what in RESISTORS:
         (ax, ay), (bx, by) = leg[f"{ref}.1"], leg[f"{ref}.2"]
@@ -577,9 +616,10 @@ def markdown(lay):
          "| 1 | NXP SE050 development kit **OM-SE050ARD** (Arduino-shield format, SE050C2 configuration) | The PCB's U2 is the bare SE050C2 chip. Wire it with male-female jumpers from its Arduino header (SDA, SCL, 3.3V, GND). Leave its I2C pull-up jumpers J37/J38 at the default 3.3 k and add none; set the supply jumper J19 for 3.3 V from the header (NXP AN12395, power settings table) | " + amazon("NXP OM-SE050ARD SE050 development kit") + " (often not stocked there: [Mouser](https://www.mouser.com/c/?q=OM-SE050ARD), [Digi-Key](https://www.digikey.com/en/products/result?keywords=OM-SE050ARD)) |",
          "| 1 | microSD card module, 6 pins **VCC GND MISO MOSI SCK CS** (SPI, no card-detect pin) | VCC goes to the 3.3 V rail. If yours has a 3-pin regulator chip (often AMS1117-3.3) and the card won't start, see \"microSD module power\" below | " + amazon('micro SD card module SPI 6 pin') + " |",
          "| 4 | 6 mm tactile push buttons (4 legs) | BACK, CONFIRM, UP, DOWN | " + amazon('6x6mm tactile push button switch 4 pin through hole') + " |",
+         "| 1 | Mini slide switch, SPDT, 3 legs, 2.54 mm pitch (e.g. SS12D00) | SW1, on/off (as on the PCB: it grounds 3V3_EN) | " + amazon('SS12D00 mini slide switch SPDT 3 pin breadboard') + " |",
          "| 2 | 4.7 k resistors | Battery-voltage divider into GP28 (as on the PCB: R10, R11) | " + amazon('4.7k ohm resistor 1/4W metal film') + " |",
-         "| 1 | LiPo charger breakout with the MCP73831 (e.g. Adafruit Micro-Lipo) | Same charger chip as the PCB. Its own battery socket stays empty | " + amazon('Adafruit Micro-Lipo charger MCP73831 JST') + " |",
-         "| 1 | 1S LiPo 503035, 500 mAh, with protection circuit, JST-PH lead (BT1) | The same cell as the PCB | " + amazon('503035 500mAh 3.7V LiPo battery JST PH 2.0 protection') + " |",
+         "| 1 | TP4056 LiPo charger module **with protection** (pads IN+/IN-, B+/B-, OUT+/OUT-; DW01 + 8205A chips) | Charges at 1 A as sold (R3 = 1.2 k): fine for a battery of 1000 mAh or more. For a smaller cell, R3 = 2.4 k gives 0.5 A (current = 1200 / R3). The PCB uses the MCP73831 instead | " + amazon('TP4056 charger module protection micro USB') + " |",
+         "| 1 | 1S LiPo, about 1100 mAh, JST lead (BT1) | Larger than the PCB's 500 mAh cell (503035), which needs a 0.5 A charger | " + amazon('3.7V 1100mAh LiPo battery JST') + " |",
          "| 1 | JST-PH 2.0 mm 2-pin socket with wire leads (\"pigtail\") | Takes the battery's plug; its two wires go straight into the breadboard. Tin the wire ends (or crimp header pins) so they hold in the holes | " + amazon('JST PH 2.0 2 pin female connector pigtail wire') + " |",
          "| 1 | 1N5817 Schottky diode | Battery -> VSYS (Raspberry Pi's recommended battery hookup) | " + amazon('1N5817 Schottky diode') + " |", "",
          "## Wiring", "",
@@ -587,10 +627,11 @@ def markdown(lay):
          "joined at the right-hand end (red and black wires). Use only the rail holes shown: rail holes come in "
          "groups of 5, and on some boards the rails are split in the middle, in which case bridge each rail "
          "across the gap.", "",
-         "**Battery:** BT1 connects straight to the breadboard. Plug it into the JST-PH pigtail; the red "
-         f"(+) wire goes into a{BAT_PLUS_COL}, jumpered from e{BAT_PLUS_COL} to e{A_COL} (the battery + column: "
-         f"diode, divider and the charger's BAT pad); the black (-) wire goes into the top - rail. Leave the "
-         "charger board's own battery socket empty: a second battery there would be in parallel with BT1.", "",
+         "**Battery:** BT1's red wire goes to the charger's **B+**, black to **B-** (solder them, or use a JST pigtail "
+         "with header pins). **The battery's minus never goes on the GND rail**: the module's protection switch "
+         "sits between B- and OUT-, and OUT- is the circuit's ground. The battery + reaches the breadboard through "
+         f"**OUT+** (column {A_COL}: diode and divider); OUT- goes to the - rail. The module's own micro-USB socket "
+         "stays unused when IN+ is fed from the Pico (pin 40); either one charges.", "",
          "| Pico pin | GPIO | Goes to | Signal |", "|---|---|---|---|"]
     for pin, mod, mpin, _, what in WIRES:
         L.append(f"| {pin} | {gpio(pin)} | {NAME[mod]} **{mpin}** | {what} |")
@@ -599,15 +640,26 @@ def markdown(lay):
         L.append(f"| {pin} | {gpio(pin)} | hole j{c}: {b} button's bottom-left leg (f{c}); "
                  f"the diagonally opposite leg (e{c + 2}) goes to GND (a{c + 2} -> top - rail) | BTN_{b} |")
     L += [f"| 9 | GP6 | nothing (the module has no card-detect pin; the firmware pulls GP6 up inside the Pico) | SD_DET |",
-          f"| 39 | VSYS | D1 1N5817 cathode (c{K_COL}; band towards the cathode) | battery power into the Pico |",
+          f"| 37 | 3V3_EN | SW1 middle leg (c{SW1_COLS[1]}); its outer leg c{SW1_COLS[2]} goes to the - rail, c{SW1_COLS[0]} stays free | on/off: knob towards c{SW1_COLS[2]} = OFF |",
+          f"| 39 | VSYS | D1 1N5817 **stripe end** (cathode, c{K_COL}). The end WITHOUT the stripe goes in column {A_COL} with the charger's OUT+ and R10. Reversed, the battery cannot power the Pico and USB back-feeds the battery | battery power into the Pico |",
           f"| 34 | GP28 | middle of the R10 + R11 4.7 k divider (column {TAP_COL}: battery + column {A_COL} -> {TAP_COL} -> "
           f"{GND_COL} -> - rail) | VBAT_SENSE (ADC) |", ""]
     L += ["| Module pin | Goes to |", "|---|---|"]
     for mod, mpin, rail in POWER:
         L.append(f"| {NAME[mod]} **{mpin}** | {'+3.3 V rail' if rail == '3V3' else 'GND rail'} |")
-    L += [f"| Charger **BAT** | battery + column {A_COL} (b{A_COL}; D1 anode c{A_COL}, top of R10 d{A_COL}) |",
-          f"| BT1 red (+) | a{BAT_PLUS_COL}, jumper e{BAT_PLUS_COL} -> e{A_COL} |",
-          "| BT1 black (-) | top - rail |", "",
+    L += [f"| Charger **OUT+** | battery + column {A_COL} (b{A_COL}; D1 anode c{A_COL}, top of R10 d{A_COL}) |",
+          "| BT1 red (+) | charger **B+** |",
+          "| BT1 black (-) | charger **B-** (never the GND rail) |", "",
+          "**On/off switch (SW1):** a 3-leg slide switch, no resistor (the Pico has its own pull-up on 3V3_EN). "
+          "Knob towards the GND leg = OFF: the Pico's 3.3 V regulator stops, so the Pico, display, security chip and "
+          "+3.3 V rail are off even with USB plugged in, exactly like the PCB's SW1. Knob towards the free leg = ON. "
+          "A microSD module powered from pin 40 (5 V, see below) keeps power from USB while the switch is off; that "
+          "is harmless.", "",
+          "**USB only, no battery (simplest):** leave out BT1, the charger, D1 (the 1N5817 diode: lets the battery "
+          "feed VSYS but nothing flow back into it) and R10/R11 (the 4.7 k divider that halves the battery voltage "
+          "for GP28; not pull-ups). The Pico runs from its USB cable. The firmware sees that GP28 is not connected "
+          "(\"battery: none (GP28 not connected)\" in the log): no battery icon and no \"battery low\" sleep, also "
+          "on a wall charger. No transistors and no pull-up resistors are needed anywhere on the breadboard.", "",
           "**Buttons:** no resistors. Each button just connects its Pico pin to GND when pressed; the firmware "
           "turns on the Pico's internal pull-ups (about 50 k) on GP12-GP15, so a released button reads high. (The "
           "PCB also has 10 k pull-ups R26-R29 and RC debounce; the internal pull-ups do no harm there.) The GND "
@@ -621,7 +673,7 @@ def markdown(lay):
           "the microSD card, battery voltage reading, charging from the Pico's USB, running from the "
           "battery, the radio, and all of the firmware.", "",
           "**Does not test** (PCB only):", "",
-          "- The power switches Q1-Q5. Here the display, security chip and SD card are always powered and the "
+          "- The power switches Q1-Q5 (SW1, the on/off switch, is on the breadboard). Here the display, security chip and SD card are always powered and the "
           "backlight is always on, so GP7, GP11, GP18 and GP19 switch nothing, and sleep current is higher. "
           "The SE050 has no reset pin (the PCB resets it by switching its power), so to reset it here, pull its 3.3V wire.",
           "- The battery/USB switch Q1: the diode does the same job, with a 0.3 V drop.",
@@ -638,13 +690,18 @@ def markdown(lay):
           "(VBUS, 5 V)**. Its SPI outputs stay at 3.3 V because its level shifter runs from the regulator. The catch: "
           "pin 40 only has power while USB is plugged in, so on battery alone the SD card is off. Never put 5 V on "
           "a module *without* the regulator: that would destroy the card.", "",
+          "How the SD test (`bringup_sd`) shows a power problem: \"no card (nothing answered)\", and on the serial "
+          "console \"MISO ... held LOW\" with a raw CMD0 reply of all `00` (the unpowered module drags MISO to "
+          "ground), or \"MISO selected: held HIGH\" with all `FF` (module powered, card still silent: under-voltage, "
+          "card not seated, or a wrong SCK/MOSI wire). Tested on the breadboard with a 5 V module on pin 40 and a "
+          "64 GB exFAT card: no CRC errors at 0.5-8 MHz.", "",
           "## Before powering it", "",
           "1. **3.3 V only.** Never connect VBUS (5 V) to the display, the security chip or the 3.3 V rail.",
           "2. **Check the display's pin order** printed on its back. If it differs from BL CS DC RST SDA SCL VCC GND, "
           "wire by name, not by position.",
           "3. **Check the battery lead polarity** before plugging it into the pigtail: with a meter, the pigtail's "
           "red wire must read + against its black wire. JST-PH leads are not standardised, and reversed ones are common.",
-          "4. **With the battery unplugged**, power from USB first and measure: + rail 3.3 V, charger BAT pad about "
+          "4. **With the battery unplugged**, power from USB first and measure: + rail 3.3 V, charger OUT+ about "
           "4.2 V, VSYS (pin 39) about 4.7 V. Then plug the battery in.",
           "5. Use only public test phrases: a breadboard is not a secure device.", ""]
     with open(os.path.join(OUT, "BREADBOARD.md"), "w", encoding="utf8") as fh:

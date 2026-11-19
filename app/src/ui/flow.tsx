@@ -10,12 +10,22 @@ import { addressParts } from '../util/recipient';
 import { Button, T, Toolbar, useTheme } from './components';
 
 /** Full-height step: header, scrolling body, buttons pinned at the bottom. */
-export function StepScreen({ title, onBack, right, children, footer }: { title: string; onBack?: () => void; right?: ReactNode; children: ReactNode; footer?: ReactNode }) {
+export function StepScreen({ title, onBack, right, children, footer, step }: { title: string; onBack?: () => void; right?: ReactNode; children: ReactNode; footer?: ReactNode; step?: [number, number, string] }) {
   const t = useTheme();
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.card2 }} edges={['top']}>
       <Toolbar title={title} onBack={onBack} right={right} />
       <ScrollView style={{ backgroundColor: t.bg }} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 14, paddingTop: 12, gap: 12, paddingBottom: 24, flexGrow: 1 }}>
+        {step ? (
+          <View style={{ gap: 6 }}>
+            <View style={{ flexDirection: 'row', gap: 4 }}>
+              {Array.from({ length: step[1] }, (_, i) => (
+                <View key={i} style={{ flex: 1, height: 3, borderRadius: 2, backgroundColor: i < step[0] ? t.accent : t.card }} />
+              ))}
+            </View>
+            <Text style={{ color: t.muted, fontSize: 13 }}>{`Step ${step[0]} of ${step[1]} · ${step[2]}`}</Text>
+          </View>
+        ) : null}
         {children}
       </ScrollView>
       {footer ? <View style={{ paddingHorizontal: 14, paddingTop: 8, paddingBottom: 12, gap: 8, backgroundColor: t.bg }}>{footer}</View> : null}

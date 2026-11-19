@@ -678,15 +678,12 @@ static void ask_pairing(void) {
   uint32_t code = 100000 + random32() % 900000;
 #endif
   wl_review_init(&P.rv);
-  wl_page_t *p = wl_review_page(&P.rv, "Pair phone?", WL_TONE_NORMAL);
-  wl_page_line(p, "Allow this phone app to");
-  wl_page_line(p, "use the wallet?");
-  wl_page_line(p, " ");
-  wl_page_line(p, "Code:");
+  wl_page_t *p = wl_review_page(&P.rv, "Allow pairing?", WL_TONE_NORMAL);
+  wl_page_line(p, "Enter this code in the");
+  wl_page_line(p, "phone app:");
   wl_page_line(p, "\x01%06lu", (unsigned long)code);
-  wl_page_line(p, "Accept only if the phone");
-  wl_page_line(p, "shows the same code.");
-  wl_page_line(p, "One phone at a time.");
+  wl_page_line(p, "Accept only when the app");
+  wl_page_line(p, "says it is correct.");
   P.pairing = true;
   hal_log("pairing request, code %06lu", (unsigned long)code);
   ask(true, pairing_done);
@@ -723,6 +720,24 @@ static void handle(const uint8_t *msg, size_t len) {
   }
   if (!strcmp(type, "lock")) {
     fw_lock("app request");
+    wl_cbor_w_t w;
+    begin_ok(&w, id, 0);
+    finish(&w);
+    return;
+  }
+  if (!strcmp(type, "set-balance")) { /* main-page total from the paired app: display only */
+    char text[20];
+    if (!session_paired() || !vault_unlocked()) {
+      send_error(id, "LOCKED", "unlock and pair first");
+      return;
+    }
+    bool ok = wl_cbor_get_str(root, "text", text, sizeof(text)) && text[0];
+    for (const char *c = text; ok && *c; c++) ok = strchr("0123456789$.,~ kKmMbB-", *c) != NULL;
+    if (!ok) {
+      send_error(id, "BAD_REQUEST", "text: up to 19 of 0-9 $ . , ~ k M B -");
+      return;
+    }
+    ui_set_balance(text);
     wl_cbor_w_t w;
     begin_ok(&w, id, 0);
     finish(&w);
@@ -889,6 +904,7 @@ void proto_locked(void) {
     wl_wipe(&P, sizeof(P));
   }
   memset(&PLAN, 0, sizeof(PLAN));
+  ui_set_balance(NULL); /* the next unlock shows it again once the app reports it */
   send_event("locked", false, 0);
 }
 

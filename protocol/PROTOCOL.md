@@ -72,6 +72,11 @@ Event (device → app, no reply): `{ type: "event", event: "awaiting-user" | "lo
   unlocked. Answered by `paired` (accepted, PIN entered) or `pair-rejected`.
 - `unlocked`: the wallet was unlocked on the device; the app may reload (`get-info`, accounts).
 
+Request `{ type: "set-balance", text }` (paired app, unlocked device, no approval): the total value
+for the device's main page, e.g. `"$1,234.56"`, at most 19 of `0-9 $ . , ~ k M B -`. Display only:
+the device has no internet and cannot verify it, so the screen labels it "from your phone". Cleared
+when the device locks.
+
 `awaiting-user` carries `detail: "pair"` while the device shows the pairing code (before the request itself); otherwise no detail.
 
 | type | params | result | Device shows / needs |

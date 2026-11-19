@@ -21,12 +21,14 @@ import { AddressText, IconPill, StepScreen } from '../../ui/flow';
 /** What a person calls each account, and which networks it receives on. */
 function describe(a: WalletAccount, net: 'main' | 'test') {
   if (a.family === 'btc')
-    return { name: a.scheme === 'btc-p2tr' ? 'Bitcoin (Taproot)' : 'Bitcoin', logo: chainLogo('btc'), symbol: 'BTC', networks: CHAINS.btc.net[net].label, only: 'Bitcoin' };
+    return a.scheme === 'btc-p2tr'
+      ? { name: 'Bitcoin, Taproot address', logo: chainLogo('btc'), symbol: 'BTC', networks: 'Newer address type. Use the Bitcoin one above if unsure.', only: 'Bitcoin' }
+      : { name: 'Bitcoin', logo: chainLogo('btc'), symbol: 'BTC', networks: CHAINS.btc.net[net].label, only: 'Bitcoin' };
   if (a.family === 'evm') {
     const list = (['eth', 'base', 'arbitrum', 'polygon', 'bnb'] as const).map((c) => CHAINS[c].net[net].label);
-    return { name: 'Ethereum & EVM', logo: chainLogo('eth'), symbol: 'ETH', networks: list.join(', '), only: 'Ethereum and EVM-network (' + list.join(', ') + ')' };
+    return { name: 'Ethereum & tokens', logo: chainLogo('eth'), symbol: 'ETH', networks: 'Same address on Base, Arbitrum, Polygon and BNB Chain', only: 'Ethereum and EVM-network (' + list.join(', ') + ')' };
   }
-  return { name: 'Solana', logo: chainLogo('sol'), symbol: 'SOL', networks: CHAINS.sol.net[net].label, only: 'Solana' };
+  return { name: 'Solana & tokens', logo: chainLogo('sol'), symbol: 'SOL', networks: 'SOL and Solana tokens', only: 'Solana' };
 }
 
 export default function Receive() {
@@ -84,8 +86,8 @@ export default function Receive() {
           </Card>
         ) : (
           <>
-            <ListGroup title="Choose the sender's network" footer={net === 'test' ? 'Testnet addresses. Only send test coins here.' : undefined}>
-              {w.accounts.map((a) => {
+            <ListGroup title="What do you want to receive?" footer={net === 'test' ? 'Testnet addresses: only send test coins here.' : 'The address is checked on your tredder before it is shown.'}>
+              {[...w.accounts].sort((x, y) => Number(x.scheme === 'btc-p2tr') - Number(y.scheme === 'btc-p2tr')).map((a) => {
                 const d = describe(a, net);
                 return (
                   <Row
@@ -93,7 +95,7 @@ export default function Receive() {
                     onPress={() => void show(a)}
                     icon={<CoinIcon symbol={d.symbol} logo={d.logo} />}
                     left={<T kind="h2">{d.name + (a.account ? ` #${a.account + 1}` : '')}</T>}
-                    sub={a.family === 'evm' ? d.networks : `${d.networks} · ${SCHEME_LABEL[a.scheme]}`}
+                    sub={d.networks}
                     right={
                       <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: t.accent + '24', alignItems: 'center', justifyContent: 'center' }}>
                         <Ionicons name="qr-code" size={18} color={t.accent} />

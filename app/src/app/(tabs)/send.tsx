@@ -16,8 +16,9 @@ import { loadRecents, rememberRecipient, sameAddress, type Recent } from '../../
 import { familyOf, prepareSend, signAndBroadcast, txStatus, type Prepared } from '../../state/wallet';
 import { useWallet } from '../../state/WalletContext';
 import { assetLogo, assetSeed, chainLogo } from '../../ui/coinLogos';
-import { Badge, Button, Card, Choice, CoinIcon, Row, T, useTheme } from '../../ui/components';
+import { Badge, Button, Card, Choice, CoinIcon, ListItem, Row, T, useTheme } from '../../ui/components';
 import { AddressText, IconPill, Keypad, Scanner, StepScreen } from '../../ui/flow';
+import { isVerified, splitHoldings } from '../../ui/tokenTrust';
 import { formatAmount, formatUsd, parseAmount } from '../../util/amount';
 import { asNumber, coinToUsd, pressKey, unitsToInput, unitsToNumber, usdToCoin } from '../../util/amountInput';
 import { checkRecipient, parseRecipientInput, shortAddress } from '../../util/recipient';
@@ -42,6 +43,7 @@ export default function Send() {
   const t = useTheme();
   const net = w.settings.net;
   const [step, setStep] = useState<Step>('asset');
+  const [showUnverified, setShowUnverified] = useState(false);
   const [sel, setSel] = useState('');
   const [query, setQuery] = useState('');
   const [toInput, setToInput] = useState('');
@@ -203,7 +205,7 @@ export default function Send() {
 
   if (step === 'asset')
     return (
-      <StepScreen title="Send" onBack={back}>
+      <StepScreen title="Send" onBack={back} step={[1, 4, 'Choose the coin']}>
         {netBanner}
         {!w.accounts.length || !sendable.length ? (
           <Card style={{ alignItems: 'center', gap: 12, paddingVertical: 28 }}>
@@ -215,9 +217,13 @@ export default function Send() {
         ) : (
           <>
             <SearchBox value={query} onChange={setQuery} placeholder="Search" />
-            {sendable
-              .filter((x) => !query || `${x.symbol} ${x.name} ${chainLabel(x.chain)}`.toLowerCase().includes(query.toLowerCase()))
-              .map((x) => (
+            {(() => {
+              const match = (x: (typeof sendable)[number]) => !query || `${x.symbol} ${x.name} ${chainLabel(x.chain)}`.toLowerCase().includes(query.toLowerCase());
+              const g = splitHoldings(sendable.filter(match));
+              const shown = [...g.coins, ...g.tokens, ...(showUnverified || query ? g.unverified : [])];
+              return (
+                <>
+                  {shown.map((x) => (
                 <Row
                   key={keyOf(x)}
                   onPress={() => {
@@ -229,11 +235,23 @@ export default function Send() {
                     setStep('to');
                   }}
                   icon={<CoinIcon symbol={x.symbol} logo={assetLogo(x)} seed={assetSeed(x)} small={x.kind === 'token' ? CHAINS[x.chain].symbol : undefined} smallLogo={x.kind === 'token' ? chainLogo(x.chain) : undefined} />}
-                  left={<T kind="h2">{x.name || x.symbol}</T>}
+                  left={<T kind="h2">{x.kind === 'native' ? x.symbol : x.name || x.symbol}</T>}
                   sub={`${formatAmount(x.amount, x.decimals, 6)} ${x.symbol} · ${chainLabel(x.chain)}`}
-                  right={x.usdValue !== undefined ? <T>{formatUsd(x.usdValue)}</T> : undefined}
+                  right={x.usdValue !== undefined ? <T>{formatUsd(x.usdValue)}</T> : !isVerified(x) ? <T kind="warn">unverified</T> : undefined}
                 />
-              ))}
+                  ))}
+                  {g.unverified.length && !query ? (
+                    <ListItem
+                      icon={showUnverified ? 'eye-off-outline' : 'eye-outline'}
+                      title={showUnverified ? 'Hide unverified tokens' : `Show ${g.unverified.length} unverified tokens`}
+                      sub={showUnverified ? 'Unknown tokens are often scams that copy real names.' : 'Airdrops, test tokens and look-alikes'}
+                      onPress={() => setShowUnverified((v) => !v)}
+                      chevron={false}
+                    />
+                  ) : null}
+                </>
+              );
+            })()}
           </>
         )}
       </StepScreen>
@@ -257,6 +275,7 @@ export default function Send() {
     return (
       <StepScreen
         title={`Send ${h.symbol}`}
+        step={[2, 4, 'Who gets it']}
         onBack={back}
         footer={
           <Button
@@ -350,6 +369,7 @@ export default function Send() {
     return (
       <StepScreen
         title={`Send ${h.symbol}`}
+        step={[3, 4, 'How much']}
         onBack={back}
         footer={
           <>
@@ -405,6 +425,7 @@ export default function Send() {
     return (
       <StepScreen
         title="Review"
+        step={[4, 4, 'Check, then confirm on your tredder']}
         onBack={back}
         footer={
           <>

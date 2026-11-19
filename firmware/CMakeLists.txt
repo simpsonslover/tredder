@@ -144,3 +144,19 @@ target_compile_options(bringup_sd PRIVATE -Wall -Wextra -Werror)
 pico_enable_stdio_usb(bringup_sd 1)
 pico_enable_stdio_uart(bringup_sd 0)
 pico_add_extra_outputs(bringup_sd)
+
+# ---------------------------------------------------------------- bring-up: battery measurement
+# Shows the GP28 / battery voltage, the pull test, VBUS and a verdict every 2 s (no wallet code).
+add_executable(bringup_battery
+    platform/rp2350/bringup_battery.c
+    platform/rp2350/hal_display.c
+    app/src/gfx.c
+    app/src/font_data.c)
+target_include_directories(bringup_battery PRIVATE platform/rp2350 app/include)
+target_compile_definitions(bringup_battery PRIVATE CYW43_LWIP=0)
+target_link_libraries(bringup_battery PRIVATE pico_stdlib hardware_spi hardware_adc pico_cyw43_arch_none)
+set_source_files_properties(platform/rp2350/bringup_battery.c platform/rp2350/hal_display.c
+    TARGET_DIRECTORY bringup_battery PROPERTIES COMPILE_OPTIONS "-Wall;-Wextra;-Werror")
+pico_enable_stdio_usb(bringup_battery 1)
+pico_enable_stdio_uart(bringup_battery 0)
+pico_add_extra_outputs(bringup_battery)

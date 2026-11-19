@@ -43,10 +43,19 @@ void hal_lcd_power(bool on);
 /* ---------------------------------------------------------------- power
    VBAT from GP28 / ADC2 (divider R10/R11, per-device gain calibration),
    charging from CHG_STAT (GP5, low = charging), USB from the CYW43 VBUS sense. */
+typedef enum {
+  HAL_VBAT_OK = 0,
+  HAL_VBAT_NOT_CONNECTED, /* GP28 floats: no divider (USB-only build) */
+  HAL_VBAT_TOO_HIGH,      /* > 4.6 V: GP28 sees the whole battery (R11 / its GND missing) */
+  HAL_VBAT_TOO_LOW,       /* < 2.5 V: no cell, or the divider's top (R10) is not connected */
+} hal_vbat_state_t;
+
 typedef struct {
   uint16_t vbat_mv; /* 0 = not measured */
   bool charging;
   bool usb;
+  uint8_t vbat_state; /* hal_vbat_state_t: why vbat_mv is 0 */
+  uint16_t raw_mv;    /* what GP28 read, scaled as if the divider were right (diagnostics) */
 } hal_power_t;
 void hal_power(hal_power_t *out);
 
@@ -80,5 +89,8 @@ bool hal_link_send(const uint8_t *frame, size_t n);
 /* ---------------------------------------------------------------- diagnostics
    Debug console. Production builds compile this to nothing. Never log secrets. */
 void hal_log(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
+/* The newest log text ('\n'-separated lines, oldest first), for the on-device log screen. Returns
+   its length; out is NUL-terminated. The log never holds secrets (rule above). */
+size_t hal_log_recent(char *out, size_t max);
 
 #endif

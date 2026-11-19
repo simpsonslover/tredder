@@ -27,6 +27,8 @@ typedef struct {
 } wl_font_t;
 
 extern const wl_font_t wl_font_body, wl_font_bold, wl_font_title, wl_font_big;
+/* Ionicons (MIT) as glyphs U+E000 + index, square: wl_icons 18 px, wl_icons_big 48 px (tools/gen_font.py) */
+extern const wl_font_t wl_icons, wl_icons_big;
 
 #define RGB565(r, g, b) ((uint16_t)((((r) & 0xF8) << 8) | (((g) & 0xFC) << 3) | ((b) >> 3)))
 
