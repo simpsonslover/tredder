@@ -15,14 +15,17 @@ import { IdentityChangedError, appStaticKey, pinDeviceKey, pinnedDeviceKey } fro
 import { assetSeed } from '../ui/coinLogos';
 import { ensureLogos } from '../ui/logoStore';
 import { loadJson, saveJson, secureKV } from './storage';
-import { DEFAULT_SCHEMES, accountId, fetchAccounts, loadHistory, loadPortfolio, repricePortfolio, type Portfolio, type WalletAccount } from './wallet';
+import { DEFAULT_SCHEMES, accountId, buildLarpPortfolio, fetchAccounts, loadHistory, loadPortfolio, repricePortfolio, type LarpCoin, type Portfolio, type WalletAccount } from './wallet';
+export type { LarpCoin };
 
 export interface Settings {
   net: Net;
   mainnetEnabled: boolean; // spec: testnets first; mainnet only after explicit opt-in
   dustUsd: number;
+  larpMode: boolean;
+  larpCoins: LarpCoin[];
 }
-const DEFAULT_SETTINGS: Settings = { net: 'test', mainnetEnabled: false, dustUsd: 1 };
+const DEFAULT_SETTINGS: Settings = { net: 'test', mainnetEnabled: false, dustUsd: 1, larpMode: false, larpCoins: [] };
 
 interface Device {
   client: DeviceClient;
@@ -33,6 +36,7 @@ interface Device {
 
 interface Ctx {
   ready: boolean;
+  larpMode: boolean;
   settings: Settings;
   updateSettings(p: Partial<Settings>): Promise<void>;
   device: Device | null;
@@ -273,6 +277,22 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     })();
   }, [ready, connectBle]);
 
+  // ---- LARP mode: fake portfolio built from user-set amounts + real prices ----
+  const [larpPortfolio, setLarpPortfolio] = useState<Portfolio | null>(null);
+  const [larpBuilding, setLarpBuilding] = useState(false);
+
+  const rebuildLarp = useCallback(async (coins: LarpCoin[]) => {
+    setLarpBuilding(true);
+    try { setLarpPortfolio(await buildLarpPortfolio(coins)); }
+    catch { setLarpPortfolio(null); }
+    finally { setLarpBuilding(false); }
+  }, []);
+
+  useEffect(() => {
+    if (settings.larpMode) void rebuildLarp(settings.larpCoins);
+    else setLarpPortfolio(null);
+  }, [settings.larpMode, settings.larpCoins, rebuildLarp]);
+
   const refreshGen = useRef(0);
   const sentBalance = useRef<{ client: unknown; text: string } | null>(null);
   const refresh = useCallback(async () => {
@@ -354,13 +374,16 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<Ctx>(
     () => {
-      const real: Ctx = { ready, settings, updateSettings, device, awaitingUser, awaitingKind, pairCode, pairing, connectMock, connectBle, connectSim, reloadDevice, disconnect, accounts, setAccounts, portfolio, history, loading, error, refresh };
+      const real: Ctx = { ready, larpMode: settings.larpMode, settings, updateSettings, device, awaitingUser, awaitingKind, pairCode, pairing, connectMock, connectBle, connectSim, reloadDevice, disconnect, accounts, setAccounts, portfolio, history, loading, error, refresh };
       // screenshot builds only (EXPO_PUBLIC_DEMO_PORTFOLIO=1): fake balances, no network
-      return DEMO_PORTFOLIO_ENABLED
-        ? { ...real, ready: true, settings: { ...settings, net: 'main', mainnetEnabled: true }, accounts: DEMO_ACCOUNTS, portfolio: DEMO_PORTFOLIO, loading: false, error: null, refresh: async () => undefined }
-        : real;
+      if (DEMO_PORTFOLIO_ENABLED)
+        return { ...real, ready: true, settings: { ...settings, net: 'main', mainnetEnabled: true }, accounts: DEMO_ACCOUNTS, portfolio: DEMO_PORTFOLIO, loading: false, error: null, refresh: async () => undefined };
+      // LARP mode: real prices, user-set amounts, no receive address
+      if (settings.larpMode)
+        return { ...real, settings: { ...settings, net: 'main', mainnetEnabled: true }, accounts: [], portfolio: larpPortfolio, loading: larpBuilding, error: null, refresh: () => rebuildLarp(settings.larpCoins) };
+      return real;
     },
-    [ready, settings, updateSettings, device, awaitingUser, awaitingKind, pairCode, pairing, connectMock, connectBle, connectSim, reloadDevice, disconnect, accounts, setAccounts, portfolio, history, loading, error, refresh],
+    [ready, settings, updateSettings, device, awaitingUser, awaitingKind, pairCode, pairing, connectMock, connectBle, connectSim, reloadDevice, disconnect, accounts, setAccounts, portfolio, history, loading, error, refresh, larpPortfolio, larpBuilding, rebuildLarp],
   );
   return <WalletCtx.Provider value={value}>{children}</WalletCtx.Provider>;
 }

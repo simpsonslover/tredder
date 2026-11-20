@@ -13,6 +13,48 @@ import { friendlyError } from '../util/http';
 import type { DeviceClient } from '../protocol/client';
 import type { AccountKey, Net, Scheme, WalletRef } from '../protocol/types';
 
+/** One coin entry in the LARP portfolio (amount in human units, e.g. 0.5 BTC). */
+export interface LarpCoin {
+  chain: ChainId;
+  amount: number;
+}
+
+/** Native coins available to pick in LARP mode. */
+export const LARP_COIN_LIST: { chain: ChainId; symbol: string; name: string }[] = [
+  { chain: 'btc', symbol: 'BTC', name: 'Bitcoin' },
+  { chain: 'eth', symbol: 'ETH', name: 'Ether' },
+  { chain: 'sol', symbol: 'SOL', name: 'Solana' },
+  { chain: 'bnb', symbol: 'BNB', name: 'BNB' },
+  { chain: 'polygon', symbol: 'POL', name: 'Polygon' },
+];
+
+/** Build a fake Portfolio from LARP coin amounts, priced with real market prices. */
+export async function buildLarpPortfolio(coins: LarpCoin[]): Promise<Portfolio> {
+  const holdings: Holding[] = coins
+    .filter((c) => c.amount > 0)
+    .map((c) => {
+      const ch = CHAINS[c.chain];
+      const dec = ch.decimals;
+      // same float→bigint pattern as demoPortfolio.ts
+      const amount = BigInt(Math.round(c.amount * 10 ** Math.min(dec, 8))) * 10n ** BigInt(Math.max(dec - 8, 0));
+      return {
+        chain: c.chain, net: 'main' as const, scheme: DEFAULT_SCHEMES[0]!,
+        account: 0, owner: 'larp', asset: { kind: 'native' as const },
+        kind: 'native' as const, symbol: ch.symbol, name: ch.name, decimals: dec, amount,
+      };
+    });
+  const prices = await priceHoldings(holdings).catch(() => cachedPrices(holdings));
+  const priced = applyPrices(holdings, prices);
+  priced.sort((x, y) => (y.usdValue ?? 0) - (x.usdValue ?? 0));
+  return {
+    holdings: priced,
+    btc: {},
+    errors: [],
+    totalUsd: priced.reduce((s, h) => s + (h.kind === 'staked' || h.kind === 'nft' ? 0 : h.usdValue ?? 0), 0),
+    updatedAt: Date.now(),
+  };
+}
+
 export interface WalletAccount {
   family: Family;
   scheme: Scheme;

@@ -25,28 +25,58 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Gradient, GradientView } from './gradient';
 import { Identicon } from './Identicon';
 import { useDownloadedLogo } from './logoStore';
 
+/**
+ * Monochrome dark skin: black-to-graphite gradients, generous corner radii, hairline edges in
+ * white alpha, and a platinum accent instead of a hue. Only the semantic colours (credit, debit,
+ * warning) keep a hue — in a wallet those carry meaning, so they must not wash out to grey.
+ */
 const THEME = {
   dark: true,
-  bg: '#303030', //          Material.background (Dark)
-  card: '#3E3E3E', //        constants.highlightBackground = lighter(background, 1.3)
-  card2: '#424242', //       Material.dialogColor (toolbar, dialogs)
-  darker: '#282828', //      constants.darkerBackground = darker(background, 1.2)
-  text: '#FFFFFF',
-  muted: '#9E9E9E', //       constants.mutedForeground ('gray', a little lighter for legibility)
-  border: '#282828',
-  accent: '#81D4FA', //      Material.LightBlue accent, dark theme
-  accent2: '#81D4FA',
-  onAccent: '#000000',
-  danger: '#FF8080', //      colorError / colorDebit
-  warn: '#FFEE58', //        colorWarning ('yellow', softened)
-  ok: '#80FF80', //          colorCredit / colorDone
+  bg: '#0B0B0D', //          page base, under the gradient
+  card: '#1A1B20', //        flat fallback for a raised surface
+  card2: '#141519', //       bars, sheets, dialogs
+  darker: '#070709', //      wells (inset fields, code blocks)
+  text: '#F4F5F7',
+  muted: '#8A8F98',
+  border: '#FFFFFF14', //    hairline, white at ~8%
+  accent: '#D8DDE6', //      platinum: section labels, affordances
+  accent2: '#9AA2AE',
+  onAccent: '#0B0B0D', //    text on a platinum fill
+  danger: '#FF7B72',
+  warn: '#E3B341',
+  ok: '#56D364',
+
+  /* Gradients: [from, …, to] along the stated direction. */
+  bgGrad: ['#1C1D22', '#101116', '#08080A'] as const, //   page: graphite at the top → black
+  cardGrad: ['#24262D', '#171821'] as const, //            raised surface
+  listGrad: ['#1C1E25', '#191A21'] as const, //            list card: nearly flat, so the top row
+  //                                                       does not read as "selected"
+  card2Grad: ['#1A1B21', '#101116'] as const, //           bars and sheets
+  heroGrad: ['#2B2E37', '#15161C', '#0E0F13'] as const, // the balance card
+  primaryGrad: ['#34373F', '#1B1D24'] as const, //         primary button: graphite, lit at the top
+  accentGrad: ['#FFFFFF', '#CFD5DF'] as const, //          platinum fill, for the rare light control
+  wellGrad: ['#0A0A0D', '#101116'] as const, //            inset
+
+  /* Edges. Two weights: a plain hairline, and a brighter one for the lit top edge of a card. */
+  line: '#FFFFFF14',
+  lineStrong: '#FFFFFF24',
+
+  /* Corner radii. Everything rounds; nothing is square. */
+  r: { sm: 10, md: 14, lg: 20, xl: 26, pill: 999 },
 };
 export type Theme = typeof THEME;
 export function useTheme(): Theme {
   return THEME;
+}
+
+/** Soft drop shadow. iOS renders shadow*, Android elevation; both are set. */
+export function shadow(level: 1 | 2 | 3 = 1): ViewStyle {
+  const [opacity, radius, dy, elevation] = level === 1 ? [0.2, 6, 2, 2] : level === 2 ? [0.3, 14, 6, 6] : [0.45, 26, 12, 14];
+  return { shadowColor: '#000', shadowOpacity: opacity, shadowRadius: radius, shadowOffset: { width: 0, height: dy }, elevation };
 }
 
 export const MONO = Platform.select({ ios: 'Menlo', default: 'monospace' });
@@ -59,29 +89,28 @@ export function Toolbar({ title, icon, right, onBack }: { title: string; icon?: 
   return (
     <View
       style={{
-        height: 52,
-        backgroundColor: t.card2,
+        height: 56,
         flexDirection: 'row',
         alignItems: 'center',
-        paddingLeft: onBack ? 6 : 20,
-        paddingRight: 12,
-        gap: 8,
-        elevation: 4,
-        shadowColor: '#000',
-        shadowOpacity: 0.35,
-        shadowRadius: 4,
-        shadowOffset: { width: 0, height: 2 },
+        paddingLeft: onBack ? 8 : 20,
+        paddingRight: 10,
+        gap: 10,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: t.line,
         zIndex: 2,
       }}
     >
       {onBack ? (
-        <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={onBack} hitSlop={12} style={{ padding: 6 }}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={onBack} hitSlop={12} style={({ pressed }) => [{ padding: 8, borderRadius: t.r.pill }, pressed && { backgroundColor: '#FFFFFF14' }]}>
           <Ionicons name="arrow-back" size={22} color={t.text} />
         </Pressable>
       ) : icon ? (
-        <Ionicons name={icon} size={16} color={t.text} />
+        <View style={{ width: 30, height: 30, borderRadius: t.r.pill, alignItems: 'center', justifyContent: 'center', borderWidth: StyleSheet.hairlineWidth, borderColor: t.lineStrong }}>
+          <Gradient colors={t.cardGrad} radius={15} />
+          <Ionicons name={icon} size={15} color={t.accent} />
+        </View>
       ) : null}
-      <Text numberOfLines={1} style={{ flex: 1, color: t.text, fontSize: 16, fontWeight: '700' }}>
+      <Text numberOfLines={1} style={{ flex: 1, color: t.text, fontSize: 18, fontWeight: '700', letterSpacing: 0.2 }}>
         {title}
       </Text>
       {right}
@@ -113,24 +142,38 @@ export function NetworkTag({ label }: { label: string }) {
 export function Screen({ children, onRefresh, refreshing, title, icon, right, footer }: { children: ReactNode; onRefresh?: () => void; refreshing?: boolean; title?: string; icon?: IconName; right?: ReactNode; footer?: ReactNode }) {
   const t = useTheme();
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: title ? t.card2 : t.bg }} edges={title ? ['top'] : []}>
-      {title ? <Toolbar title={title} icon={icon} right={right} /> : null}
-      <ScrollView
-        style={{ backgroundColor: t.bg }}
-        contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 12, gap: 12, paddingBottom: 32 }}
-        refreshControl={onRefresh ? <RefreshControl tintColor={t.muted} colors={[t.accent]} progressBackgroundColor={t.card2} refreshing={!!refreshing} onRefresh={onRefresh} /> : undefined}
-      >
-        {children}
-      </ScrollView>
-      {footer}
-    </SafeAreaView>
+    <View style={{ flex: 1, backgroundColor: t.bg }}>
+      {/* One gradient for the whole page: graphite at the top, black at the bottom. */}
+      <Gradient colors={t.bgGrad} locations={[0, 0.45, 1]} />
+      <SafeAreaView style={{ flex: 1 }} edges={title ? ['top'] : []}>
+        {title ? <Toolbar title={title} icon={icon} right={right} /> : null}
+        <ScrollView
+          style={{ backgroundColor: 'transparent' }}
+          contentContainerStyle={{ paddingHorizontal: 14, paddingTop: 14, gap: 14, paddingBottom: 40 }}
+          refreshControl={onRefresh ? <RefreshControl tintColor={t.muted} colors={[t.accent]} progressBackgroundColor={t.card2} refreshing={!!refreshing} onRefresh={onRefresh} /> : undefined}
+        >
+          {children}
+        </ScrollView>
+        {footer}
+      </SafeAreaView>
+    </View>
   );
 }
 
-/** Electrum's TextHighlightPane: lighter background, radius 8. */
-export function Card({ children, style }: { children: ReactNode; style?: ViewStyle }) {
+/** Raised surface: graphite gradient, large radius, lit hairline edge, soft shadow. */
+export function Card({ children, style, hero }: { children: ReactNode; style?: ViewStyle; hero?: boolean }) {
   const t = useTheme();
-  return <View style={[{ backgroundColor: t.card, borderRadius: 8, padding: 14, gap: 10 }, style]}>{children}</View>;
+  return (
+    <GradientView
+      colors={hero ? t.heroGrad : t.cardGrad}
+      direction={hero ? 'diagonal' : 'down'}
+      radius={hero ? t.r.xl : t.r.lg}
+      border={hero ? t.lineStrong : t.line}
+      style={[{ padding: 16, gap: 10 }, shadow(hero ? 2 : 1), style]}
+    >
+      {children}
+    </GradientView>
+  );
 }
 export const Pane = Card;
 
@@ -138,10 +181,11 @@ type TextKind = 'hero' | 'title' | 'h2' | 'body' | 'muted' | 'mono' | 'error' | 
 export function T({ children, kind = 'body', center, selectable, color }: { children: ReactNode; kind?: TextKind; center?: boolean; selectable?: boolean; color?: string }) {
   const t = useTheme();
   const s: Record<TextKind, object> = {
-    hero: { fontSize: 28, color: t.text, fontFamily: MONO },
-    title: { fontSize: 22, color: t.text },
+    hero: { fontSize: 30, color: t.text, fontFamily: MONO, letterSpacing: -0.5 },
+    title: { fontSize: 22, color: t.text, fontWeight: '700' },
     h2: { fontSize: 16, color: t.text },
-    section: { fontSize: 15, color: t.accent, marginTop: 6 },
+    /* small, tracked, uppercase: a quiet label above a card rather than a coloured heading */
+    section: { fontSize: 11.5, color: t.accent2, marginTop: 4, marginLeft: 6, textTransform: 'uppercase', letterSpacing: 1.1, fontWeight: '700' },
     body: { fontSize: 15, color: t.text, lineHeight: 21 },
     muted: { fontSize: 12, color: t.muted, lineHeight: 17 },
     mono: { fontSize: 14, color: t.text, fontFamily: MONO },
@@ -171,7 +215,8 @@ export function Heading({ text }: { text: string }) {
 /** Flat button on the highlight colour: primary has accent text, as Electrum's dialog buttons. */
 export function Button({ title, onPress, kind = 'primary', loading, disabled, icon }: { title: string; onPress: () => void; kind?: 'primary' | 'secondary' | 'danger'; loading?: boolean; disabled?: boolean; icon?: IconName }) {
   const t = useTheme();
-  const fg = kind === 'primary' ? t.accent : kind === 'danger' ? t.danger : t.text;
+  /* every kind is a dark pill; primary is lighter graphite with a lit edge and a deeper shadow. */
+  const fg = kind === 'danger' ? t.danger : t.text;
   return (
     <Pressable
       accessibilityRole="button"
@@ -179,25 +224,37 @@ export function Button({ title, onPress, kind = 'primary', loading, disabled, ic
       disabled={disabled || loading}
       style={({ pressed }) => [
         {
-          minHeight: 48,
-          borderRadius: 8,
-          paddingHorizontal: 16,
+          minHeight: 52,
+          borderRadius: t.r.pill,
+          paddingHorizontal: 20,
           alignItems: 'center',
           justifyContent: 'center',
           flexDirection: 'row',
           gap: 8,
-          backgroundColor: pressed ? '#4E4E4E' : t.card,
         },
-        kind === 'primary' && { borderWidth: 1, borderColor: t.accent + '66' },
-        disabled && { opacity: 0.45 },
+        kind === 'primary' ? shadow(2) : null,
+        pressed && { opacity: 0.75, transform: [{ scale: 0.985 }] },
+        disabled && { opacity: 0.4 },
       ]}
     >
+      <Gradient colors={kind === 'primary' ? t.primaryGrad : t.cardGrad} radius={t.r.pill} />
+      <View
+        pointerEvents="none"
+        style={[
+          StyleSheet.absoluteFill,
+          {
+            borderRadius: t.r.pill,
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: kind === 'danger' ? t.danger + '55' : kind === 'primary' ? '#FFFFFF33' : t.line,
+          },
+        ]}
+      />
       {loading ? (
         <ActivityIndicator color={fg} />
       ) : (
         <>
-          {icon ? <Ionicons name={icon} size={20} color={fg} /> : null}
-          <Text style={{ color: fg, fontWeight: '600', fontSize: 15 }}>{title}</Text>
+          {icon ? <Ionicons name={icon} size={19} color={fg} /> : null}
+          <Text style={{ color: fg, fontWeight: '700', fontSize: 15.5, letterSpacing: 0.2 }}>{title}</Text>
         </>
       )}
     </Pressable>
@@ -227,21 +284,23 @@ export function IconTile({ icon, color, size = 32 }: { icon: IconName; color?: s
   );
 }
 
-/** Accent section label + rows separated by darker hairlines (Electrum's ListView sections). */
+/** Section label above a rounded card whose rows are split by hairlines. */
 export function ListGroup({ title, children, footer }: { title?: string; children: ReactNode; footer?: string }) {
   const t = useTheme();
   const items = (Array.isArray(children) ? children.flat() : [children]).filter(Boolean);
   return (
-    <View>
+    <View style={{ gap: 8 }}>
       {title ? <T kind="section">{title}</T> : null}
-      <View>
-        {items.map((c, i) => (
-          <View key={i} style={i ? { borderTopWidth: 1, borderTopColor: t.darker } : undefined}>
-            {c}
-          </View>
-        ))}
+      <View style={[{ borderRadius: t.r.lg }, shadow(1)]}>
+        <GradientView colors={t.listGrad} radius={t.r.lg} border={t.line} style={{ paddingHorizontal: 10, overflow: 'hidden' }}>
+          {items.map((c, i) => (
+            <View key={i} style={i ? { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: t.line } : undefined}>
+              {c}
+            </View>
+          ))}
+        </GradientView>
       </View>
-      {footer ? <View style={{ paddingTop: 6, paddingHorizontal: 4 }}><T kind="muted">{footer}</T></View> : null}
+      {footer ? <View style={{ paddingHorizontal: 6 }}><T kind="muted">{footer}</T></View> : null}
     </View>
   );
 }
@@ -291,10 +350,13 @@ export function Notice({ kind = 'warn', icon, children }: { kind?: 'warn' | 'err
   const t = useTheme();
   const c = kind === 'error' ? t.danger : kind === 'info' ? t.accent : t.warn;
   return (
-    <View style={{ flexDirection: 'row', gap: 10, padding: 12, borderRadius: 8, backgroundColor: t.card, borderLeftWidth: 3, borderLeftColor: c }}>
+    <GradientView colors={t.cardGrad} radius={t.r.lg} style={[{ flexDirection: 'row', gap: 12, padding: 14 }, shadow(1)]}>
+      {/* the status colour reads as a soft wash from the left edge, not a hard 3 px rule */}
+      <Gradient colors={[c + '2E', c + '00']} direction="right" radius={t.r.lg} />
+      <View pointerEvents="none" style={[StyleSheet.absoluteFill, { borderRadius: t.r.lg, borderWidth: StyleSheet.hairlineWidth, borderColor: c + '40' }]} />
       <Ionicons name={icon ?? (kind === 'error' ? 'alert-circle' : kind === 'info' ? 'information-circle' : 'warning')} size={20} color={c} />
       <View style={{ flex: 1, gap: 4 }}>{typeof children === 'string' ? <T>{children}</T> : children}</View>
-    </View>
+    </GradientView>
   );
 }
 
@@ -302,25 +364,34 @@ export function Badge({ label, color }: { label: string; color?: string }) {
   const t = useTheme();
   const c = color ?? t.accent;
   return (
-    <View style={{ alignSelf: 'flex-start', borderWidth: 1, borderColor: c, borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 }}>
-      <Text style={{ color: c, fontSize: 11 }}>{label}</Text>
+    <View style={{ alignSelf: 'flex-start', borderWidth: StyleSheet.hairlineWidth, borderColor: c + '66', borderRadius: t.r.pill, paddingHorizontal: 9, paddingVertical: 3, backgroundColor: c + '14' }}>
+      <Text style={{ color: c, fontSize: 10.5, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase' }}>{label}</Text>
     </View>
   );
 }
 
+/** Label above an inset, rounded well (replaces the single underline). */
 export function Field(props: TextInputProps & { label: string }) {
   const t = useTheme();
+  const [focus, setFocus] = useState(false);
+  const { label, onFocus, onBlur, style, ...rest } = props;
   return (
-    <View style={{ gap: 4 }}>
-      <Text style={{ color: t.accent, fontSize: 13 }}>{props.label}</Text>
-      <TextInput
-        autoCapitalize="none"
-        autoCorrect={false}
-        placeholderTextColor={t.muted}
-        selectionColor={t.accent}
-        {...props}
-        style={{ paddingHorizontal: 4, paddingVertical: 10, color: t.text, fontSize: 15, borderBottomWidth: 2, borderBottomColor: t.accent }}
-      />
+    <View style={{ gap: 7 }}>
+      <Text style={{ color: t.accent2, fontSize: 11.5, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', marginLeft: 4 }}>{label}</Text>
+      <View style={{ borderRadius: t.r.md, overflow: 'hidden' }}>
+        <Gradient colors={t.wellGrad} radius={t.r.md} />
+        <View pointerEvents="none" style={[StyleSheet.absoluteFill, { borderRadius: t.r.md, borderWidth: focus ? 1 : StyleSheet.hairlineWidth, borderColor: focus ? t.accent + '80' : t.line }]} />
+        <TextInput
+          autoCapitalize="none"
+          autoCorrect={false}
+          placeholderTextColor={t.muted}
+          selectionColor={t.accent}
+          onFocus={(e) => (setFocus(true), onFocus?.(e))}
+          onBlur={(e) => (setFocus(false), onBlur?.(e))}
+          {...rest}
+          style={[{ paddingHorizontal: 14, paddingVertical: 14, color: t.text, fontSize: 15 }, style]}
+        />
+      </View>
     </View>
   );
 }
@@ -360,18 +431,23 @@ export function Segmented<V extends string>({ options, value, onChange }: { opti
   );
 }
 
-/** Electrum's FlatButton: icon over a small label; accent while pressed or selected. */
+/** Icon over a small label; the selected one sits on a rounded pill. */
 export function ActionButton({ icon, label, onPress, disabled, selected }: { icon: IconName; label: string; onPress: () => void; disabled?: boolean; selected?: boolean; onGradient?: boolean }) {
   const t = useTheme();
   return (
     <Pressable onPress={onPress} disabled={disabled} accessibilityRole="button" accessibilityState={{ selected }} style={{ flex: 1 }}>
       {({ pressed }) => {
-        const c = disabled ? t.muted : pressed || selected ? t.accent : t.text;
+        const c = disabled ? t.muted + '80' : selected ? t.text : pressed ? t.accent : t.muted;
         return (
-          <View style={{ alignItems: 'center', gap: 4, paddingVertical: 9 }}>
-            {selected ? <View style={{ position: 'absolute', top: 0, left: 8, right: 8, height: 3, backgroundColor: t.accent }} /> : null}
-            <Ionicons name={icon} size={24} color={c} />
-            <Text style={{ color: c, fontSize: 12 }}>{label}</Text>
+          <View style={{ alignItems: 'center', gap: 4, paddingVertical: 9, paddingHorizontal: 2, borderRadius: t.r.md, overflow: 'hidden' }}>
+            {selected ? (
+              <>
+                <Gradient colors={['#FFFFFF1F', '#FFFFFF08']} radius={t.r.md} />
+                <View pointerEvents="none" style={[StyleSheet.absoluteFill, { borderRadius: t.r.md, borderWidth: StyleSheet.hairlineWidth, borderColor: t.lineStrong }]} />
+              </>
+            ) : null}
+            <Ionicons name={icon} size={22} color={c} />
+            <Text numberOfLines={1} style={{ color: c, fontSize: 11, fontWeight: selected ? '700' : '500' }}>{label}</Text>
           </View>
         );
       }}
@@ -379,15 +455,13 @@ export function ActionButton({ icon, label, onPress, disabled, selected }: { ico
   );
 }
 
-/** Electrum's ButtonContainer: highlight-coloured bar, buttons separated by short darker lines. */
+/** Row of ActionButtons, evenly split, no separators (the selected pill does the work). */
 export function ButtonBar({ children, style }: { children: ReactNode; style?: ViewStyle }) {
-  const t = useTheme();
   const items = (Array.isArray(children) ? children.flat() : [children]).filter(Boolean);
   return (
-    <View style={[{ flexDirection: 'row', alignItems: 'center', backgroundColor: t.card }, style]}>
+    <View style={[{ flexDirection: 'row', alignItems: 'center', gap: 4 }, style]}>
       {items.map((c, i) => (
         <View key={i} style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
-          {i ? <View style={{ width: 2, height: 36, backgroundColor: t.darker }} /> : null}
           {c}
         </View>
       ))}
@@ -469,9 +543,9 @@ export function AllocationBar({ parts }: { parts: { key: string; value: number; 
   const total = parts.reduce((s, p) => s + p.value, 0);
   if (!(total > 0)) return null;
   return (
-    <View style={{ flexDirection: 'row', height: 6, borderRadius: 3, overflow: 'hidden', backgroundColor: t.card, gap: 2 }}>
+    <View style={{ flexDirection: 'row', height: 7, borderRadius: 4, overflow: 'hidden', backgroundColor: t.darker, gap: 2.5 }}>
       {parts.filter((p) => p.value > 0).map((p) => (
-        <View key={p.key} style={{ flex: p.value / total, backgroundColor: p.color }} />
+        <View key={p.key} style={{ flex: p.value / total, backgroundColor: p.color, borderRadius: 4 }} />
       ))}
     </View>
   );
@@ -482,10 +556,16 @@ export function Sheet({ visible, onClose, title, children }: { visible: boolean;
   const t = useTheme();
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={{ flex: 1, backgroundColor: '#0009' }} onPress={onClose} />
-      <View style={{ backgroundColor: t.card2, borderTopLeftRadius: 8, borderTopRightRadius: 8, padding: 16, paddingBottom: 36, gap: 2 }}>
-        <Text style={{ color: t.text, fontSize: 18, fontWeight: '700', marginBottom: 6 }}>{title}</Text>
-        {children}
+      <Pressable style={{ flex: 1, backgroundColor: '#000000B8' }} onPress={onClose} />
+      <View style={{ borderTopLeftRadius: t.r.xl, borderTopRightRadius: t.r.xl, overflow: 'hidden' }}>
+        <Gradient colors={t.card2Grad} direction="down" />
+        <View style={[StyleSheet.absoluteFill, { borderTopLeftRadius: t.r.xl, borderTopRightRadius: t.r.xl, borderWidth: StyleSheet.hairlineWidth, borderColor: t.lineStrong }]} pointerEvents="none" />
+        <View style={{ paddingHorizontal: 16, paddingTop: 10, paddingBottom: 38, gap: 2 }}>
+          {/* grab handle */}
+          <View style={{ alignSelf: 'center', width: 38, height: 4, borderRadius: 2, backgroundColor: t.lineStrong, marginBottom: 12 }} />
+          <Text style={{ color: t.text, fontSize: 19, fontWeight: '700', marginBottom: 6, marginLeft: 4 }}>{title}</Text>
+          {children}
+        </View>
       </View>
     </Modal>
   );
@@ -500,20 +580,21 @@ export function ConfirmOnDevice({ visible, what, code }: { visible: boolean; wha
   const t = useTheme();
   return (
     <Modal visible={visible} transparent animationType="fade">
-      <View style={{ flex: 1, backgroundColor: '#000B', justifyContent: 'center', padding: 24 }}>
-        <View style={{ backgroundColor: t.card2, borderRadius: 8, padding: 20, gap: 14 }}>
+      <View style={{ flex: 1, backgroundColor: '#000000CC', justifyContent: 'center', padding: 24 }}>
+        <GradientView colors={t.heroGrad} direction="diagonal" radius={t.r.xl} border={t.lineStrong} style={[{ padding: 22, gap: 14 }, shadow(3)]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <Ionicons name={code ? 'link' : 'hardware-chip'} size={22} color={t.accent} />
+            <Ionicons name={code ? 'link' : 'shield-checkmark'} size={22} color={t.accent} />
             <Text style={{ color: t.text, fontSize: 18, fontWeight: '700' }}>{code ? 'Pair with your tredder' : 'Confirm on your device'}</Text>
           </View>
           {code ? (
-            <View style={{ backgroundColor: t.darker, borderRadius: 8, paddingVertical: 14, alignItems: 'center' }}>
+            <View style={{ borderRadius: t.r.md, paddingVertical: 16, alignItems: 'center', overflow: 'hidden' }}>
+              <Gradient colors={t.wellGrad} radius={t.r.md} />
               <Text style={{ color: t.accent, fontSize: 34, fontFamily: MONO, letterSpacing: 6 }}>{`${code.slice(0, 3)} ${code.slice(3)}`}</Text>
             </View>
           ) : null}
           <T>{what ?? 'Check every detail on the device screen, then press Confirm. Press Back to cancel.'}</T>
           <ActivityIndicator color={t.accent} />
-        </View>
+        </GradientView>
       </View>
     </Modal>
   );
@@ -532,8 +613,8 @@ export function PairWithCode({ visible, code, onCancel }: { visible: boolean; co
   const ok = done && !!code && typed === code;
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
-      <View style={{ flex: 1, backgroundColor: '#000B', justifyContent: 'center', padding: 24 }}>
-        <View style={{ backgroundColor: t.card2, borderRadius: 8, padding: 20, gap: 14 }}>
+      <View style={{ flex: 1, backgroundColor: '#000000CC', justifyContent: 'center', padding: 24 }}>
+        <GradientView colors={t.heroGrad} direction="diagonal" radius={t.r.xl} border={t.lineStrong} style={[{ padding: 22, gap: 14 }, shadow(3)]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <Ionicons name="link" size={22} color={t.accent} />
             <Text style={{ color: t.text, fontSize: 18, fontWeight: '700' }}>Pair with your tredder</Text>
@@ -548,7 +629,7 @@ export function PairWithCode({ visible, code, onCancel }: { visible: boolean; co
             textContentType="oneTimeCode"
             placeholder="000000"
             placeholderTextColor={t.muted}
-            style={{ backgroundColor: t.darker, borderRadius: 8, paddingVertical: 12, color: ok ? t.ok : done ? t.danger : t.accent, fontSize: 32, fontFamily: MONO, letterSpacing: 8, textAlign: 'center' }}
+            style={{ backgroundColor: t.darker, borderRadius: t.r.md, borderWidth: StyleSheet.hairlineWidth, borderColor: ok ? t.ok + '80' : done ? t.danger + '80' : t.lineStrong, paddingVertical: 14, color: ok ? t.ok : done ? t.danger : t.accent, fontSize: 32, fontFamily: MONO, letterSpacing: 8, textAlign: 'center' }}
           />
           {!done ? null : ok ? (
             <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
@@ -576,7 +657,7 @@ export function PairWithCode({ visible, code, onCancel }: { visible: boolean; co
             </View>
           </View>
           {ok ? <ActivityIndicator color={t.accent} /> : null}
-        </View>
+        </GradientView>
       </View>
     </Modal>
   );

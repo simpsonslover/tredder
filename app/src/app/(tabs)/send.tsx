@@ -203,6 +203,18 @@ export default function Send() {
       </View>
     );
 
+  if (w.larpMode)
+    return (
+      <StepScreen title="Send" onBack={back}>
+        <Card style={{ alignItems: 'center', gap: 16, paddingVertical: 32 }}>
+          <Ionicons name="glasses-outline" size={40} color={t.muted} />
+          <T kind="h2" center>LARP mode</T>
+          <T kind="muted" center>Sending is disabled in LARP mode — these balances are not real.</T>
+          <Button kind="secondary" title="Turn off LARP mode" onPress={() => router.navigate('/settings')} />
+        </Card>
+      </StepScreen>
+    );
+
   if (step === 'asset')
     return (
       <StepScreen title="Send" onBack={back} step={[1, 4, 'Choose the coin']}>
@@ -431,7 +443,7 @@ export default function Send() {
           <>
             {err ? <T kind="error">{err}</T> : null}
             {w.device ? (
-              <Button title="Confirm on tredder" icon="hardware-chip-outline" loading={busy} onPress={() => void confirm()} />
+              <Button title="Confirm on tredder" icon="shield-checkmark-outline" loading={busy} onPress={() => void confirm()} />
             ) : (
               <Button title="Connect your tredder to sign" icon="bluetooth" onPress={() => router.navigate('/device')} />
             )}

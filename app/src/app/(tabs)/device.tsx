@@ -87,7 +87,7 @@ export default function DeviceScreen() {
   const link = !d ? '—' : d.kind === 'ble' ? 'Bluetooth, encrypted (Noise)' : d.kind === 'sim' ? 'Simulator (plaintext)' : 'In-app mock';
 
   return (
-    <Screen title="Device" icon="hardware-chip" right={<ToolbarButton icon="settings-outline" label="Preferences" onPress={() => router.push('/settings')} />}>
+    <Screen title="Device" icon="cube" right={<ToolbarButton icon="settings-outline" label="Preferences" onPress={() => router.push('/settings')} />}>
       <Pane style={{ paddingHorizontal: 18, gap: 8 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <Text numberOfLines={1} style={{ color: t.text, fontSize: 20, flex: 1 }}>{d ? d.name : 'tredder'}</Text>
@@ -133,7 +133,7 @@ export default function DeviceScreen() {
               {found.map((f) => (
                 <ListItem
                   key={f.id}
-                  icon="hardware-chip"
+                  icon="cube"
                   color={t.accent}
                   title={f.name}
                   sub={f.rssi ? `signal ${f.rssi} dBm` : f.id}

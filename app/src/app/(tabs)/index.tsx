@@ -89,8 +89,8 @@ export default function Portfolio() {
   if (!w.accounts.length)
     return (
       <Screen title={title} icon="wallet" right={toolbarRight}>
-        <Pane style={{ alignItems: 'center', paddingVertical: 28, gap: 12 }}>
-          <Text style={{ color: t.accent, fontSize: 22 }}>No wallet loaded</Text>
+        <Pane hero style={{ alignItems: 'center', paddingVertical: 32, gap: 12 }}>
+          <Text style={{ color: t.text, fontSize: 23, fontWeight: '700' }}>No wallet loaded</Text>
           <T center kind="muted">Connect your tredder. Your keys never leave the device: this app only reads public addresses and asks the device to sign.</T>
         </Pane>
         <Button title="Connect device" icon="bluetooth" onPress={() => router.navigate('/device')} />
@@ -126,16 +126,16 @@ export default function Portfolio() {
 
   return (
     <Screen title={title} icon="wallet" right={toolbarRight} onRefresh={w.refresh} refreshing={w.loading}>
-      <Pane style={{ paddingHorizontal: 20, paddingVertical: 14, gap: 4 }}>
+      <Pane hero style={{ paddingHorizontal: 22, paddingVertical: 20, gap: 10 }}>
         {testnet ? (
           <>
-            <Text style={{ color: t.text, fontSize: 22 }}>Test wallet</Text>
+            <Text style={{ color: t.text, fontSize: 24, fontWeight: '700' }}>Test wallet</Text>
             <T kind="muted">Testnet coins have no real value.</T>
           </>
         ) : (
           <>
-            <T kind="muted">Total</T>
-            <Text style={{ color: t.text, fontSize: 30, fontFamily: MONO }}>{formatUsd(w.portfolio?.totalUsd)}</Text>
+            <Text style={{ color: t.accent2, fontSize: 11.5, fontWeight: '700', letterSpacing: 1.1, textTransform: 'uppercase' }}>Total balance</Text>
+            <Text style={{ color: t.text, fontSize: 40, fontFamily: MONO, letterSpacing: -1.2 }}>{formatUsd(w.portfolio?.totalUsd)}</Text>
             <AllocationBar parts={assets.map((a) => ({ key: a.key, value: a.usd ?? 0, color: coinColor(a.symbol) }))} />
           </>
         )}
