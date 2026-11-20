@@ -11,7 +11,7 @@ const TABS: { route: string; label: string; icon: IconName }[] = [
   { route: 'activity', label: 'History', icon: 'time-outline' },
   { route: 'receive', label: 'Receive', icon: 'arrow-down-circle-outline' },
   { route: 'send', label: 'Send', icon: 'arrow-up-circle-outline' },
-  { route: 'device', label: 'Device', icon: 'shield-checkmark-outline' },
+  { route: 'device', label: 'Device', icon: 'cube-outline' },
 ];
 
 /** Floating rounded tab bar, lifted clear of the home indicator. */
