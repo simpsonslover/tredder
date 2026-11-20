@@ -258,7 +258,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     setError(null);
     await attach(d.client, d.kind);
   }, [attach]);
-  reloadRef.current = reloadDevice;
+  useEffect(() => { reloadRef.current = reloadDevice; }, [reloadDevice]);
 
   // Opening the app: reconnect to the last tredder. Its key must still be the pinned one; a changed
   // key (demo device restarted, or a different device) is never accepted silently.
@@ -289,6 +289,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (settings.larpMode) void rebuildLarp(settings.larpCoins);
     else setLarpPortfolio(null);
   }, [settings.larpMode, settings.larpCoins, rebuildLarp]);
