@@ -642,7 +642,7 @@ export function PairWithCode({ visible, code, onCancel }: { visible: boolean; co
             <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
               <Ionicons name="close-circle" size={22} color={t.danger} />
               <View style={{ flex: 1 }}>
-                <T>That is not this connection's code. Check it, or press ✗ reject on the tredder: something may be between your phone and the device.</T>
+                <T>{"That is not this connection's code. Check it, or press ✗ reject on the tredder: something may be between your phone and the device."}</T>
               </View>
             </View>
           )}

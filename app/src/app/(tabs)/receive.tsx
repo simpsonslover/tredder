@@ -10,7 +10,7 @@ import { useCallback, useState } from 'react';
 import { BackHandler, Share, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 
-import { CHAINS, SCHEME_LABEL } from '../../chains/config';
+import { CHAINS } from '../../chains/config';
 import { DeviceError } from '../../protocol/types';
 import { accountId, expectedReceiveAddress, verifyReceiveAddress, type WalletAccount } from '../../state/wallet';
 import { useWallet } from '../../state/WalletContext';
