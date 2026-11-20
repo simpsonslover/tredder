@@ -74,6 +74,18 @@ export default function Receive() {
     }
   };
 
+  if (w.larpMode)
+    return (
+      <StepScreen title="Receive" onBack={back}>
+        <Card style={{ alignItems: 'center', gap: 16, paddingVertical: 32 }}>
+          <Ionicons name="glasses-outline" size={40} color={t.muted} />
+          <T kind="h2" center>LARP mode</T>
+          <T kind="muted" center>No receive address in LARP mode — there is no real wallet behind these balances.</T>
+          <Button kind="secondary" title="Turn off LARP mode" onPress={() => router.push('/settings')} />
+        </Card>
+      </StepScreen>
+    );
+
   if (!sel)
     return (
       <StepScreen title="Receive" onBack={back}>
